@@ -8,13 +8,14 @@ test('sell-002: seller cancels an auction; bids rejected, credit released, non-o
 
   // carol bids so she has credit held
   await login(page, 'carol');
-  await page.request.get('/api/credit');
-  const before = (await (await page.request.get('/api/credit')).json()).available;
+  // Other specs share this DB, so compare against carol's balances before this test.
+  const start = await (await page.request.get('/api/credit')).json();
+  const before = start.available;
   await page.goto(`/auctions/${auction.id}`);
   await page.getByLabel('Your bid').fill('150');
   await page.getByRole('button', { name: 'Place bid' }).click();
   await expect(page.getByTestId('current-price')).toHaveText('$150.00');
-  expect((await (await page.request.get('/api/credit')).json()).held).toBe(150);
+  expect((await (await page.request.get('/api/credit')).json()).held).toBe(start.held + 150);
 
   // Non-owner cannot cancel
   await expect(page.getByRole('button', { name: 'Cancel auction' })).toHaveCount(0);
@@ -36,7 +37,7 @@ test('sell-002: seller cancels an auction; bids rejected, credit released, non-o
   const late = await page.request.post(`/api/auctions/${auction.id}/bids`, { data: { amount: 300 } });
   expect(late.status()).toBe(400);
   const credit = await (await page.request.get('/api/credit')).json();
-  expect(credit.held).toBe(0);
+  expect(credit.held).toBe(start.held);
   expect(credit.available).toBe(before);
   await page.goto('/credit');
   await expect(page.getByTestId('transactions').getByRole('row').nth(1)).toContainText('Auction cancelled: Cancel Me Vase');

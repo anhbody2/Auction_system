@@ -278,15 +278,18 @@
       "area": "homepage",
       "title": "View available and just complete auction",
       "user_visible_behavior": "A customer can see all auctions, just completed auctions, available auctions, remaining counted down",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Open homepage not log in, or reg",
         "Check all auctions appear on homepage",
         "Verify each auction shows time available, just completed auctions only show(not accpet new bid) , remaining time of auctions",
         "Only logged in user can bid"
       ],
-      "evidence": [],
-      "notes": ""
+      "evidence": [
+        "2026-10-16 be/tests/homepage.test.ts 2/2 vitest pass (guest list has live/upcoming/just-completed with winner + price, excludes cancelled and >7-day-old; guest bid 401)",
+        "2026-10-16 e2e/guest-002-homepage.spec.ts Playwright pass (guest homepage sections; live countdown ticks; upcoming 'Starts in'; completed 'Ended' + 'Won by bob' and no bid form; guest bid 401; Log in to bid -> returns to auction -> bid placed)"
+      ],
+      "notes": "Just completed = ended within the last 7 days (JUST_COMPLETED_DAYS). Cancelled auctions are not shown publicly. Homepage refreshes every 30s and when a countdown elapses."
     },
     {
       "id": "guest-003",

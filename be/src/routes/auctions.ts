@@ -8,6 +8,8 @@ import { optionalAuth, requireAuth } from '../middleware/auth';
 export const auctionsRouter = Router();
 
 export const CONDITIONS = ['new', 'like_new', 'used', 'for_parts'] as const;
+/** Ended auctions stay on the homepage ("just completed") for this many days. */
+const JUST_COMPLETED_DAYS = 7;
 
 const price = (label: string) =>
   z.coerce
@@ -137,13 +139,26 @@ auctionsRouter.get(
   '/auctions',
   optionalAuth,
   asyncHandler(async (req, res) => {
-    const auctions = await prisma.auction.findMany({
-      where: { status: { not: 'cancelled' } },
-      include: auctionInclude,
-      orderBy: { endTime: 'asc' },
-      take: 200,
-    });
-    res.json({ auctions: await Promise.all(auctions.map((a) => auctionView(a, req.user?.id))) });
+    const now = new Date();
+    const recent = new Date(now.getTime() - JUST_COMPLETED_DAYS * 24 * 3600 * 1000);
+    const [open, completed] = await Promise.all([
+      // live + upcoming, soonest ending first
+      prisma.auction.findMany({
+        where: { status: { in: ['active', 'upcoming'] }, endTime: { gt: now } },
+        include: auctionInclude,
+        orderBy: { endTime: 'asc' },
+        take: 200,
+      }),
+      // just completed, most recent first
+      prisma.auction.findMany({
+        where: { status: 'ended', endTime: { gte: recent } },
+        include: auctionInclude,
+        orderBy: { endTime: 'desc' },
+        take: 100,
+      }),
+    ]);
+    const views = await Promise.all([...open, ...completed].map((a) => auctionView(a, req.user?.id)));
+    res.json({ auctions: views, justCompletedDays: JUST_COMPLETED_DAYS });
   }),
 );
 
