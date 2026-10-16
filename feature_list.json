@@ -195,14 +195,17 @@
       "area": "auction",
       "title": "Manage your auctions",
       "user_visible_behavior": "A customer can see the list of auctions they created, with status (upcoming, active, ended, cancelled), current highest bid, and can open each one.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Log in as a customer who has created auctions in different states.",
         "Open 'My Auctions'.",
         "Verify only this customer's auctions are listed with correct status and current highest bid.",
         "Open an auction and verify its details and bid history are shown."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-16 be/tests/my-auctions.test.ts 2/2 vitest pass (only own auctions, statuses active/upcoming/ended/cancelled, highest bid 75 + bidCount, detail + bid history)",
+        "2026-10-16 e2e/cust-006-my-auctions.spec.ts Playwright pass (fresh seller ivy: 4 rows w/ correct status + highest bid, other seller's auction absent, status tab filter, open -> details + bid history)"
+      ],
       "notes": "Depends on sell-001."
     },
     {
