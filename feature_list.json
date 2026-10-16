@@ -1,6 +1,7 @@
 {
   "project": "Online Auction System",
-  "last_updated": "YYYY-MM-DD",
+  "last_updated": "2026-10-16",
+  "scope": "Only the roles named in the requirements:Guest, Customer (base role), Seller and Bidder. A Customer can act as both Seller and Bidder.",
   "rules": {
     "single_active_feature": true,
     "passing_requires_evidence": true,
@@ -12,50 +13,260 @@
     "blocked": "Work cannot continue until a documented blocker is resolved.",
     "passing": "Required verification has passed and evidence is recorded."
   },
+  "roles": {
+    "customer": "Any signed-in user. Can be a seller, a bidder, or both.",
+    "seller": "A customer who creates and manages auctions.",
+    "bidder": "A customer who places bids and posts messages on auctions."
+  },
   "features": [
     {
-      "id": "auth-001",
+      "id": "cust-001",
       "priority": 1,
-      "area": "register",
-      "title": "Create a new user",
-      "user_visible_behavior": "A user can click New Chat and see a fresh empty conversation.",
-      "status": "not_started",
+      "role": "customer",
+      "area": "auth",
+      "title": "Login",
+      "user_visible_behavior": "A customer can log in with valid credentials and is rejected with an error message on invalid credentials.",
+      "status": "passing",
       "verification": [
-        "Open the app.",
-        "Click New Chat.",
-        "Verify a new conversation appears in the sidebar.",
-        "Verify the main panel shows an empty conversation state."
+        "Open the login page.",
+        "Submit a valid username/email and password.",
+        "Verify the customer is redirected to their home/dashboard and is shown as logged in.",
+        "Log out, then submit a wrong password.",
+        "Verify an error message is shown and no session is created."
       ],
-      "evidence": [],
-      "notes": ""
+      "evidence": [
+        "2026-10-16 be/tests/auth.login.test.ts: 6/6 vitest pass (login by username + email, wrong password 401 with no Set-Cookie, unknown user same message, field validation, logout clears session)",
+        "2026-10-16 e2e/cust-001-login.spec.ts: Playwright pass (login -> /dashboard shows alice; logout; wrong password shows alert, /api/auth/me 401)",
+        "2026-10-16 ./init.sh exit 0"
+      ],
+      "notes": "Seeded accounts alice/bob/carol, password Password123! (be/prisma/seed.ts). Session = httpOnly JWT cookie."
     },
     {
-      "id": "chat-002",
+      "id": "guest-001",
       "priority": 2,
-      "area": "chat",
-      "title": "Send a message in the current conversation",
-      "user_visible_behavior": "A user can submit a message and see it appear in the active thread.",
+      "role": "guest",
+      "area": "auth",
+      "title": "Register",
+      "user_visible_behavior": "New user can create new account with validation input infos",
       "status": "not_started",
       "verification": [
-        "Open an existing conversation.",
-        "Type a message into the input.",
-        "Submit the message.",
-        "Verify the new message appears in the thread."
+        "Open register page",
+        "Input all fields with invalid info and wait for validation",
+        "Input valid information to all fields required, hit create new user , then waiting success notification",
+        "Check API send email to user mail"
+      ],
+      "evidence": [],
+      "notes": "All fields required must be valid information, email confirmation only check API call success"
+    },
+    {
+      "id": "cust-002",
+      "priority": 3,
+      "role": "customer",
+      "area": "profile",
+      "title": "Manage profile",
+      "user_visible_behavior": "A logged-in customer can view and edit their profile details (e.g. name, email, phone, address) and the changes are saved.",
+      "status": "not_started",
+      "verification": [
+        "Log in and open the profile page.",
+        "Verify current profile details are displayed.",
+        "Edit one or more fields and save.",
+        "Reload the page and verify the new values persist.",
+        "Submit an invalid value (e.g. malformed email) and verify a validation error is shown."
       ],
       "evidence": [],
       "notes": ""
     },
     {
-      "id": "chat-003",
-      "priority": 3,
-      "area": "chat",
-      "title": "Persist the active conversation list",
-      "user_visible_behavior": "A user sees previously created conversations after restarting the app.",
+      "id": "cust-003",
+      "priority": 4,
+      "role": "customer",
+      "area": "auth",
+      "title": "Change password",
+      "user_visible_behavior": "A logged-in customer can change their password by providing the current password and a new one.",
       "status": "not_started",
       "verification": [
-        "Create two conversations.",
-        "Restart the app.",
-        "Verify both conversations still appear in the sidebar."
+        "Log in and open the change password page.",
+        "Enter a wrong current password and verify the change is rejected.",
+        "Enter the correct current password and a new password (with confirmation) and submit.",
+        "Log out and verify login fails with the old password.",
+        "Verify login succeeds with the new password."
+      ],
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "cust-004",
+      "priority": 5,
+      "role": "customer",
+      "area": "auth",
+      "title": "Forget password",
+      "user_visible_behavior": "A customer who forgot their password can request a reset and set a new password without logging in.",
+      "status": "not_started",
+      "verification": [
+        "Open the login page and click 'Forgot password'.",
+        "Submit the registered email/username.",
+        "Verify a reset link/token is issued (email or logged output in dev).",
+        "Use the reset link/token to set a new password.",
+        "Verify login succeeds with the new password and the reset token cannot be reused.",
+        "Submit an unknown email and verify no account information is leaked."
+      ],
+      "evidence": [],
+      "notes": "Decide reset delivery mechanism (email vs. dev log) before implementation."
+    },
+    {
+      "id": "cust-005",
+      "priority": 6,
+      "role": "customer",
+      "area": "credit",
+      "title": "Manage your credit account",
+      "user_visible_behavior": "A customer can view their credit balance and transaction history, and top up / withdraw credit.",
+      "status": "not_started",
+      "verification": [
+        "Log in and open the credit account page.",
+        "Verify current balance and transaction history are displayed.",
+        "Top up a valid amount and verify the balance increases and a transaction is recorded.",
+        "Attempt to withdraw more than the available balance and verify it is rejected.",
+        "Withdraw a valid amount and verify the balance decreases and a transaction is recorded."
+      ],
+      "evidence": [],
+      "notes": "Needed before bidding so bids can be checked against available credit."
+    },
+    {
+      "id": "sell-001",
+      "priority": 7,
+      "role": "seller",
+      "area": "auction",
+      "title": "Create new auction",
+      "user_visible_behavior": "A seller can create an auction with item details, starting price, and start/end time, and it becomes visible to bidders.",
+      "status": "not_started",
+      "verification": [
+        "Log in and open the create auction page.",
+        "Fill in item name, description, starting price, minimum increment, start time and end time.",
+        "Submit and verify the auction appears in the seller's auction list.",
+        "Log in as a different customer and verify the auction is visible.",
+        "Submit invalid data (negative price, end time before start time) and verify validation errors are shown."
+      ],
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "sell-002",
+      "priority": 8,
+      "role": "seller",
+      "area": "auction",
+      "title": "Cancel auction",
+      "user_visible_behavior": "A seller can cancel their own auction before it ends; bidders can no longer bid on it.",
+      "status": "not_started",
+      "verification": [
+        "Log in as the seller of an active auction and click Cancel.",
+        "Verify the auction status changes to 'cancelled'.",
+        "Log in as a bidder and verify a bid on the cancelled auction is rejected.",
+        "Verify any held bidder credit is released.",
+        "Log in as a non-owner and verify they cannot cancel the auction."
+      ],
+      "evidence": [],
+      "notes": "Define rule for whether cancellation is allowed after bids exist."
+    },
+    {
+      "id": "cust-006",
+      "priority": 9,
+      "role": "customer",
+      "area": "auction",
+      "title": "Manage your auctions",
+      "user_visible_behavior": "A customer can see the list of auctions they created, with status (upcoming, active, ended, cancelled), current highest bid, and can open each one.",
+      "status": "not_started",
+      "verification": [
+        "Log in as a customer who has created auctions in different states.",
+        "Open 'My Auctions'.",
+        "Verify only this customer's auctions are listed with correct status and current highest bid.",
+        "Open an auction and verify its details and bid history are shown."
+      ],
+      "evidence": [],
+      "notes": "Depends on sell-001."
+    },
+    {
+      "id": "bid-001",
+      "priority": 10,
+      "role": "bidder",
+      "area": "bidding",
+      "title": "Make a bid",
+      "user_visible_behavior": "A bidder can place a bid on an active auction that is higher than the current highest bid by at least the minimum increment.",
+      "status": "not_started",
+      "verification": [
+        "Log in as a bidder and open an active auction owned by someone else.",
+        "Place a valid bid and verify it becomes the current highest bid.",
+        "Place a bid lower than or equal to the current highest bid and verify it is rejected.",
+        "Place a bid exceeding available credit and verify it is rejected.",
+        "Verify the seller cannot bid on their own auction.",
+        "Verify bids on ended or cancelled auctions are rejected."
+      ],
+      "evidence": [],
+      "notes": "Depends on cust-005 and sell-001."
+    },
+    {
+      "id": "bid-002",
+      "priority": 11,
+      "role": "bidder",
+      "area": "messaging",
+      "title": "Post a message",
+      "user_visible_behavior": "A bidder can post a message on an auction page and it is visible to other users viewing that auction.",
+      "status": "not_started",
+      "verification": [
+        "Log in as a bidder and open an auction.",
+        "Post a message and verify it appears in the auction's message list with author and time.",
+        "Log in as another customer and verify the message is visible.",
+        "Submit an empty message and verify it is rejected."
+      ],
+      "evidence": [],
+      "notes": "Clarify whether messages go to the auction thread (public) or directly to the seller."
+    },
+    {
+      "id": "cust-007",
+      "priority": 12,
+      "role": "customer",
+      "area": "bidding",
+      "title": "Manage your biddings",
+      "user_visible_behavior": "A customer can see all auctions they have bid on, their latest bid, whether they are currently winning/outbid, and the auction outcome.",
+      "status": "not_started",
+      "verification": [
+        "Log in as a customer who has bid on several auctions.",
+        "Open 'My Biddings'.",
+        "Verify each auction shows the customer's latest bid and current highest bid.",
+        "Verify status is correct (winning, outbid, won, lost, cancelled).",
+        "Verify only this customer's bids are listed."
+      ],
+      "evidence": [],
+      "notes": "Depends on bid-001."
+    },
+    {
+      "id": "guest-002",
+      "priority": 13,
+      "role": "guest",
+      "area": "homepage",
+      "title": "View available and just complete auction",
+      "user_visible_behavior": "A customer can see all auctions, just completed auctions, available auctions, remaining counted down",
+      "status": "not_started",
+      "verification": [
+        "Open homepage not log in, or reg",
+        "Check all auctions appear on homepage",
+        "Verify each auction shows time available, just completed auctions only show(not accpet new bid) , remaining time of auctions",
+        "Only logged in user can bid"
+      ],
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "guest-003",
+      "priority": 13,
+      "role": "guest",
+      "area": "search-tools",
+      "title": "Search available and just complete auction by seller, auctions, category, products",
+      "user_visible_behavior": "A customer can search all auctions, just completed auctions, available auctions",
+      "status": "not_started",
+      "verification": [
+        "Toggle search-tools",
+        "Verify search input field by seller-name, auctions, category, products",
+        "Verify result should match keywords input"
       ],
       "evidence": [],
       "notes": ""

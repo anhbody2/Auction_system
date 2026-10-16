@@ -1,0 +1,217 @@
+// Built from docs/ERD_edited.md
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              BigInt    @id @default(autoincrement())
+  email           String    @unique @db.VarChar(255)
+  username        String    @unique @db.VarChar(50)
+  passwordHash    String    @map("password_hash") @db.VarChar(255)
+  role            String    @default("customer") @db.VarChar(20)
+  status          String    @default("active") @db.VarChar(20)
+  creditBalance   Decimal   @default(0) @map("credit_balance") @db.Decimal(14, 2)
+  heldBalance     Decimal   @default(0) @map("held_balance") @db.Decimal(14, 2)
+  emailVerifiedAt DateTime? @map("email_verified_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  info               UserInfo?
+  goods              Goods[]
+  auctions           Auction[]                 @relation("SellerAuctions")
+  wonAuctions        Auction[]                 @relation("WinnerAuctions")
+  bids               BidTicket[]
+  transactions       CreditTransaction[]
+  messages           AuctionMessage[]
+  resetTokens        PasswordResetToken[]
+  verificationTokens EmailVerificationToken[]
+
+  @@map("users")
+}
+
+model UserInfo {
+  userId    BigInt   @id @map("user_id")
+  fullName  String?  @map("full_name") @db.VarChar(255)
+  phone     String?  @db.VarChar(30)
+  address   String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_info")
+}
+
+model Category {
+  id          BigInt   @id @default(autoincrement())
+  name        String   @unique @db.VarChar(100)
+  description String?
+  status      String   @default("active") @db.VarChar(20)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  goods       Goods[]
+
+  @@map("categories")
+}
+
+model Goods {
+  id          BigInt        @id @default(autoincrement())
+  sellerId    BigInt        @map("seller_id")
+  categoryId  BigInt?       @map("category_id")
+  name        String        @db.VarChar(255)
+  description String?
+  condition   String?       @db.VarChar(30)
+  status      String        @default("active") @db.VarChar(20)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  seller      User          @relation(fields: [sellerId], references: [id])
+  category    Category?     @relation(fields: [categoryId], references: [id])
+  images      GoodsImage[]
+  auctions    Auction[]
+
+  @@map("goods")
+}
+
+model GoodsImage {
+  id        BigInt   @id @default(autoincrement())
+  goodsId   BigInt   @map("goods_id")
+  imageUrl  String   @map("image_url")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  goods     Goods    @relation(fields: [goodsId], references: [id], onDelete: Cascade)
+
+  @@map("goods_images")
+}
+
+model Auction {
+  id              BigInt    @id @default(autoincrement())
+  sellerId        BigInt    @map("seller_id")
+  goodsId         BigInt    @map("goods_id")
+  winnerId        BigInt?   @map("winner_id")
+  name            String    @db.VarChar(255)
+  description     String?
+  initialPrice    Decimal   @map("initial_price") @db.Decimal(14, 2)
+  reservePrice    Decimal?  @map("reserve_price") @db.Decimal(14, 2)
+  minIncrement    Decimal?  @map("min_increment") @db.Decimal(14, 2)
+  currentPrice    Decimal?  @map("current_price") @db.Decimal(14, 2)
+  durationMinutes Int       @map("duration_minutes")
+  startTime       DateTime  @map("start_time")
+  endTime         DateTime  @map("end_time")
+  status          String    @default("upcoming") @db.VarChar(20)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  cancelledAt     DateTime? @map("cancelled_at")
+  closedAt        DateTime? @map("closed_at")
+
+  seller       User                @relation("SellerAuctions", fields: [sellerId], references: [id])
+  winner       User?               @relation("WinnerAuctions", fields: [winnerId], references: [id])
+  goods        Goods               @relation(fields: [goodsId], references: [id])
+  bids         BidTicket[]
+  transactions CreditTransaction[]
+  settlement   AuctionSettlement?
+  messages     AuctionMessage[]
+
+  @@index([status, endTime])
+  @@map("auctions")
+}
+
+model BidTicket {
+  id           BigInt              @id @default(autoincrement())
+  auctionId    BigInt              @map("auction_id")
+  bidderId     BigInt              @map("bidder_id")
+  amount       Decimal             @db.Decimal(14, 2)
+  status       String              @default("active") @db.VarChar(20)
+  createdAt    DateTime            @default(now()) @map("created_at")
+  wonAt        DateTime?           @map("won_at")
+  auction      Auction             @relation(fields: [auctionId], references: [id])
+  bidder       User                @relation(fields: [bidderId], references: [id])
+  transactions CreditTransaction[]
+  settlement   AuctionSettlement?
+
+  @@index([auctionId, amount])
+  @@map("bid_tickets")
+}
+
+model CreditTransaction {
+  id              BigInt     @id @default(autoincrement())
+  userId          BigInt     @map("user_id")
+  auctionId       BigInt?    @map("auction_id")
+  bidTicketId     BigInt?    @map("bid_ticket_id")
+  transactionType String     @map("transaction_type") @db.VarChar(20)
+  amount          Decimal    @db.Decimal(14, 2)
+  balanceBefore   Decimal    @map("balance_before") @db.Decimal(14, 2)
+  balanceAfter    Decimal    @map("balance_after") @db.Decimal(14, 2)
+  description     String?
+  createdAt       DateTime   @default(now()) @map("created_at")
+  user            User       @relation(fields: [userId], references: [id])
+  auction         Auction?   @relation(fields: [auctionId], references: [id])
+  bidTicket       BidTicket? @relation(fields: [bidTicketId], references: [id])
+
+  @@map("credit_transactions")
+}
+
+model AuctionSettlement {
+  id               BigInt    @id @default(autoincrement())
+  auctionId        BigInt    @unique @map("auction_id")
+  winningBidId     BigInt?   @unique @map("winning_bid_id")
+  commissionAmount Decimal   @default(0) @map("commission_amount") @db.Decimal(14, 2)
+  settlementStatus String    @default("pending") @map("settlement_status") @db.VarChar(20)
+  settledAt        DateTime? @map("settled_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  auction          Auction   @relation(fields: [auctionId], references: [id])
+  winningBid       BidTicket? @relation(fields: [winningBidId], references: [id])
+
+  @@map("auction_settlements")
+}
+
+model BidIncrementRule {
+  id              BigInt   @id @default(autoincrement())
+  minBidAmount    Decimal  @map("min_bid_amount") @db.Decimal(14, 2)
+  maxBidAmount    Decimal? @map("max_bid_amount") @db.Decimal(14, 2)
+  incrementAmount Decimal  @map("increment_amount") @db.Decimal(14, 2)
+  status          String   @default("active") @db.VarChar(20)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("bid_increment_rules")
+}
+
+model AuctionMessage {
+  id        BigInt   @id @default(autoincrement())
+  auctionId BigInt   @map("auction_id")
+  authorId  BigInt   @map("author_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  auction   Auction  @relation(fields: [auctionId], references: [id])
+  author    User     @relation(fields: [authorId], references: [id])
+
+  @@map("auction_messages")
+}
+
+model PasswordResetToken {
+  id        BigInt    @id @default(autoincrement())
+  userId    BigInt    @map("user_id")
+  tokenHash String    @unique @map("token_hash") @db.VarChar(128)
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+model EmailVerificationToken {
+  id        BigInt    @id @default(autoincrement())
+  userId    BigInt    @map("user_id")
+  tokenHash String    @unique @map("token_hash") @db.VarChar(128)
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("email_verification_tokens")
+}

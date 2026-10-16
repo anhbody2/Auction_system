@@ -45,3 +45,4 @@ and the result is recorded.
 3. Record what is still broken or unverified.
 4. Commit once the repository is safe to resume.
 5. Leave a clean restart path for the next session.
+6. If feature_list passed all requirement, then change name of file to (**_1.json) and move it to progress-feature-list
