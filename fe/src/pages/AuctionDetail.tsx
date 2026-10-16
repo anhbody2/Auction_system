@@ -2,16 +2,19 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ApiError, CONDITION_LABELS, api, money, type Auction } from '../api';
 import { Countdown, StatusBadge } from '../components/AuctionBits';
+import { BidHistory, BidPanel, type Bid } from '../components/BidPanel';
 
 export function AuctionDetailPage() {
   const { id } = useParams();
   const [auction, setAuction] = useState<Auction | null>(null);
+  const [bids, setBids] = useState<Bid[]>([]);
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     try {
-      const r = await api<{ auction: Auction }>(`/auctions/${id}`);
+      const [r, b] = await Promise.all([api<{ auction: Auction }>(`/auctions/${id}`), api<{ bids: Bid[] }>(`/auctions/${id}/bids`)]);
       setAuction(r.auction);
+      setBids(b.bids);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Failed to load auction');
     }
@@ -34,6 +37,8 @@ export function AuctionDetailPage() {
         )}
         <h2>Description</h2>
         <p style={{ whiteSpace: 'pre-wrap' }}>{auction.description}</p>
+        <h2>Bid history</h2>
+        <BidHistory bids={bids} />
       </div>
       <aside className="card">
         <div className="row spread">
@@ -79,6 +84,7 @@ export function AuctionDetailPage() {
             </>
           )}
         </dl>
+        <BidPanel auction={auction} onBid={load} />
       </aside>
     </div>
   );

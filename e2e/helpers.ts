@@ -25,6 +25,26 @@ export async function registerViaApi(request: APIRequestContext, username: strin
   expect(res.status()).toBe(201);
 }
 
+/** Creates an auction via the API using the page's logged-in session. */
+export async function createAuctionViaApi(request: APIRequestContext, overrides: Record<string, unknown> = {}) {
+  const categories = (await (await request.get('/api/categories')).json()).categories;
+  const res = await request.post('/api/auctions', {
+    data: {
+      name: 'E2E Item',
+      description: 'An item created by the e2e suite.',
+      categoryId: categories[0].id,
+      condition: 'used',
+      initialPrice: 100,
+      minIncrement: 10,
+      startTime: new Date().toISOString(),
+      endTime: new Date(Date.now() + 3600_000).toISOString(),
+      ...overrides,
+    },
+  });
+  expect(res.status()).toBe(201);
+  return (await res.json()).auction as { id: number; name: string };
+}
+
 export async function logout(page: Page) {
   await page.getByRole('button', { name: 'Log out' }).click();
   await expect(page).toHaveURL(/\/login$/);

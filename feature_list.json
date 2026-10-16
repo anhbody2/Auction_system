@@ -209,7 +209,7 @@
       "area": "bidding",
       "title": "Make a bid",
       "user_visible_behavior": "A bidder can place a bid on an active auction that is higher than the current highest bid by at least the minimum increment.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Log in as a bidder and open an active auction owned by someone else.",
         "Place a valid bid and verify it becomes the current highest bid.",
@@ -218,8 +218,11 @@
         "Verify the seller cannot bid on their own auction.",
         "Verify bids on ended or cancelled auctions are rejected."
       ],
-      "evidence": [],
-      "notes": "Depends on cust-005 and sell-001."
+      "evidence": [
+        "2026-10-16 be/tests/bid.place.test.ts 8/8 vitest pass (valid bid becomes highest + credit held, below-min/equal rejected, outbid releases previous hold, raising own bid re-holds, over-credit rejected w/o ticket, seller 403, ended/cancelled/upcoming/anonymous rejected, concurrent equal bids -> exactly one accepted)",
+        "2026-10-16 e2e/bid-001-make-bid.spec.ts Playwright pass (seller blocked in UI + API 403, bob bid -> current $100 next $110, equal/below increment alert, over-credit alert, ended auction shows closed message + API 400)"
+      ],
+      "notes": "Credit model: a bid holds the amount (held_balance); being outbid releases it. Auction row is locked (SELECT FOR UPDATE) per bid. First bid >= starting price; later bids >= current + increment (auction min_increment or BID_INCREMENT_RULES)."
     },
     {
       "id": "bid-002",

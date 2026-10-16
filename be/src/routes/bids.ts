@@ -1,0 +1,84 @@
+import { Prisma } from '@prisma/client';
+import { Router } from 'express';
+import { z } from 'zod';
+import { prisma } from '../db';
+import { effectiveStatus, nextMinBid } from '../lib/auctions';
+import { applyCredit } from '../lib/credit';
+import { HttpError, asyncHandler } from '../lib/http';
+import { moneyField } from '../lib/validation';
+import { requireAuth } from '../middleware/auth';
+import { parseId } from './auctions';
+
+export const bidsRouter = Router();
+
+const fmt = (d: Prisma.Decimal) => `$${d.toFixed(2)}`;
+
+/** Locks the auction row so bids on the same auction are applied one at a time. */
+async function lockAuction(tx: Prisma.TransactionClient, id: bigint) {
+  await tx.$queryRaw`SELECT id FROM auctions WHERE id = ${id} FOR UPDATE`;
+  return tx.auction.findUnique({ where: { id } });
+}
+
+bidsRouter.post(
+  '/auctions/:id/bids',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const auctionId = parseId(req.params.id);
+    const { amount: raw } = z.object({ amount: moneyField }).parse(req.body);
+    const amount = new Prisma.Decimal(raw);
+    const bidderId = req.user!.id;
+
+    const ticket = await prisma.$transaction(async (tx) => {
+      const auction = await lockAuction(tx, auctionId);
+      if (!auction) throw new HttpError(404, 'Auction not found');
+      if (auction.sellerId === bidderId) throw new HttpError(403, 'You cannot bid on your own auction');
+
+      const status = effectiveStatus(auction);
+      if (status === 'cancelled') throw new HttpError(400, 'This auction has been cancelled');
+      if (status === 'ended') throw new HttpError(400, 'This auction has ended');
+      if (status === 'upcoming') throw new HttpError(400, 'This auction has not started yet');
+
+      const minimum = await nextMinBid(auction);
+      if (amount.lessThan(minimum)) {
+        throw new HttpError(400, `Bid must be at least ${fmt(minimum)}`, { amount: `Bid must be at least ${fmt(minimum)}` });
+      }
+
+      const leading = await tx.bidTicket.findFirst({ where: { auctionId, status: 'active' }, orderBy: { amount: 'desc' } });
+
+      // A leader raising their own bid: free the old hold before holding the new amount.
+      if (leading && leading.bidderId === bidderId) {
+        await tx.bidTicket.update({ where: { id: leading.id }, data: { status: 'outbid' } });
+        await applyCredit(tx, { userId: bidderId, type: 'release', amount: leading.amount, auctionId, bidTicketId: leading.id, description: 'Released: raised own bid' });
+      }
+
+      const created = await tx.bidTicket.create({ data: { auctionId, bidderId, amount, status: 'active' } });
+      await applyCredit(tx, { userId: bidderId, type: 'hold', amount, auctionId, bidTicketId: created.id, description: `Bid on ${auction.name}` });
+
+      if (leading && leading.bidderId !== bidderId) {
+        await tx.bidTicket.update({ where: { id: leading.id }, data: { status: 'outbid' } });
+        await applyCredit(tx, { userId: leading.bidderId, type: 'release', amount: leading.amount, auctionId, bidTicketId: leading.id, description: `Outbid on ${auction.name}` });
+      }
+
+      await tx.auction.update({ where: { id: auctionId }, data: { currentPrice: amount, status: 'active' } });
+      return created;
+    });
+
+    res.status(201).json({ message: 'Bid placed', bid: ticket });
+  }),
+);
+
+bidsRouter.get(
+  '/auctions/:id/bids',
+  asyncHandler(async (req, res) => {
+    const auctionId = parseId(req.params.id);
+    const bids = await prisma.bidTicket.findMany({
+      where: { auctionId },
+      orderBy: [{ amount: 'desc' }, { id: 'desc' }],
+      include: { bidder: { select: { id: true, username: true } } },
+      take: 200,
+    });
+    res.json({
+      bids: bids.map((b) => ({ id: b.id, amount: b.amount, status: b.status, createdAt: b.createdAt, bidder: b.bidder })),
+    });
+  }),
+);
