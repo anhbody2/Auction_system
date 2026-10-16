@@ -10,6 +10,7 @@ import { bidsRouter } from './routes/bids';
 import { creditRouter } from './routes/credit';
 import { devRouter } from './routes/dev';
 import { meRouter } from './routes/me';
+import { messagesRouter } from './routes/messages';
 
 export function createApp() {
   const app = express();
@@ -24,6 +25,7 @@ export function createApp() {
   app.use('/api/credit', creditRouter);
   app.use('/api', auctionsRouter);
   app.use('/api', bidsRouter);
+  app.use('/api', messagesRouter);
   if (process.env.NODE_ENV !== 'production') app.use('/api/dev', devRouter);
 
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found' }));

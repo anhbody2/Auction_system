@@ -4,6 +4,7 @@ import { ApiError, CONDITION_LABELS, api, money, type Auction } from '../api';
 import { Countdown, StatusBadge } from '../components/AuctionBits';
 import { BidHistory, BidPanel, type Bid } from '../components/BidPanel';
 import { CancelAuction } from '../components/CancelAuction';
+import { Messages } from '../components/Messages';
 
 export function AuctionDetailPage() {
   const { id } = useParams();
@@ -40,6 +41,7 @@ export function AuctionDetailPage() {
         <p style={{ whiteSpace: 'pre-wrap' }}>{auction.description}</p>
         <h2>Bid history</h2>
         <BidHistory bids={bids} />
+        <Messages auctionId={auction.id} sellerId={auction.seller.id} />
       </div>
       <aside className="card">
         <div className="row spread">

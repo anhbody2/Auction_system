@@ -237,15 +237,18 @@
       "area": "messaging",
       "title": "Post a message",
       "user_visible_behavior": "A bidder can post a message on an auction page and it is visible to other users viewing that auction.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Log in as a bidder and open an auction.",
         "Post a message and verify it appears in the auction's message list with author and time.",
         "Log in as another customer and verify the message is visible.",
         "Submit an empty message and verify it is rejected."
       ],
-      "evidence": [],
-      "notes": "Clarify whether messages go to the auction thread (public) or directly to the seller."
+      "evidence": [
+        "2026-10-16 be/tests/messages.test.ts 3/3 vitest pass (post trimmed message with author+time, visible to carol and guests, empty/whitespace/missing 400, anonymous 401, missing auction 404)",
+        "2026-10-16 e2e/bid-002-messages.spec.ts Playwright pass (empty -> alert, whitespace API 400, bob posts -> shows author/time/content, carol sees it)"
+      ],
+      "notes": "Decided: public per-auction thread (AUCTION_MESSAGES). Anyone can read; any signed-in customer can post (seller replies are tagged seller). Max 1000 chars."
     },
     {
       "id": "cust-007",
