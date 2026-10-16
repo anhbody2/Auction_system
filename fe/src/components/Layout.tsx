@@ -23,6 +23,7 @@ export function Layout() {
             <>
               <NavLink to="/dashboard">Dashboard</NavLink>
               <NavLink to="/my-auctions">My Auctions</NavLink>
+              <NavLink to="/my-bids">My Biddings</NavLink>
               <NavLink to="/credit">Credit</NavLink>
               <NavLink to="/profile">Profile</NavLink>
             </>

@@ -2,7 +2,8 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
 import { config } from './config';
-import { errorHandler } from './lib/http';
+import { asyncHandler, errorHandler } from './lib/http';
+import { closeDueAuctions } from './lib/settlement';
 import { jsonReplacer } from './lib/json';
 import { auctionsRouter } from './routes/auctions';
 import { authRouter } from './routes/auth';
@@ -20,6 +21,14 @@ export function createApp() {
   app.use(cookieParser());
 
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
+  // Settle auctions whose end time passed before serving anything that might show them.
+  app.use(
+    '/api',
+    asyncHandler(async (_req, _res, next) => {
+      await closeDueAuctions();
+      next();
+    }),
+  );
   app.use('/api/auth', authRouter);
   app.use('/api/me', meRouter);
   app.use('/api/credit', creditRouter);

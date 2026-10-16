@@ -257,7 +257,7 @@
       "area": "bidding",
       "title": "Manage your biddings",
       "user_visible_behavior": "A customer can see all auctions they have bid on, their latest bid, whether they are currently winning/outbid, and the auction outcome.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Log in as a customer who has bid on several auctions.",
         "Open 'My Biddings'.",
@@ -265,8 +265,11 @@
         "Verify status is correct (winning, outbid, won, lost, cancelled).",
         "Verify only this customer's bids are listed."
       ],
-      "evidence": [],
-      "notes": "Depends on bid-001."
+      "evidence": [
+        "2026-10-16 be/tests/my-bids.test.ts 3/3 vitest pass (only my auctions; winning/outbid/won/lost/reserve-not-met->lost/cancelled with latest + highest bid; settlement: winner pays, seller paid minus 5% commission, losers released; settlement idempotent)",
+        "2026-10-16 e2e/cust-007-my-biddings.spec.ts Playwright pass (fresh bidder jack, 5 auctions vs rival bob: rows show latest/highest/status winning,outbid,won(130 after raise),lost,cancelled; Won tab filter; winner shown on detail)"
+      ],
+      "notes": "Settlement (be/src/lib/settlement.ts) runs before every /api request and every 5s in the server: leading bid >= reserve wins (payment from held credit, seller payout minus COMMISSION_RATE default 5%, AUCTION_SETTLEMENTS row), otherwise hold released; other tickets -> lost."
     },
     {
       "id": "guest-002",

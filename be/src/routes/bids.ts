@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db';
-import { effectiveStatus, nextMinBid } from '../lib/auctions';
+import { auctionInclude, auctionView, effectiveStatus, nextMinBid } from '../lib/auctions';
 import { applyCredit } from '../lib/credit';
 import { HttpError, asyncHandler } from '../lib/http';
 import { moneyField } from '../lib/validation';
@@ -88,6 +88,36 @@ bidsRouter.post(
       await tx.auction.update({ where: { id: auctionId }, data: { status: 'cancelled', cancelledAt: new Date() } });
     });
     res.json({ message: 'Auction cancelled' });
+  }),
+);
+
+/** Every auction I've bid on, with my latest bid and where I stand. */
+bidsRouter.get(
+  '/me/bids',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const me = req.user!.id;
+    const tickets = await prisma.bidTicket.findMany({ where: { bidderId: me }, orderBy: { id: 'desc' } });
+    const latest = new Map<bigint, (typeof tickets)[number]>();
+    for (const t of tickets) if (!latest.has(t.auctionId)) latest.set(t.auctionId, t);
+
+    const auctions = await prisma.auction.findMany({ where: { id: { in: [...latest.keys()] } }, include: auctionInclude });
+    const leaders = await prisma.bidTicket.findMany({ where: { auctionId: { in: [...latest.keys()] }, status: 'active' } });
+    const leaderOf = new Map(leaders.map((l) => [l.auctionId, l.bidderId]));
+
+    const items = await Promise.all(
+      auctions.map(async (a) => {
+        const view = await auctionView(a, me);
+        const mine = latest.get(a.id)!;
+        let myStatus: 'winning' | 'outbid' | 'won' | 'lost' | 'cancelled';
+        if (view.status === 'cancelled') myStatus = 'cancelled';
+        else if (view.status === 'ended') myStatus = a.winnerId === me ? 'won' : 'lost';
+        else myStatus = leaderOf.get(a.id) === me ? 'winning' : 'outbid';
+        return { auction: view, myLatestBid: mine.amount, myLatestBidAt: mine.createdAt, myStatus };
+      }),
+    );
+    items.sort((x, y) => y.myLatestBidAt.getTime() - x.myLatestBidAt.getTime());
+    res.json({ items });
   }),
 );
 
