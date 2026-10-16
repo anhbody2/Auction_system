@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { ApiError, CONDITION_LABELS, api, money, type Auction } from '../api';
 import { Countdown, StatusBadge } from '../components/AuctionBits';
 import { BidHistory, BidPanel, type Bid } from '../components/BidPanel';
+import { CancelAuction } from '../components/CancelAuction';
 
 export function AuctionDetailPage() {
   const { id } = useParams();
@@ -85,6 +86,7 @@ export function AuctionDetailPage() {
           )}
         </dl>
         <BidPanel auction={auction} onBid={load} />
+        <CancelAuction auction={auction} onDone={load} />
       </aside>
     </div>
   );

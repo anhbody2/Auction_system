@@ -67,6 +67,30 @@ bidsRouter.post(
   }),
 );
 
+bidsRouter.post(
+  '/auctions/:id/cancel',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const auctionId = parseId(req.params.id);
+    await prisma.$transaction(async (tx) => {
+      const auction = await lockAuction(tx, auctionId);
+      if (!auction) throw new HttpError(404, 'Auction not found');
+      if (auction.sellerId !== req.user!.id) throw new HttpError(403, 'Only the seller can cancel this auction');
+      const status = effectiveStatus(auction);
+      if (status === 'cancelled') throw new HttpError(400, 'This auction is already cancelled');
+      if (status === 'ended') throw new HttpError(400, 'An auction that has ended cannot be cancelled');
+
+      const held = await tx.bidTicket.findMany({ where: { auctionId, status: 'active' } });
+      for (const t of held) {
+        await applyCredit(tx, { userId: t.bidderId, type: 'release', amount: t.amount, auctionId, bidTicketId: t.id, description: `Auction cancelled: ${auction.name}` });
+      }
+      await tx.bidTicket.updateMany({ where: { auctionId }, data: { status: 'cancelled' } });
+      await tx.auction.update({ where: { id: auctionId }, data: { status: 'cancelled', cancelledAt: new Date() } });
+    });
+    res.json({ message: 'Auction cancelled' });
+  }),
+);
+
 bidsRouter.get(
   '/auctions/:id/bids',
   asyncHandler(async (req, res) => {

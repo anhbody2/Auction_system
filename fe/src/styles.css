@@ -83,6 +83,8 @@ th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: u
 .facts dt { color: var(--muted); font-size: 0.85rem; align-self: center; }
 .facts dd { margin: 0; }
 
+.cancel-box { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+
 .toasts { position: fixed; right: 1rem; bottom: 1rem; display: flex; flex-direction: column; gap: 0.5rem; z-index: 50; }
 .toast { padding: 0.75rem 1rem; border-radius: 8px; color: #fff; box-shadow: 0 4px 14px rgba(0,0,0,.15); max-width: 360px; }
 .toast-success { background: var(--success); }

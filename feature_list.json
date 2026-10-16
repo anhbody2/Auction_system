@@ -174,7 +174,7 @@
       "area": "auction",
       "title": "Cancel auction",
       "user_visible_behavior": "A seller can cancel their own auction before it ends; bidders can no longer bid on it.",
-      "status": "blocked",
+      "status": "passing",
       "verification": [
         "Log in as the seller of an active auction and click Cancel.",
         "Verify the auction status changes to 'cancelled'.",
@@ -182,7 +182,10 @@
         "Verify any held bidder credit is released.",
         "Log in as a non-owner and verify they cannot cancel the auction."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-16 be/tests/auction.cancel.test.ts 3/3 vitest pass (cancel -> status cancelled, later bid 400, all held credit released with release ledger rows, tickets cancelled; non-owner 403; ended/already cancelled 400)",
+        "2026-10-16 e2e/sell-002-cancel-auction.spec.ts Playwright pass (carol bid holds 150; non-owner has no button + API 403; alice cancels via confirm; carol sees closed message, bid 400, held 0, release row in credit history)"
+      ],
       "notes": "Blocked on bid-001: verification needs bids to exist (bid rejection + held credit release). Rule decided: seller may cancel an upcoming/active auction even after bids exist; every held bidder credit is released and all bid tickets become cancelled."
     },
     {
