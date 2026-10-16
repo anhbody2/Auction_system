@@ -8,7 +8,7 @@
 - Standard startup path: start Docker Desktop, then `./init.sh` (npm install + full verify). `npm run dev` runs API on :4000 and web on :5173 (Vite proxies /api)
 - Standard verification path: `npm run verify` = `npm test` (vitest on DB auction_test + fe build) and `npm run e2e` (Playwright on DB auction_e2e, servers on :4100/:5180)
 - Demo accounts: alice / bob / carol, password `Password123!` (`npm run db:seed -w be` reseeds the dev DB)
-- Feature list: all 14 features passing. Per CLAUDE.md step 6 the completed list was archived to progress-feature-list/feature_list_1.json; there is no root feature_list.json until a new one is written
+- Feature list: round 1 (14 features) archived to progress-feature-list/feature_list_1.json. Round 2 feature_list.json: bid-003, sys-001, sys-002, sys-003 (all not_started)
 - Current blocker: none
 
 ## Session Log
@@ -35,3 +35,12 @@
   - e2e specs share one DB per run; specs use fresh users/unique names, and balance checks are relative.
   - progress-feature-list/feature_list.json is an older template (chat features) that was already there; left untouched.
 - Next best step: write a new feature_list.json for the next scope (e.g. image upload, real payments, admin/category management, realtime bid updates).
+
+### Session 002
+
+- Date: 2026-10-16
+- Goal: Write the round 2 feature list from the new requirements (bid increment ladder; System start and close auction)
+- Completed: feature_list.json with bid-003 (tiered increment, priority 1), sys-001 (hourly start job), sys-002 (hourly close job + settlement), sys-003 (tiered commission 10/5/2/1%)
+- Verification run: feature_list.json parses; no code changed
+- Open decisions (in feature notes): increment tiers above $50 are assumed; whether per-auction min_increment can go below the ladder; whether to keep per-request settlement alongside the hourly job; spec 'new'/'close' mapped to 'upcoming'/'ended'
+- Next best step: start bid-003
