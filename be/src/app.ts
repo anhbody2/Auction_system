@@ -21,11 +21,12 @@ export function createApp() {
   app.use(cookieParser());
 
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
-  // Settle auctions whose end time passed before serving anything that might show them.
+  // Safety net beside the hourly close job: settle auctions whose end time passed before serving
+  // anything that might show them. SETTLE_ON_REQUEST=0 leaves closing to the scheduler only.
   app.use(
     '/api',
     asyncHandler(async (_req, _res, next) => {
-      await closeDueAuctions();
+      if (config.settleOnRequest) await closeDueAuctions();
       next();
     }),
   );

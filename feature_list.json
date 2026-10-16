@@ -113,7 +113,7 @@
       "area": "scheduler",
       "title": "Close auction job and settlement",
       "user_visible_behavior": "A scheduled job runs every hour. Each run finds 'active' auctions whose close date (start date + duration) has passed and closes them. If the highest bid is at least the reserve price, that bid wins: the winner's credit is debited by the bid amount and the seller's credit is credited with the bid amount minus the system commission. If the reserve is not met, or there are no bids, nobody wins and every hold is released. The auction status becomes 'ended' (spec: 'close').",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Unit: an 'active' auction past its close date with a top bid >= reserve is set to 'ended'; that bid is marked 'won' and the auction's winner is recorded.",
         "Unit: the winner's balance goes down by the winning amount, and the seller's goes up by the amount minus commission; both changes have ledger rows.",
@@ -124,7 +124,14 @@
         "API: bids on an auction whose close date has passed are rejected even before the job has closed it.",
         "E2E: the winner and seller see the correct balances and the auction shows as ended after the job runs."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-16 Unit: be/tests/job.close.test.ts (SETTLE_ON_REQUEST=0, so only the job closes): due auction with top bid >= reserve -> ended, ticket won, winner_id set, settlement 'settled'; winner balance 1000->800, seller +200-commission, payment/payout ledger rows; reserve not met -> ended, no winner, holds released, 'reserve_not_met'; no bids -> 'no_bids'; not-yet-due untouched; 3 concurrent runs settle 3 auctions exactly once (3 settlements, 3 payments)",
+        "2026-10-16 Integration: scheduler registers close-auctions at 3,600,000 ms by default (AUCTION_JOB_INTERVAL_MS override); server.ts no longer runs its own 5s closer",
+        "2026-10-16 API: bid after close date with the job not yet run -> 400 'This auction has ended' while stored status is still 'active'",
+        "2026-10-16 E2E: e2e/sys-002-close-job.spec.ts $150 sale: auction 'ended', winner balance $250.00 held $0.00, seller balance $142.50 with 'Sold: Closing Teapot' ledger row",
+        "2026-10-16 Decision: kept per-request settlement as safety net (config.settleOnRequest, SETTLE_ON_REQUEST=0 disables). Fix: search/homepage 'just completed' now uses end_time <= now instead of stored 'ended', so expired auctions don't vanish before the job runs",
+        "2026-10-16 vitest 17 files / 83 tests, fe build ok, Playwright 17/17"
+      ],
       "notes": "Most of this logic already exists in be/src/lib/settlement.ts (settleAuction / closeDueAuctions), but it runs before every /api request and every 5s. Move it to the hourly scheduler. Open decision: keep the per-request settlement as a safety net so results are not delayed up to an hour (recommended), or rely on the hourly job only as the spec says. Use the tiered commission from sys-003."
     },
     {

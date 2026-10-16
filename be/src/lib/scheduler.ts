@@ -1,4 +1,5 @@
 import { startDueAuctions } from './jobs';
+import { closeDueAuctions } from './settlement';
 
 export const DEFAULT_JOB_INTERVAL_MS = 60 * 60 * 1000;
 
@@ -11,7 +12,10 @@ export function jobIntervalMs(env: NodeJS.ProcessEnv = process.env) {
 }
 
 export function auctionJobs(intervalMs = jobIntervalMs()): Job[] {
-  return [{ name: 'start-auctions', intervalMs, run: () => startDueAuctions() }];
+  return [
+    { name: 'start-auctions', intervalMs, run: () => startDueAuctions() },
+    { name: 'close-auctions', intervalMs, run: () => closeDueAuctions() },
+  ];
 }
 
 /**

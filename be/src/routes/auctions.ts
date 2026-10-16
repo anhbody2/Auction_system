@@ -170,9 +170,9 @@ auctionsRouter.get(
         orderBy: { endTime: 'asc' },
         take: 200,
       }),
-      // just completed, most recent first
+      // just completed, most recent first. Past end time counts even before the close job has run.
       prisma.auction.findMany({
-        where: { AND: [{ status: 'ended', endTime: { gte: recent } }, match] },
+        where: { AND: [{ status: { not: 'cancelled' }, endTime: { gte: recent, lte: now } }, match] },
         include: auctionInclude,
         orderBy: { endTime: 'desc' },
         take: 100,

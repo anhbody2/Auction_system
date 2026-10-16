@@ -54,13 +54,21 @@ export async function settleAuction(auctionId: bigint) {
   });
 }
 
-/** Settles every auction whose end time has passed. Cheap when nothing is due (indexed on status, end_time). */
-export async function closeDueAuctions() {
-  const due = await prisma.auction.findMany({
-    where: { status: { in: ['active', 'upcoming'] }, endTime: { lte: new Date() } },
-    select: { id: true },
-    take: 50,
-  });
-  for (const { id } of due) await settleAuction(id);
-  return due.length;
+/**
+ * Close auction job (sys-002): settles every auction whose close date (start + duration = end_time)
+ * has passed, in batches of `batchSize` until none are left. Returns how many this call settled.
+ * Cheap when nothing is due (indexed on status, end_time).
+ */
+export async function closeDueAuctions(batchSize = 50) {
+  let settled = 0;
+  for (;;) {
+    const due = await prisma.auction.findMany({
+      where: { status: { in: ['active', 'upcoming'] }, endTime: { lte: new Date() } },
+      select: { id: true },
+      orderBy: { endTime: 'asc' },
+      take: batchSize,
+    });
+    for (const { id } of due) if (await settleAuction(id)) settled++;
+    if (due.length < batchSize) return settled;
+  }
 }
