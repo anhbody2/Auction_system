@@ -68,7 +68,7 @@
       "area": "profile",
       "title": "Manage profile",
       "user_visible_behavior": "A logged-in customer can view and edit their profile details (e.g. name, email, phone, address) and the changes are saved.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Log in and open the profile page.",
         "Verify current profile details are displayed.",
@@ -76,7 +76,10 @@
         "Reload the page and verify the new values persist.",
         "Submit an invalid value (e.g. malformed email) and verify a validation error is shown."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-16 be/tests/profile.test.ts 3/3 vitest pass (auth required, edit persists, malformed email 400, duplicate email 409)",
+        "2026-10-16 e2e/cust-002-profile.spec.ts Playwright pass (details shown, edit+save toast, reload persists, malformed email shows error and is not saved)"
+      ],
       "notes": ""
     },
     {

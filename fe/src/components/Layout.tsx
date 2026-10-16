@@ -19,7 +19,12 @@ export function Layout() {
         </Link>
         <nav>
           <NavLink to="/">Auctions</NavLink>
-          {user && <NavLink to="/dashboard">Dashboard</NavLink>}
+          {user && (
+            <>
+              <NavLink to="/dashboard">Dashboard</NavLink>
+              <NavLink to="/profile">Profile</NavLink>
+            </>
+          )}
         </nav>
         <div className="userbox">
           {user ? (

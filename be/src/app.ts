@@ -6,6 +6,7 @@ import { errorHandler } from './lib/http';
 import { jsonReplacer } from './lib/json';
 import { authRouter } from './routes/auth';
 import { devRouter } from './routes/dev';
+import { meRouter } from './routes/me';
 
 export function createApp() {
   const app = express();
@@ -16,6 +17,7 @@ export function createApp() {
 
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
   app.use('/api/auth', authRouter);
+  app.use('/api/me', meRouter);
   if (process.env.NODE_ENV !== 'production') app.use('/api/dev', devRouter);
 
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found' }));

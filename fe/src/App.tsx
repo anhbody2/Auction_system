@@ -4,6 +4,7 @@ import { Layout } from './components/Layout';
 import { DashboardPage } from './pages/Dashboard';
 import { HomePage } from './pages/Home';
 import { LoginPage } from './pages/Login';
+import { ProfilePage } from './pages/Profile';
 import { RegisterPage } from './pages/Register';
 import { VerifyEmailPage } from './pages/VerifyEmail';
 
@@ -20,6 +21,14 @@ export function App() {
           element={
             <RequireAuth>
               <DashboardPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <RequireAuth>
+              <ProfilePage />
             </RequireAuth>
           }
         />
