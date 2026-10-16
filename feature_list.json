@@ -110,7 +110,7 @@
       "area": "auth",
       "title": "Forget password",
       "user_visible_behavior": "A customer who forgot their password can request a reset and set a new password without logging in.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Open the login page and click 'Forgot password'.",
         "Submit the registered email/username.",
@@ -119,8 +119,11 @@
         "Verify login succeeds with the new password and the reset token cannot be reused.",
         "Submit an unknown email and verify no account information is leaked."
       ],
-      "evidence": [],
-      "notes": "Decide reset delivery mechanism (email vs. dev log) before implementation."
+      "evidence": [
+        "2026-10-16 be/tests/password.reset.test.ts 3/3 vitest pass (token mailed, reset works once, older link invalidated, unknown email gets identical response and no mail)",
+        "2026-10-16 e2e/cust-004-forgot-password.spec.ts Playwright pass (forgot link -> generic message -> mailed link -> new password -> old fails/new works -> reuse rejected -> unknown email no mail)"
+      ],
+      "notes": "Delivery: email via mailer (SMTP if SMTP_HOST set, else dev outbox + console log). Token sha256-hashed in DB, 1h TTL, single use, newest request invalidates older links."
     },
     {
       "id": "cust-005",

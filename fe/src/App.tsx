@@ -3,10 +3,12 @@ import { RequireAuth } from './auth';
 import { Layout } from './components/Layout';
 import { ChangePasswordPage } from './pages/ChangePassword';
 import { DashboardPage } from './pages/Dashboard';
+import { ForgotPasswordPage } from './pages/ForgotPassword';
 import { HomePage } from './pages/Home';
 import { LoginPage } from './pages/Login';
 import { ProfilePage } from './pages/Profile';
 import { RegisterPage } from './pages/Register';
+import { ResetPasswordPage } from './pages/ResetPassword';
 import { VerifyEmailPage } from './pages/VerifyEmail';
 
 export function App() {
@@ -17,6 +19,8 @@ export function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route
           path="/dashboard"
           element={

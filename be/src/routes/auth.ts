@@ -99,6 +99,50 @@ authRouter.post(
   }),
 );
 
+const FORGOT_MESSAGE = 'If an account exists for that email, a password reset link has been sent.';
+
+authRouter.post(
+  '/forgot-password',
+  asyncHandler(async (req, res) => {
+    const { email } = z.object({ email: emailField }).parse(req.body);
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (user && user.status !== 'disabled') {
+      const { token, tokenHash } = newToken();
+      await prisma.$transaction([
+        // Only the newest link stays valid.
+        prisma.passwordResetToken.updateMany({ where: { userId: user.id, usedAt: null }, data: { usedAt: new Date() } }),
+        prisma.passwordResetToken.create({ data: { userId: user.id, tokenHash, expiresAt: new Date(Date.now() + 3600 * 1000) } }),
+      ]);
+      await sendMail(
+        user.email,
+        'Reset your BidHouse password',
+        `Someone asked to reset the password for ${user.username}.\n\nSet a new password here:\n${config.appUrl}/reset-password?token=${token}\n\nThe link expires in 1 hour. Ignore this email if it wasn't you.`,
+      );
+    }
+    res.json({ message: FORGOT_MESSAGE });
+  }),
+);
+
+const resetSchema = z
+  .object({ token: z.string().min(1), newPassword: passwordField, confirmPassword: z.string() })
+  .refine((d) => d.newPassword === d.confirmPassword, { path: ['confirmPassword'], message: 'Passwords do not match' });
+
+authRouter.post(
+  '/reset-password',
+  asyncHandler(async (req, res) => {
+    const data = resetSchema.parse(req.body);
+    const record = await prisma.passwordResetToken.findUnique({ where: { tokenHash: hashToken(data.token) } });
+    if (!record || record.usedAt || record.expiresAt < new Date()) {
+      throw new HttpError(400, 'This reset link is invalid or has expired');
+    }
+    await prisma.$transaction([
+      prisma.passwordResetToken.update({ where: { id: record.id }, data: { usedAt: new Date() } }),
+      prisma.user.update({ where: { id: record.userId }, data: { passwordHash: await bcrypt.hash(data.newPassword, 10) } }),
+    ]);
+    res.json({ message: 'Password has been reset. You can now log in.' });
+  }),
+);
+
 authRouter.post('/logout', (_req, res) => {
   res.clearCookie(config.cookieName, { httpOnly: true, sameSite: 'lax' });
   res.json({ ok: true });
