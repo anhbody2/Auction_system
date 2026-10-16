@@ -298,13 +298,16 @@
       "area": "search-tools",
       "title": "Search available and just complete auction by seller, auctions, category, products",
       "user_visible_behavior": "A customer can search all auctions, just completed auctions, available auctions",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Toggle search-tools",
         "Verify search input field by seller-name, auctions, category, products",
         "Verify result should match keywords input"
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-16 be/tests/search.test.ts 5/5 vitest pass (seller by username/full name, auction name/description incl. just-completed excl. cancelled, category, product, all-fields/no-match/invalid field 400)",
+        "2026-10-16 e2e/guest-003-search.spec.ts Playwright pass (guest toggles search tools; field options; seller -> 3 incl. completed; auction -> 1; category Art excludes Fashion; product name/description; 0 results; Clear restores listing)"
+      ],
       "notes": ""
     }
   ]

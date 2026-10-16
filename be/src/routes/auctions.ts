@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db';
@@ -135,23 +136,43 @@ auctionsRouter.get(
   }),
 );
 
+export const SEARCH_FIELDS = ['all', 'seller', 'auction', 'category', 'product'] as const;
+const searchSchema = z.object({
+  q: z.string().trim().max(100).optional().default(''),
+  field: z.enum(SEARCH_FIELDS).optional().default('all'),
+});
+
+/** Case-insensitive keyword match on seller name, auction, category or product (goods). */
+function searchWhere(q: string, field: (typeof SEARCH_FIELDS)[number]): Prisma.AuctionWhereInput {
+  const has = { contains: q, mode: 'insensitive' as const };
+  const by: Record<Exclude<typeof field, 'all'>, Prisma.AuctionWhereInput[]> = {
+    seller: [{ seller: { username: has } }, { seller: { info: { fullName: has } } }],
+    auction: [{ name: has }, { description: has }],
+    category: [{ goods: { category: { name: has } } }],
+    product: [{ goods: { name: has } }, { goods: { description: has } }],
+  };
+  return { OR: field === 'all' ? Object.values(by).flat() : by[field] };
+}
+
 auctionsRouter.get(
   '/auctions',
   optionalAuth,
   asyncHandler(async (req, res) => {
+    const { q, field } = searchSchema.parse(req.query);
+    const match = q ? searchWhere(q, field) : {};
     const now = new Date();
     const recent = new Date(now.getTime() - JUST_COMPLETED_DAYS * 24 * 3600 * 1000);
     const [open, completed] = await Promise.all([
       // live + upcoming, soonest ending first
       prisma.auction.findMany({
-        where: { status: { in: ['active', 'upcoming'] }, endTime: { gt: now } },
+        where: { AND: [{ status: { in: ['active', 'upcoming'] }, endTime: { gt: now } }, match] },
         include: auctionInclude,
         orderBy: { endTime: 'asc' },
         take: 200,
       }),
       // just completed, most recent first
       prisma.auction.findMany({
-        where: { status: 'ended', endTime: { gte: recent } },
+        where: { AND: [{ status: 'ended', endTime: { gte: recent } }, match] },
         include: auctionInclude,
         orderBy: { endTime: 'desc' },
         take: 100,
