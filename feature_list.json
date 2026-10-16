@@ -26,16 +26,48 @@
       "title": "Price-tiered bid increment",
       "user_visible_behavior": "The minimum next bid is the current price plus an increment that depends on the current price: $0.50 when the price is $1 up to $10, $1 from $10 up to $50, and larger steps above that. The auction page shows the correct minimum next bid, and a bid below it is rejected with a message stating the minimum.",
       "increment_ladder": [
-        { "from": 0.00, "to": 1.00, "increment": 0.05 },
-        { "from": 1.00, "to": 10.00, "increment": 0.50 },
-        { "from": 10.00, "to": 50.00, "increment": 1.00 },
-        { "from": 50.00, "to": 100.00, "increment": 2.50 },
-        { "from": 100.00, "to": 500.00, "increment": 5.00 },
-        { "from": 500.00, "to": 1000.00, "increment": 10.00 },
-        { "from": 1000.00, "to": 5000.00, "increment": 25.00 },
-        { "from": 5000.00, "to": null, "increment": 100.00 }
+        {
+          "from": 0,
+          "to": 1,
+          "increment": 0.05
+        },
+        {
+          "from": 1,
+          "to": 10,
+          "increment": 0.5
+        },
+        {
+          "from": 10,
+          "to": 50,
+          "increment": 1
+        },
+        {
+          "from": 50,
+          "to": 100,
+          "increment": 2.5
+        },
+        {
+          "from": 100,
+          "to": 500,
+          "increment": 5
+        },
+        {
+          "from": 500,
+          "to": 1000,
+          "increment": 10
+        },
+        {
+          "from": 1000,
+          "to": 5000,
+          "increment": 25
+        },
+        {
+          "from": 5000,
+          "to": null,
+          "increment": 100
+        }
       ],
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Unit: the increment for prices 1.00, 9.99, 10.00, 49.99, 50.00, 99.99, 100.00, 999.99, 1000.00 and 5000.00 matches the ladder (lower bound inclusive, upper bound exclusive).",
         "Unit: the next minimum bid on an auction with no bids is its initial price; with bids it is the current price plus the ladder increment.",
@@ -43,7 +75,12 @@
         "API: on an auction at $10.00, a bid of $10.50 is rejected and a bid of $11.00 is accepted.",
         "E2E: the auction page shows the minimum next bid from the ladder and updates after a bid is placed."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-16 Unit: be/tests/bid.increment.test.ts ladder increments at 0.50/1.00/9.99/10.00/49.99/50.00/99.99/100.00/999.99/1000.00/5000.00 match; nextMinBid = initial price without bids, else price + ladder step",
+        "2026-10-16 Decision applied: per-auction min_increment only raises the step (min_increment 1 at $100 -> next $105; 10 -> $110). Ladder lives in be/src/lib/increments.ts; seed rewrites bid_increment_rules to match",
+        "2026-10-16 API: at $9.50, $9.99 rejected 'Bid must be at least $10.00', $10.00 accepted; at $10.00, $10.50 rejected (min $11.00), $11.00 accepted",
+        "2026-10-16 npm test: vitest 15 files / 70 tests pass, fe build ok. Playwright 15/15 pass incl. e2e/bid-003-increment-ladder.spec.ts (next-min-bid $9.50 -> $10.00 -> $11.00)"
+      ],
       "notes": "Requirement text gives $1-10 -> $0.50 and $10-50 -> $1 and says 'and so on'; the other tiers are an assumption to confirm. Replace the seeded BID_INCREMENT_RULES (1/5/25) with this ladder. Open decision: the per-auction min_increment currently overrides the rules; proposed behavior is that it can only raise the increment, never lower it below the ladder."
     },
     {
@@ -93,10 +130,26 @@
       "title": "Tiered system commission",
       "user_visible_behavior": "The commission taken from the seller's proceeds is a percentage of the winning price: 10% below $100, 5% from $100 to $999.99, 2% from $1,000 to $9,999.99, and 1% from $10,000 up. The seller's ledger entry shows the commission that was deducted.",
       "commission_tiers": [
-        { "from": 0.00, "to": 100.00, "rate": 0.10 },
-        { "from": 100.00, "to": 1000.00, "rate": 0.05 },
-        { "from": 1000.00, "to": 10000.00, "rate": 0.02 },
-        { "from": 10000.00, "to": null, "rate": 0.01 }
+        {
+          "from": 0,
+          "to": 100,
+          "rate": 0.1
+        },
+        {
+          "from": 100,
+          "to": 1000,
+          "rate": 0.05
+        },
+        {
+          "from": 1000,
+          "to": 10000,
+          "rate": 0.02
+        },
+        {
+          "from": 10000,
+          "to": null,
+          "rate": 0.01
+        }
       ],
       "status": "not_started",
       "verification": [

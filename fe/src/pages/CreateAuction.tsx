@@ -113,7 +113,7 @@ export function CreateAuctionPage() {
           <Field label="Start time" type="datetime-local" {...bind('startTime')} />
           <Field label="End time" type="datetime-local" {...bind('endTime')} />
         </div>
-        <p className="muted small">Without a minimum increment, the standard increment table applies ($1 under $100, $5 under $1,000, $25 above).</p>
+        <p className="muted small">Bids rise by the standard increment ladder ($0.50 from $1, $1 from $10, $2.50 from $50, $5 from $100, $10 from $500, $25 from $1,000, $100 from $5,000). A minimum increment can only make steps larger.</p>
         <button className="btn btn-primary" type="submit" disabled={busy}>
           {busy ? 'Creating...' : 'Create auction'}
         </button>

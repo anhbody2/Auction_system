@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { prisma } from '../db';
+import { ladderIncrement } from './increments';
 
 export type AuctionStatus = 'upcoming' | 'active' | 'ended' | 'cancelled';
 
@@ -19,27 +19,19 @@ export function effectiveStatus(a: { status: string; startTime: Date; endTime: D
   return 'active';
 }
 
-let cachedRules: { min: Prisma.Decimal; max: Prisma.Decimal | null; inc: Prisma.Decimal }[] | null = null;
-
-async function incrementRules() {
-  if (!cachedRules) {
-    const rules = await prisma.bidIncrementRule.findMany({ where: { status: 'active' }, orderBy: { minBidAmount: 'asc' } });
-    cachedRules = rules.map((r) => ({ min: r.minBidAmount, max: r.maxBidAmount, inc: r.incrementAmount }));
-  }
-  return cachedRules;
-}
-
-/** Increment to apply above `price`: the auction's own min_increment, else BID_INCREMENT_RULES, else 1. */
-export async function incrementFor(a: { minIncrement: Prisma.Decimal | null }, price: Prisma.Decimal) {
-  if (a.minIncrement) return a.minIncrement;
-  const rule = (await incrementRules()).find((r) => price.greaterThanOrEqualTo(r.min) && (!r.max || price.lessThan(r.max)));
-  return rule?.inc ?? new Prisma.Decimal(1);
+/**
+ * Increment to apply above `price`: the ladder increment for that price. An auction's own
+ * min_increment can only raise it, never go below the ladder.
+ */
+export function incrementFor(a: { minIncrement: Prisma.Decimal | null }, price: Prisma.Decimal) {
+  const ladder = ladderIncrement(price);
+  return a.minIncrement && a.minIncrement.greaterThan(ladder) ? a.minIncrement : ladder;
 }
 
 /** Smallest acceptable next bid. */
 export async function nextMinBid(a: { initialPrice: Prisma.Decimal; currentPrice: Prisma.Decimal | null; minIncrement: Prisma.Decimal | null }) {
   if (!a.currentPrice) return a.initialPrice;
-  return a.currentPrice.plus(await incrementFor(a, a.currentPrice));
+  return a.currentPrice.plus(incrementFor(a, a.currentPrice));
 }
 
 /** Public JSON shape. The reserve price is only revealed to the seller. */

@@ -8,7 +8,7 @@
 - Standard startup path: start Docker Desktop, then `./init.sh` (npm install + full verify). `npm run dev` runs API on :4000 and web on :5173 (Vite proxies /api)
 - Standard verification path: `npm run verify` = `npm test` (vitest on DB auction_test + fe build) and `npm run e2e` (Playwright on DB auction_e2e, servers on :4100/:5180)
 - Demo accounts: alice / bob / carol, password `Password123!` (`npm run db:seed -w be` reseeds the dev DB)
-- Feature list: round 1 (14 features) archived to progress-feature-list/feature_list_1.json. Round 2 feature_list.json: bid-003, sys-001, sys-002, sys-003 (all not_started)
+- Feature list: round 1 (14 features) archived to progress-feature-list/feature_list_1.json. Round 2 feature_list.json: bid-003 passing; sys-001, sys-002, sys-003 not_started
 - Current blocker: none
 
 ## Session Log
@@ -44,3 +44,13 @@
 - Verification run: feature_list.json parses; no code changed
 - Open decisions (in feature notes): increment tiers above $50 are assumed; whether per-auction min_increment can go below the ladder; whether to keep per-request settlement alongside the hourly job; spec 'new'/'close' mapped to 'upcoming'/'ended'
 - Next best step: start bid-003
+
+### Session 003
+
+- Date: 2026-10-16
+- Goal: bid-003 price-tiered bid increment
+- Completed: ladder in be/src/lib/increments.ts (single source of truth, used by nextMinBid); seed rewrites bid_increment_rules to the ladder; per-auction min_increment can only raise the step; create-auction hint text updated
+- Verification run: ./init.sh baseline green before work; after: vitest 70/70, fe build ok, Playwright 15/15
+- Decisions: tiers above $50 taken as written in feature_list (still an assumption to confirm with the product owner); min_increment raise-only applied
+- Known: the dev DB keeps the old 1/5/25 rows until `npm run db:seed -w be` is run (the API no longer reads the table, so behavior is already correct)
+- Next best step: sys-001 hourly start job

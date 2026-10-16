@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { INCREMENT_LADDER } from '../src/lib/increments';
 
 const prisma = new PrismaClient();
 
@@ -33,15 +34,13 @@ export async function seed(client: PrismaClient = prisma) {
   for (const name of ['Electronics', 'Collectibles', 'Fashion', 'Home and Garden', 'Art', 'Vehicles']) {
     await client.category.upsert({ where: { name }, update: {}, create: { name } });
   }
-  if ((await client.bidIncrementRule.count()) === 0) {
-    await client.bidIncrementRule.createMany({
-      data: [
-        { minBidAmount: 0, maxBidAmount: 100, incrementAmount: 1 },
-        { minBidAmount: 100, maxBidAmount: 1000, incrementAmount: 5 },
-        { minBidAmount: 1000, maxBidAmount: null, incrementAmount: 25 },
-      ],
-    });
-  }
+  // Keep BID_INCREMENT_RULES in step with the ladder the API applies (bid-003).
+  await client.$transaction([
+    client.bidIncrementRule.deleteMany(),
+    client.bidIncrementRule.createMany({
+      data: INCREMENT_LADDER.map((t) => ({ minBidAmount: t.from, maxBidAmount: t.to, incrementAmount: t.increment })),
+    }),
+  ]);
 }
 
 if (require.main === module) {
