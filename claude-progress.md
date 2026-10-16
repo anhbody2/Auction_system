@@ -8,7 +8,7 @@
 - Standard startup path: start Docker Desktop, then `./init.sh` (npm install + full verify). `npm run dev` runs API on :4000 and web on :5173 (Vite proxies /api)
 - Standard verification path: `npm run verify` = `npm test` (vitest on DB auction_test + fe build) and `npm run e2e` (Playwright on DB auction_e2e, servers on :4100/:5180)
 - Demo accounts: alice / bob / carol, password `Password123!` (`npm run db:seed -w be` reseeds the dev DB)
-- Feature list: round 1 (14 features) archived to progress-feature-list/feature_list_1.json. Round 2 feature_list.json: bid-003 passing; sys-001, sys-002, sys-003 not_started
+- Feature list: round 1 (14 features) archived to progress-feature-list/feature_list_1.json. Round 2 feature_list.json: bid-003, sys-001 passing; sys-002, sys-003 not_started
 - Current blocker: none
 
 ## Session Log
@@ -54,3 +54,11 @@
 - Decisions: tiers above $50 taken as written in feature_list (still an assumption to confirm with the product owner); min_increment raise-only applied
 - Known: the dev DB keeps the old 1/5/25 rows until `npm run db:seed -w be` is run (the API no longer reads the table, so behavior is already correct)
 - Next best step: sys-001 hourly start job
+
+### Session 003 (cont.) sys-001
+
+- Completed: be/src/lib/jobs.ts startDueAuctions (single UPDATE, idempotent); be/src/lib/scheduler.ts generic interval scheduler (default 1h, AUCTION_JOB_INTERVAL_MS, runs once at startup, no overlapping runs); wired in server.ts; dev route GET /api/dev/auctions/:id/raw exposes the stored status; e2e API server runs jobs every 1s
+- Verification: vitest 76/76, be tsc ok, Playwright 16/16
+- Note: effectiveStatus still derives 'active' at read time, so the UI is correct between hourly runs; the job keeps the stored status in step
+- Decision from user (2026-10-17): keep going through sys-002, sys-003. sys-002 open decision not answered explicitly; applying the recommended option (hourly job + keep per-request settlement safety net)
+- Next best step: sys-002

@@ -90,7 +90,7 @@
       "area": "scheduler",
       "title": "Start auction job",
       "user_visible_behavior": "A scheduled job runs every hour. Each run finds auctions in status 'upcoming' (spec: 'new') whose start time has arrived and sets them to 'active', so they appear as live and accept bids.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Unit: the job switches an 'upcoming' auction whose start time is now or earlier to 'active'.",
         "Unit: the job leaves alone 'upcoming' auctions with a future start time, plus 'cancelled' and 'ended' auctions.",
@@ -98,7 +98,12 @@
         "Integration: on startup the scheduler registers the job with a default interval of 1 hour; the interval can be set by config (e.g. AUCTION_JOB_INTERVAL_MS) so tests can run it fast.",
         "E2E: an auction created with a start time a few seconds ahead shows as 'upcoming', then as 'active' after the job runs."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-16 Unit: be/tests/job.start.test.ts startDueAuctions activates upcoming auctions with start_time <= now (incl. exactly now); future-start, cancelled and ended untouched; a second run returns 0 and leaves the row unchanged",
+        "2026-10-16 Integration: be/src/lib/scheduler.ts registers start-auctions at 3,600,000 ms by default, AUCTION_JOB_INTERVAL_MS overrides; runs at startup and every interval (fake timers); a failing run is logged and later ticks continue. server.ts starts it",
+        "2026-10-16 E2E: e2e/sys-001-start-job.spec.ts (API server with AUCTION_JOB_INTERVAL_MS=1000) auction starting in 4s shows 'upcoming', stored status flips to 'active' (GET /api/dev/auctions/:id/raw), page then shows 'active'",
+        "2026-10-16 vitest 16 files / 76 tests pass, be tsc ok, fe build ok, Playwright 16/16 pass"
+      ],
       "notes": "The spec says 'start time equal to current time'. An hourly job would almost never hit an exact match, so the check is start_time <= now. Today 'active' is only derived at read time (effectiveStatus); after this job it should also be written to the DB."
     },
     {

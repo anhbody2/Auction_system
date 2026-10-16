@@ -25,6 +25,7 @@ export default defineConfig({
         APP_URL: 'http://localhost:5180',
         JWT_SECRET: 'e2e-secret',
         NODE_ENV: 'e2e',
+        AUCTION_JOB_INTERVAL_MS: '1000',
       },
     },
     {
