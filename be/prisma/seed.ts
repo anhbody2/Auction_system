@@ -24,6 +24,9 @@ export async function seed(client: PrismaClient = prisma) {
         emailVerifiedAt: new Date(),
         creditBalance: u.credit,
         info: { create: { fullName: u.fullName } },
+        transactions: {
+          create: { transactionType: 'topup', amount: u.credit, balanceBefore: 0, balanceAfter: u.credit, description: 'Opening balance' },
+        },
       },
     });
   }

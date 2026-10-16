@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom';
 import { RequireAuth } from './auth';
 import { Layout } from './components/Layout';
 import { ChangePasswordPage } from './pages/ChangePassword';
+import { CreditPage } from './pages/Credit';
 import { DashboardPage } from './pages/Dashboard';
 import { ForgotPasswordPage } from './pages/ForgotPassword';
 import { HomePage } from './pages/Home';
@@ -42,6 +43,14 @@ export function App() {
           element={
             <RequireAuth>
               <ChangePasswordPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/credit"
+          element={
+            <RequireAuth>
+              <CreditPage />
             </RequireAuth>
           }
         />

@@ -132,7 +132,7 @@
       "area": "credit",
       "title": "Manage your credit account",
       "user_visible_behavior": "A customer can view their credit balance and transaction history, and top up / withdraw credit.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Log in and open the credit account page.",
         "Verify current balance and transaction history are displayed.",
@@ -140,7 +140,10 @@
         "Attempt to withdraw more than the available balance and verify it is rejected.",
         "Withdraw a valid amount and verify the balance decreases and a transaction is recorded."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-16 be/tests/credit.test.ts 4/4 vitest pass (empty account, topup/withdraw ledger with before/after, over-withdraw 400, amount validation, 5 concurrent withdrawals serialised by row lock -> 3 succeed, balance 20)",
+        "2026-10-16 e2e/cust-005-credit.spec.ts Playwright pass (balance+history shown, top up +300, over-withdraw rejected, withdraw 120.25 -> 179.75, history rows, persists on reload)"
+      ],
       "notes": "Needed before bidding so bids can be checked against available credit."
     },
     {
