@@ -11,15 +11,19 @@
     "db:seed": "tsx prisma/seed.ts",
     "test": "cross-env DATABASE_URL=postgresql://auction:auction@localhost:5433/auction_test prisma migrate reset --force --skip-seed --skip-generate && vitest run"
   },
-  "prisma": { "seed": "tsx prisma/seed.ts" },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "dependencies": {
     "@prisma/client": "5.22.0",
+    "@types/nodemailer": "^6.4.17",
     "bcryptjs": "2.4.3",
     "cookie-parser": "1.4.7",
     "cors": "2.8.5",
     "dotenv": "16.4.5",
     "express": "4.21.1",
     "jsonwebtoken": "9.0.2",
+    "nodemailer": "^6.9.16",
     "zod": "3.23.8"
   },
   "devDependencies": {

@@ -48,15 +48,18 @@
       "area": "auth",
       "title": "Register",
       "user_visible_behavior": "New user can create new account with validation input infos",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Open register page",
         "Input all fields with invalid info and wait for validation",
         "Input valid information to all fields required, hit create new user , then waiting success notification",
         "Check API send email to user mail"
       ],
-      "evidence": [],
-      "notes": "All fields required must be valid information, email confirmation only check API call success"
+      "evidence": [
+        "2026-10-16 be/tests/auth.register.test.ts 4/4 vitest pass (per-field validation, password confirmation, duplicate email/username 409, account created + confirmation mail in outbox + token verifies once)",
+        "2026-10-16 e2e/guest-001-register.spec.ts Playwright pass (invalid inputs show 6 field errors, duplicate username error, success toast, /api/dev/outbox has confirmation mail, link confirms email, new user logs in)"
+      ],
+      "notes": "Email: SMTP when SMTP_HOST set, otherwise dev outbox (GET /api/dev/outbox, non-production only). New users are status pending until the link is confirmed; login is allowed while pending."
     },
     {
       "id": "cust-002",

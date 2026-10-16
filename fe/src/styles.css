@@ -50,6 +50,7 @@ input, textarea, select {
 }
 input:focus, textarea:focus, select:focus { outline: 2px solid var(--primary); outline-offset: -1px; }
 input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--danger); }
+.field { display: flex; flex-direction: column; gap: 0.3rem; }
 .field-error { color: var(--danger); font-size: 0.8rem; font-weight: 400; }
 .error { color: var(--danger); margin: 0; }
 

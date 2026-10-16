@@ -37,6 +37,9 @@ export function Layout() {
               <Link to="/login" className="btn btn-ghost">
                 Log in
               </Link>
+              <Link to="/register" className="btn btn-primary">
+                Register
+              </Link>
             </>
           )}
         </div>

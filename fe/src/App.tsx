@@ -4,6 +4,8 @@ import { Layout } from './components/Layout';
 import { DashboardPage } from './pages/Dashboard';
 import { HomePage } from './pages/Home';
 import { LoginPage } from './pages/Login';
+import { RegisterPage } from './pages/Register';
+import { VerifyEmailPage } from './pages/VerifyEmail';
 
 export function App() {
   return (
@@ -11,6 +13,8 @@ export function App() {
       <Route element={<Layout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route
           path="/dashboard"
           element={

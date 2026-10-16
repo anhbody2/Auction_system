@@ -4,7 +4,10 @@ import { z } from 'zod';
 import { config } from '../config';
 import { prisma } from '../db';
 import { HttpError, asyncHandler } from '../lib/http';
+import { sendMail } from '../lib/mailer';
+import { hashToken, newToken } from '../lib/tokens';
 import { getPublicUser } from '../lib/users';
+import { emailField, fullNameField, passwordField, phoneField, usernameField } from '../lib/validation';
 import { requireAuth, signToken } from '../middleware/auth';
 
 export const authRouter = Router();
@@ -33,6 +36,66 @@ authRouter.post(
     if (user.status === 'disabled') throw new HttpError(403, 'This account is disabled');
     res.cookie(config.cookieName, signToken(user), cookieOptions);
     res.json({ user: await getPublicUser(user.id) });
+  }),
+);
+
+const registerSchema = z
+  .object({
+    fullName: fullNameField,
+    username: usernameField,
+    email: emailField,
+    phone: phoneField,
+    address: z.string().trim().max(500).optional(),
+    password: passwordField,
+    confirmPassword: z.string(),
+  })
+  .refine((d) => d.password === d.confirmPassword, { path: ['confirmPassword'], message: 'Passwords do not match' });
+
+authRouter.post(
+  '/register',
+  asyncHandler(async (req, res) => {
+    const data = registerSchema.parse(req.body);
+    const taken: Record<string, string> = {};
+    if (await prisma.user.findUnique({ where: { email: data.email } })) taken.email = 'Email is already registered';
+    if (await prisma.user.findUnique({ where: { username: data.username } })) taken.username = 'Username is already taken';
+    if (Object.keys(taken).length) throw new HttpError(409, 'Account already exists', taken);
+
+    const { token, tokenHash } = newToken();
+    const user = await prisma.user.create({
+      data: {
+        email: data.email,
+        username: data.username,
+        passwordHash: await bcrypt.hash(data.password, 10),
+        status: 'pending',
+        info: { create: { fullName: data.fullName, phone: data.phone, address: data.address || null } },
+        verificationTokens: { create: { tokenHash, expiresAt: new Date(Date.now() + 24 * 3600 * 1000) } },
+      },
+    });
+    await sendMail(
+      user.email,
+      'Confirm your BidHouse account',
+      `Hi ${data.fullName},\n\nConfirm your email address by opening this link:\n${config.appUrl}/verify-email?token=${token}\n\nThe link expires in 24 hours.`,
+    );
+    res.status(201).json({
+      message: 'Account created. Check your email to confirm your address.',
+      user: await getPublicUser(user.id),
+    });
+  }),
+);
+
+authRouter.post(
+  '/verify-email',
+  asyncHandler(async (req, res) => {
+    const { token } = z.object({ token: z.string().min(1) }).parse(req.body);
+    const record = await prisma.emailVerificationToken.findUnique({ where: { tokenHash: hashToken(token) } });
+    if (!record || record.usedAt || record.expiresAt < new Date()) {
+      throw new HttpError(400, 'This confirmation link is invalid or has expired');
+    }
+    await prisma.$transaction([
+      prisma.emailVerificationToken.update({ where: { id: record.id }, data: { usedAt: new Date() } }),
+      prisma.user.update({ where: { id: record.userId }, data: { emailVerifiedAt: new Date(), status: 'active' } }),
+    ]);
+    res.json({ message: 'Email confirmed' });
   }),
 );
 
