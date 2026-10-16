@@ -55,7 +55,7 @@ describe('cust-007 manage your biddings (+ settlement)', () => {
     expect(byName.Cancelled.myStatus).toBe('cancelled');
   });
 
-  it('settles credit: winner paid, seller paid minus 5% commission, losers released', async () => {
+  it('settles credit: winner paid, seller paid minus tiered commission (5% at $200), losers released', async () => {
     const bob = (await (await loginAs('bob')).get('/api/credit')).body;
     // bob: won 200 (paid), winning 100 (held); everything else released
     expect(bob).toMatchObject({ balance: 800, held: 100, available: 700 });

@@ -1,7 +1,8 @@
 # Session Handoff
 
-State: all 14 features in scope are passing and archived to `progress-feature-list/feature_list_1.json`.
-`./init.sh` exits 0 (54 vitest + fe build + 14 Playwright).
+State: round 1 (14 features) and round 2 (bid-003, sys-001, sys-002, sys-003) are passing and archived to
+`progress-feature-list/feature_list_1.json` and `feature_list_2.json`.
+`./init.sh` exits 0 (93 vitest + fe build + 18 Playwright).
 
 ## Restart path
 
@@ -18,7 +19,9 @@ State: all 14 features in scope are passing and archived to `progress-feature-li
 | Credit ledger | be/src/lib/credit.ts, routes/credit.ts | pages/Credit | credit |
 | Auctions | be/src/lib/auctions.ts, routes/auctions.ts | pages/CreateAuction, AuctionDetail, MyAuctions, Home | auction.*, my-auctions, homepage, search |
 | Bids, cancel, my bids | be/src/routes/bids.ts | components/BidPanel, CancelAuction; pages/MyBiddings | bid.place, auction.cancel, my-bids |
-| Settlement | be/src/lib/settlement.ts | n/a | my-bids |
+| Bid increment ladder | be/src/lib/increments.ts | pages/CreateAuction (hint) | bid.increment |
+| Scheduler (start/close jobs, hourly; AUCTION_JOB_INTERVAL_MS) | be/src/lib/scheduler.ts, lib/jobs.ts | n/a | job.start, job.close |
+| Settlement (+ per-request safety net, SETTLE_ON_REQUEST=0 disables) | be/src/lib/settlement.ts, lib/commission.ts | n/a | my-bids, job.close, commission |
 | Messages | be/src/routes/messages.ts | components/Messages | messages |
 | Dev helpers | be/src/routes/dev.ts (outbox, expire auction) | n/a | used by e2e |
 

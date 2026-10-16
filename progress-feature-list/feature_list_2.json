@@ -163,13 +163,18 @@
           "rate": 0.01
         }
       ],
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Unit: commission for 99.99 -> 10.00 (10%), 100.00 -> 5.00 (5%), 999.99 -> 50.00 (5%), 1000.00 -> 20.00 (2%), 9999.99 -> 200.00 (2%), 10000.00 -> 100.00 (1%), rounded to 2 decimals.",
         "Unit: settlement credits the seller with winning price minus the tiered commission and stores commission_amount on the auction settlement record.",
         "E2E: a seller whose auction sells for $150 receives $142.50."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-16 Unit: be/tests/commission.test.ts commissionFor 99.99->10.00, 100->5.00, 999.99->50.00, 1000->20.00, 9999.99->200.00, 10000->100.00 (also 50->5, 25000->250), half-up to cents",
+        "2026-10-16 Unit: settlement at $80 stores commission_amount 8, payout 72, ledger 'Sold: Vintage camera (commission $8.00, 10%)'; at $150 commission 7.50, seller credited 142.50. Tiers in be/src/lib/commission.ts replace flat COMMISSION_RATE",
+        "2026-10-16 E2E: e2e/sys-003-commission.spec.ts $150 + $60 sales -> seller balance $196.50 with ledger rows showing 5% and 10%; e2e/sys-002 $150 sale -> $142.50",
+        "2026-10-16 ./init.sh exit 0: vitest 18 files / 93 tests, fe build ok, Playwright 18/18 (guest-003 spec race fixed: wait for the new search summary before reading results)"
+      ],
       "notes": "Replaces the flat COMMISSION_RATE (5%). The spec says 'greater than $10,000' for 1% and leaves $9,999.01-$10,000 undefined; exactly $10,000 is treated as 1%. Tiers use whole-dollar boundaries with the lower bound inclusive."
     }
   ]

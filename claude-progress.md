@@ -8,7 +8,7 @@
 - Standard startup path: start Docker Desktop, then `./init.sh` (npm install + full verify). `npm run dev` runs API on :4000 and web on :5173 (Vite proxies /api)
 - Standard verification path: `npm run verify` = `npm test` (vitest on DB auction_test + fe build) and `npm run e2e` (Playwright on DB auction_e2e, servers on :4100/:5180)
 - Demo accounts: alice / bob / carol, password `Password123!` (`npm run db:seed -w be` reseeds the dev DB)
-- Feature list: round 1 (14 features) archived to progress-feature-list/feature_list_1.json. Round 2 feature_list.json: bid-003, sys-001, sys-002 passing; sys-003 not_started
+- Feature list: round 1 (14 features) archived to progress-feature-list/feature_list_1.json; round 2 (bid-003, sys-001, sys-002, sys-003, all passing) archived to progress-feature-list/feature_list_2.json. No active feature_list.json at the root
 - Current blocker: none
 
 ## Session Log
@@ -26,7 +26,7 @@
   - Increment: auction min_increment, else BID_INCREMENT_RULES (seeded 1/5/25)
   - Cancel allowed while upcoming/active even with bids; all holds released
   - Messages: public per-auction thread; any signed-in customer can post
-  - Settlement on auction end: winner pays from hold, seller gets amount minus 5% commission (COMMISSION_RATE), reserve not met -> hold released; runs before every /api request and every 5s
+  - Settlement on auction end: winner pays from hold, seller gets amount minus commission, reserve not met -> hold released. (Round 2: tiered commission and hourly jobs, see Session 003)
   - Homepage "just completed" = ended in the last 7 days; cancelled auctions hidden publicly
 - Known risk or unresolved issue:
   - `prisma generate` can hit EPERM on Windows while a node process holds the query-engine DLL; test resets use --skip-generate. Stop running servers before `npm install`.
@@ -70,3 +70,12 @@
 - Verification: vitest 83/83, Playwright 17/17
 - Finding: with SETTLE_ON_REQUEST=0 the UI shows 'no winner'/'lost' until the next job tick (cust-007 and guest-002 e2e fail that way). This is why the safety net stays on; e2e runs the production config
 - Next best step: sys-003 tiered commission
+
+### Session 003 (cont.) sys-003 and wrap-up
+
+- Completed: be/src/lib/commission.ts tiered 10/5/2/1% (half-up to cents) used by settleAuction; payout ledger text shows amount and rate
+- Fixed a pre-existing race in e2e/guest-003-search.spec.ts (read results before the new search rendered)
+- Verification: ./init.sh exit 0 -> vitest 18 files / 93 tests, fe build ok, Playwright 18/18
+- All round 2 features passing; feature list archived to progress-feature-list/feature_list_2.json
+- Still unconfirmed with product owner: increment tiers above $50; $10,000 exactly treated as 1%
+- Next best step: write a round 3 feature_list.json at the root (CLAUDE.md startup expects one)

@@ -1,13 +1,11 @@
-import { Prisma } from '@prisma/client';
 import { prisma } from '../db';
+import { commissionFor, commissionRate } from './commission';
 import { applyCredit } from './credit';
-
-export const COMMISSION_RATE = new Prisma.Decimal(process.env.COMMISSION_RATE ?? '0.05');
 
 /**
  * Closes one auction whose end time has passed. Idempotent: the auction row is locked and
  * re-checked, so concurrent callers settle it exactly once.
- *  - leading bid meets reserve -> ticket won, winner pays from held credit, seller receives amount minus commission
+ *  - leading bid meets reserve -> ticket won, winner pays from held credit, seller receives amount minus tiered commission
  *  - otherwise                -> leading hold released, ticket lost
  *  - every other non-cancelled ticket becomes lost
  */
@@ -24,7 +22,7 @@ export async function settleAuction(auctionId: bigint) {
     let winnerId: bigint | null = null;
     if (leading && reserveMet) {
       winnerId = leading.bidderId;
-      const commission = leading.amount.times(COMMISSION_RATE).toDecimalPlaces(2);
+      const commission = commissionFor(leading.amount);
       await tx.bidTicket.update({ where: { id: leading.id }, data: { status: 'won', wonAt: now } });
       await applyCredit(tx, { userId: leading.bidderId, type: 'payment', amount: leading.amount, auctionId, bidTicketId: leading.id, description: `Won: ${auction.name}` });
       await applyCredit(tx, {
@@ -33,7 +31,7 @@ export async function settleAuction(auctionId: bigint) {
         amount: leading.amount.minus(commission),
         auctionId,
         bidTicketId: leading.id,
-        description: `Sold: ${auction.name} (commission ${commission.toFixed(2)})`,
+        description: `Sold: ${auction.name} (commission $${commission.toFixed(2)}, ${commissionRate(leading.amount).times(100).toNumber()}%)`,
       });
       await tx.auctionSettlement.create({
         data: { auctionId, winningBidId: leading.id, commissionAmount: commission, settlementStatus: 'settled', settledAt: now },
