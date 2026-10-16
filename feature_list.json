@@ -89,7 +89,7 @@
       "area": "auth",
       "title": "Change password",
       "user_visible_behavior": "A logged-in customer can change their password by providing the current password and a new one.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Log in and open the change password page.",
         "Enter a wrong current password and verify the change is rejected.",
@@ -97,7 +97,10 @@
         "Log out and verify login fails with the old password.",
         "Verify login succeeds with the new password."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-16 be/tests/password.change.test.ts 3/3 vitest pass (wrong current 400, validation, change -> old login 401 / new login 200)",
+        "2026-10-16 e2e/cust-003-change-password.spec.ts Playwright pass (wrong current rejected, change toast, old password login fails, new succeeds)"
+      ],
       "notes": ""
     },
     {

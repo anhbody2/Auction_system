@@ -14,6 +14,22 @@ export async function resetDb() {
   await seed(prisma);
 }
 
+/** Registers a fresh account; the password is PASSWORD unless given. */
+export async function registerUser(username: string, password = PASSWORD) {
+  const res = await request(app)
+    .post('/api/auth/register')
+    .send({
+      fullName: `${username} Test`,
+      username,
+      email: `${username}@example.com`,
+      phone: '0900000000',
+      password,
+      confirmPassword: password,
+    });
+  if (res.status !== 201) throw new Error(`register failed: ${JSON.stringify(res.body)}`);
+  return res.body.user;
+}
+
 /** Returns a supertest agent that keeps the auth cookie. */
 export async function loginAs(identifier: string, password = PASSWORD) {
   const agent = request.agent(app);

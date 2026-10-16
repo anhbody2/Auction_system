@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { ApiError, api, type User } from '../api';
 import { useAuth } from '../auth';
 import { Field } from '../components/Field';
@@ -65,6 +66,9 @@ export function ProfilePage() {
           {busy ? 'Saving...' : 'Save changes'}
         </button>
       </form>
+      <p className="small">
+        <Link to="/change-password">Change password</Link>
+      </p>
     </div>
   );
 }
