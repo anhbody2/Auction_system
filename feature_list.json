@@ -153,7 +153,7 @@
       "area": "auction",
       "title": "Create new auction",
       "user_visible_behavior": "A seller can create an auction with item details, starting price, and start/end time, and it becomes visible to bidders.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Log in and open the create auction page.",
         "Fill in item name, description, starting price, minimum increment, start time and end time.",
@@ -161,7 +161,10 @@
         "Log in as a different customer and verify the auction is visible.",
         "Submit invalid data (negative price, end time before start time) and verify validation errors are shown."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-16 be/tests/auction.create.test.ts 5/5 vitest pass (auth required, created auction in seller list + visible to bob + public list, reserve hidden from non-owner, future start -> upcoming, negative price / end<start / missing fields 400 with per-field messages, reserve<start rejected)",
+        "2026-10-16 e2e/sell-001-create-auction.spec.ts Playwright pass (invalid price + end-before-start errors shown, valid create -> detail page active, listed in My Auctions, visible to bob)"
+      ],
       "notes": ""
     },
     {
@@ -171,7 +174,7 @@
       "area": "auction",
       "title": "Cancel auction",
       "user_visible_behavior": "A seller can cancel their own auction before it ends; bidders can no longer bid on it.",
-      "status": "not_started",
+      "status": "blocked",
       "verification": [
         "Log in as the seller of an active auction and click Cancel.",
         "Verify the auction status changes to 'cancelled'.",
@@ -180,7 +183,7 @@
         "Log in as a non-owner and verify they cannot cancel the auction."
       ],
       "evidence": [],
-      "notes": "Define rule for whether cancellation is allowed after bids exist."
+      "notes": "Blocked on bid-001: verification needs bids to exist (bid rejection + held credit release). Rule decided: seller may cancel an upcoming/active auction even after bids exist; every held bidder credit is released and all bid tickets become cancelled."
     },
     {
       "id": "cust-006",

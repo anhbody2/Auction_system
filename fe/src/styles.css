@@ -75,6 +75,14 @@ th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var
 th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.02em; }
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
 
+.detail { display: grid; grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr); gap: 1.5rem; align-items: start; }
+@media (max-width: 760px) { .detail { grid-template-columns: 1fr; } }
+.hero-img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--radius); background: #e9ecf1; border: 1px solid var(--border); }
+.placeholder { display: flex; align-items: center; justify-content: center; color: var(--muted); }
+.facts { display: grid; grid-template-columns: auto 1fr; gap: 0.4rem 1rem; margin: 1rem 0; }
+.facts dt { color: var(--muted); font-size: 0.85rem; align-self: center; }
+.facts dd { margin: 0; }
+
 .toasts { position: fixed; right: 1rem; bottom: 1rem; display: flex; flex-direction: column; gap: 0.5rem; z-index: 50; }
 .toast { padding: 0.75rem 1rem; border-radius: 8px; color: #fff; box-shadow: 0 4px 14px rgba(0,0,0,.15); max-width: 360px; }
 .toast-success { background: var(--success); }

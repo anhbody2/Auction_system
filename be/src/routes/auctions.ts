@@ -1,0 +1,166 @@
+import { Router } from 'express';
+import { z } from 'zod';
+import { prisma } from '../db';
+import { auctionInclude, auctionView } from '../lib/auctions';
+import { HttpError, asyncHandler } from '../lib/http';
+import { optionalAuth, requireAuth } from '../middleware/auth';
+
+export const auctionsRouter = Router();
+
+export const CONDITIONS = ['new', 'like_new', 'used', 'for_parts'] as const;
+
+const price = (label: string) =>
+  z.coerce
+    .number({ invalid_type_error: `${label} must be a number` })
+    .positive(`${label} must be greater than 0`)
+    .max(1_000_000_000, `${label} is too large`)
+    .refine((n) => Math.abs(n * 100 - Math.round(n * 100)) < 1e-6, `${label} can have at most 2 decimals`);
+
+const optionalPrice = (label: string) =>
+  z.preprocess((v) => (v === '' || v === null ? undefined : v), price(label).optional());
+
+const dateField = (label: string) =>
+  z.coerce.date({ errorMap: () => ({ message: `${label} is required` }) });
+
+const itemSchema = z.object({
+  name: z.string().trim().min(3, 'Item name must be at least 3 characters').max(255),
+  description: z.string().trim().min(10, 'Description must be at least 10 characters').max(5000),
+  categoryId: z.coerce.number({ invalid_type_error: 'Choose a category' }).int().positive('Choose a category'),
+  condition: z.enum(CONDITIONS, { errorMap: () => ({ message: 'Choose a condition' }) }),
+  imageUrl: z.preprocess((v) => (v === '' ? undefined : v), z.string().trim().url('Enter a valid image URL').optional()),
+});
+
+// Prices and times are validated separately so cross-field errors show even when item fields are invalid.
+const termsSchema = z
+  .object({
+    initialPrice: price('Starting price'),
+    reservePrice: optionalPrice('Reserve price'),
+    minIncrement: optionalPrice('Minimum increment'),
+    startTime: dateField('Start time'),
+    endTime: dateField('End time'),
+  })
+  .superRefine((d, ctx) => {
+    if (d.startTime.getTime() < Date.now() - 5 * 60 * 1000) {
+      ctx.addIssue({ code: 'custom', path: ['startTime'], message: 'Start time cannot be in the past' });
+    }
+    if (d.endTime <= d.startTime) {
+      ctx.addIssue({ code: 'custom', path: ['endTime'], message: 'End time must be after start time' });
+    } else if (d.endTime.getTime() - d.startTime.getTime() < 60 * 1000) {
+      ctx.addIssue({ code: 'custom', path: ['endTime'], message: 'Auction must last at least 1 minute' });
+    } else if (d.endTime.getTime() - d.startTime.getTime() > 30 * 24 * 3600 * 1000) {
+      ctx.addIssue({ code: 'custom', path: ['endTime'], message: 'Auction can last at most 30 days' });
+    }
+    if (d.reservePrice !== undefined && d.reservePrice < d.initialPrice) {
+      ctx.addIssue({ code: 'custom', path: ['reservePrice'], message: 'Reserve price cannot be below the starting price' });
+    }
+  });
+
+const timeOrderSchema = z
+  .object({ startTime: z.coerce.date(), endTime: z.coerce.date() })
+  .refine((d) => d.endTime > d.startTime, { path: ['endTime'], message: 'End time must be after start time' });
+
+function parseCreate(body: unknown) {
+  const item = itemSchema.safeParse(body);
+  const terms = termsSchema.safeParse(body);
+  if (item.success && terms.success) return { ...item.data, ...terms.data };
+  const issues = [...(item.success ? [] : item.error.issues), ...(terms.success ? [] : terms.error.issues)];
+  if (!terms.success) {
+    // Terms failed before its cross-field refinement ran; still report the time order when both dates parse.
+    const order = timeOrderSchema.safeParse(body);
+    if (!order.success && !issues.some((i) => i.path[0] === 'endTime')) issues.push(...order.error.issues);
+  }
+  throw new z.ZodError(issues);
+}
+
+auctionsRouter.get(
+  '/categories',
+  asyncHandler(async (_req, res) => {
+    res.json({ categories: await prisma.category.findMany({ where: { status: 'active' }, orderBy: { name: 'asc' } }) });
+  }),
+);
+
+auctionsRouter.post(
+  '/auctions',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const d = parseCreate(req.body);
+    const category = await prisma.category.findUnique({ where: { id: BigInt(d.categoryId) } });
+    if (!category) throw new HttpError(400, 'Validation failed', { categoryId: 'Choose a category' });
+
+    const sellerId = req.user!.id;
+    const now = new Date();
+    const startTime = d.startTime < now ? now : d.startTime;
+    const auction = await prisma.$transaction(async (tx) => {
+      const goods = await tx.goods.create({
+        data: {
+          sellerId,
+          categoryId: category.id,
+          name: d.name,
+          description: d.description,
+          condition: d.condition,
+          images: d.imageUrl ? { create: { imageUrl: d.imageUrl } } : undefined,
+        },
+      });
+      return tx.auction.create({
+        data: {
+          sellerId,
+          goodsId: goods.id,
+          name: d.name,
+          description: d.description,
+          initialPrice: d.initialPrice,
+          reservePrice: d.reservePrice ?? null,
+          minIncrement: d.minIncrement ?? null,
+          startTime,
+          endTime: d.endTime,
+          durationMinutes: Math.round((d.endTime.getTime() - startTime.getTime()) / 60000),
+          status: startTime <= now ? 'active' : 'upcoming',
+        },
+        include: auctionInclude,
+      });
+    });
+    res.status(201).json({ message: 'Auction created', auction: await auctionView(auction, sellerId) });
+  }),
+);
+
+auctionsRouter.get(
+  '/auctions/:id',
+  optionalAuth,
+  asyncHandler(async (req, res) => {
+    const id = parseId(req.params.id);
+    const auction = await prisma.auction.findUnique({ where: { id }, include: auctionInclude });
+    if (!auction) throw new HttpError(404, 'Auction not found');
+    res.json({ auction: await auctionView(auction, req.user?.id) });
+  }),
+);
+
+auctionsRouter.get(
+  '/auctions',
+  optionalAuth,
+  asyncHandler(async (req, res) => {
+    const auctions = await prisma.auction.findMany({
+      where: { status: { not: 'cancelled' } },
+      include: auctionInclude,
+      orderBy: { endTime: 'asc' },
+      take: 200,
+    });
+    res.json({ auctions: await Promise.all(auctions.map((a) => auctionView(a, req.user?.id))) });
+  }),
+);
+
+auctionsRouter.get(
+  '/me/auctions',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const auctions = await prisma.auction.findMany({
+      where: { sellerId: req.user!.id },
+      include: auctionInclude,
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({ auctions: await Promise.all(auctions.map((a) => auctionView(a, req.user!.id))) });
+  }),
+);
+
+export function parseId(raw: string) {
+  if (!/^\d{1,18}$/.test(raw)) throw new HttpError(404, 'Not found');
+  return BigInt(raw);
+}

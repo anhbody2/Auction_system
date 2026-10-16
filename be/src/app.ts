@@ -4,6 +4,7 @@ import express from 'express';
 import { config } from './config';
 import { errorHandler } from './lib/http';
 import { jsonReplacer } from './lib/json';
+import { auctionsRouter } from './routes/auctions';
 import { authRouter } from './routes/auth';
 import { creditRouter } from './routes/credit';
 import { devRouter } from './routes/dev';
@@ -20,6 +21,7 @@ export function createApp() {
   app.use('/api/auth', authRouter);
   app.use('/api/me', meRouter);
   app.use('/api/credit', creditRouter);
+  app.use('/api', auctionsRouter);
   if (process.env.NODE_ENV !== 'production') app.use('/api/dev', devRouter);
 
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found' }));

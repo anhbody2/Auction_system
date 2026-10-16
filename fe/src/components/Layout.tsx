@@ -22,6 +22,7 @@ export function Layout() {
           {user && (
             <>
               <NavLink to="/dashboard">Dashboard</NavLink>
+              <NavLink to="/my-auctions">My Auctions</NavLink>
               <NavLink to="/credit">Credit</NavLink>
               <NavLink to="/profile">Profile</NavLink>
             </>

@@ -30,5 +30,39 @@ export interface User {
   address: string | null;
 }
 
-export const money = (n: number | null | undefined) =>
+export type AuctionStatus = 'upcoming' | 'active' | 'ended' | 'cancelled';
+
+export interface Auction {
+  id: number;
+  name: string;
+  description: string | null;
+  seller: { id: number; username: string };
+  isOwner: boolean;
+  goods: { id: number; name: string; condition: string | null; category: { id: number; name: string } | null; images: string[] };
+  initialPrice: number;
+  reservePrice?: number | null;
+  hasReserve: boolean;
+  reserveMet: boolean;
+  minIncrement: number | null;
+  currentPrice: number | null;
+  nextMinBid: number | null;
+  bidCount: number;
+  startTime: string;
+  endTime: string;
+  durationMinutes: number;
+  status: AuctionStatus;
+  winner: { id: number; username: string } | null;
+  cancelledAt: string | null;
+  closedAt: string | null;
+  createdAt: string;
+}
+
+export const CONDITION_LABELS: Record<string, string> = {
+  new: 'New',
+  like_new: 'Like new',
+  used: 'Used',
+  for_parts: 'For parts',
+};
+
+export const money =(n: number | null | undefined) =>
   n == null ? '-' : `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
