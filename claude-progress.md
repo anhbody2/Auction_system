@@ -126,4 +126,9 @@
 - Completed: DELETE /api/admin/users/:id soft delete (status 'deleted'); blocked by open auctions as seller or leading ('active') bids on open auctions; login and forgot-password treat deleted as unknown; fe DeleteUser inline confirm in the user list
 - Known: a deleted user's username/email stay reserved (unique columns), so they cannot re-register with them
 - Verification: npm run verify exit 0 -> vitest 129, fe build, Playwright 24/24
-- Next best step: adm-005 admin sets a user's password
+
+### Session 005 (cont.) adm-005
+
+- Completed: PUT /api/admin/users/:id/password (registration password rules, confirm must match, invalidates open reset links); fe AdminSetPassword panel on the user detail page
+- Verification: npm run verify exit 0 -> vitest 133, fe build, Playwright 25/25
+- Next best step: stf-001 statistics filter and list

@@ -164,13 +164,17 @@
       "srs_ref": "3.20.3 REQ-3",
       "title": "Admin changes a user's password",
       "user_visible_behavior": "The admin sets a new password for any user (without knowing the old one). The same password rules as registration apply. The user's old password stops working and the new one works.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "API: PUT /api/admin/users/:id/password with a valid password returns 200; a weak password returns 400.",
         "API: login with the old password fails and with the new password succeeds.",
         "E2E: admin sets a new password from the user detail page and sees a success toast."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-18 API: be/tests/admin.users.password.test.ts (4 tests) - PUT /api/admin/users/:id/password 200 without old password; old password login 401, new 200; weak/no-digit/mismatch 400 with field messages; outstanding reset links invalidated; unknown id 404; staff 403",
+        "2026-10-18 E2E: e2e/adm-005-set-password.spec.ts - weak password shows field error; valid password shows success toast; old password 401; user logs in with the new one",
+        "2026-10-18 npm run verify exit 0: vitest 25 files / 133 tests, fe build ok, Playwright 25/25"
+      ],
       "notes": "Customers already change their own password (ChangePassword page); this is the admin-side reset."
     },
     {

@@ -190,3 +190,23 @@ adminUsersRouter.delete(
     res.json({ message: `User ${user.username} deleted` });
   }),
 );
+
+const setPasswordSchema = z
+  .object({ newPassword: passwordField, confirmPassword: z.string() })
+  .refine((d) => d.newPassword === d.confirmPassword, { path: ['confirmPassword'], message: 'Passwords do not match' });
+
+/** adm-005: admin sets a new password without the old one; any outstanding reset links stop working. */
+adminUsersRouter.put(
+  '/:id/password',
+  asyncHandler(async (req, res) => {
+    const id = parseUserId(req.params.id);
+    const { newPassword } = setPasswordSchema.parse(req.body);
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user || user.status === 'deleted') throw new HttpError(404, 'User not found');
+    await prisma.$transaction([
+      prisma.user.update({ where: { id }, data: { passwordHash: await bcrypt.hash(newPassword, 10) } }),
+      prisma.passwordResetToken.updateMany({ where: { userId: id, usedAt: null }, data: { usedAt: new Date() } }),
+    ]);
+    res.json({ message: `Password updated for ${user.username}` });
+  }),
+);

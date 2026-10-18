@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ApiError, api, money } from '../api';
 import { useAuth } from '../auth';
+import { AdminSetPassword } from '../components/AdminSetPassword';
 import { AdminUserEdit } from '../components/AdminUserEdit';
 import type { AdminUserRow } from './AdminUsers';
 
@@ -73,6 +74,7 @@ export function AdminUserDetailPage() {
       {user.status !== 'deleted' && (
         <div className="admin-panels">
           <AdminUserEdit key={user.updatedAt} user={user} isSelf={me?.id === user.id} onSaved={setUser} />
+          <AdminSetPassword userId={user.id} />
         </div>
       )}
     </div>
