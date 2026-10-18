@@ -1,0 +1,31 @@
+Staff – Statistic and Report
+3.19.1	Description and Priority
+	This function statistic and report about auctions
+3.19.2	Stimulus/Response Sequences
+Flow of function: TBD
+
+3.19.3	Functional Requirements
+REQ-1:	Users can select from, to date and status of auction to statistics.
+REQ-2:	List all auctions matching with conditions
+REQ-3:	Print them to Excel
+REQ-4:	Draw a chart to describe the values of statistics.
+
+	You can statistic and report more information for revenue or customers.
+
+System Administration – User Management
+3.20.1	Description and Priority
+	This function permits management of the users of the system.
+3. 20.2	Stimulus/Response Sequences
+Flow of function: TBD
+3. 20.3	Functional Requirements
+REQ-1:	Add, list, view, edit and delete the user of the system.
+REQ-2:	Use role to define how a user can access a system.
+REQ-3:	Change the password for the user.
+System Administration – Security
+3.21.1	Description and Priority
+	This function sets up security for the system.
+3.21.2	Stimulus/Response Sequences
+Flow of function: TBD
+3.21.3	Functional Requirements
+REQ-1:	Setup login page to permit customer, staff and admin user login.
+REQ-2:	Assign permission to control user access resources.

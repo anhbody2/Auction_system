@@ -32,6 +32,9 @@ you either verify it or document why it is blocked.
 - `claude-progress.md`
 - `init.sh`
 - `session-handoff.md` when a compact handoff is useful
+## Required Folders
+
+- docs/
 
 ## Completion Gate
 

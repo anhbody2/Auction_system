@@ -3,7 +3,7 @@
 ## Current Verified State
 
 - Repository root: E:\Auction_system (`/e/Auction_system` in Git Bash)
-- Stack: be/ Node 20 + Express + TypeScript + Prisma 5 (PostgreSQL 16 in docker compose, host port 5433); fe/ React 18 + Vite + TS; e2e/ Playwright (Chromium)
+- Stack: be/ Node 20 + Express + TypeScript + Prisma 5 (PostgreSQL 16 in docker compose, host port 5436); fe/ React 18 + Vite + TS; e2e/ Playwright (Chromium)
 - Schema source of truth: docs/ERD_edited.md (docs/ERD.md is the untouched original)
 - Standard startup path: start Docker Desktop, then `./init.sh` (npm install + full verify). `npm run dev` runs API on :4000 and web on :5173 (Vite proxies /api)
 - Standard verification path: `npm run verify` = `npm test` (vitest on DB auction_test + fe build) and `npm run e2e` (Playwright on DB auction_e2e, servers on :4100/:5180)
@@ -79,3 +79,12 @@
 - All round 2 features passing; feature list archived to progress-feature-list/feature_list_2.json
 - Still unconfirmed with product owner: increment tiers above $50; $10,000 exactly treated as 1%
 - Next best step: write a round 3 feature_list.json at the root (CLAUDE.md startup expects one)
+
+### Session 004
+
+- Date: 2026-10-18
+- Goal: Write the round 3 feature list from SRS.txt (3.19 Staff statistics and report, 3.20 Admin user management, 3.21 Admin security)
+- Completed: feature_list.json with 11 features, scoped to the Staff and Admin roles: sec-001 one login page with role-based landing, sec-002 role permissions, adm-001..005 user list/view, add, edit, delete, password, stf-001..004 statistics filter, Excel export, chart, revenue/customer stats (optional)
+- Verification run: feature_list.json parses; no code changed
+- Open decisions (in feature notes): which date the statistics range filters on (assumed start_time); soft delete for users; admin-created accounts skip email verification
+- Next best step: start sec-001

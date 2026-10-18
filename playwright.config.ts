@@ -1,6 +1,6 @@
 import { defineConfig } from '@playwright/test';
 
-const E2E_DB = 'postgresql://auction:auction@localhost:5433/auction_e2e';
+const E2E_DB = 'postgresql://auction:auction@localhost:5436/auction_e2e';
 
 export default defineConfig({
   testDir: './e2e',

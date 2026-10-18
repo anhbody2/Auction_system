@@ -9,7 +9,7 @@
     "start": "node dist/server.js",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
-    "test": "cross-env DATABASE_URL=postgresql://auction:auction@localhost:5433/auction_test prisma migrate reset --force --skip-seed --skip-generate && vitest run"
+    "test": "cross-env DATABASE_URL=postgresql://auction:auction@localhost:5436/auction_test prisma migrate reset --force --skip-seed --skip-generate && vitest run"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

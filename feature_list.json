@@ -1,0 +1,217 @@
+{
+  "project": "Online Auction System",
+  "last_updated": "2026-10-18",
+  "scope": "Round 3. Only the roles named in SRS.txt sections 3.19-3.21: Staff (statistics and report) and Admin (system administration: user management and security). Customer appears only as a login subject in sec-001; no new customer features. Roles map to the existing users.role column (default 'customer'); this round adds the values 'staff' and 'admin'.",
+  "rules": {
+    "single_active_feature": true,
+    "passing_requires_evidence": true,
+    "do_not_skip_verification": true
+  },
+  "status_legend": {
+    "not_started": "Work has not begun.",
+    "in_progress": "The feature is the current active task.",
+    "blocked": "Work cannot continue until a documented blocker is resolved.",
+    "passing": "Required verification has passed and evidence is recorded."
+  },
+  "roles": {
+    "staff": "An internal user who views auction statistics and exports reports.",
+    "admin": "A system administrator who manages users, roles, permissions and passwords."
+  },
+  "features": [
+    {
+      "id": "sec-001",
+      "priority": 1,
+      "role": "admin",
+      "area": "security",
+      "srs_ref": "3.21.3 REQ-1",
+      "title": "One login page for customer, staff and admin",
+      "user_visible_behavior": "Customers, staff and admins sign in on the same login page. After login each lands on their own home: customer on the existing dashboard, staff on the statistics page, admin on the user management page. The navigation only shows links the user's role can use.",
+      "status": "not_started",
+      "verification": [
+        "Seed: npm run db:seed -w be creates one staff and one admin account (credentials documented in docs/).",
+        "Unit: the JWT and /api/me include the user's role.",
+        "API: login as each of customer, staff and admin returns 200 and the correct role.",
+        "E2E: logging in as staff lands on /staff/statistics; as admin lands on /admin/users; as customer lands on the existing dashboard.",
+        "E2E: a customer does not see Staff or Admin links in the navigation."
+      ],
+      "evidence": [],
+      "notes": "Role is read from the DB at login and put in the token. A role change takes effect on next login unless sec-002 re-reads it per request (preferred)."
+    },
+    {
+      "id": "sec-002",
+      "priority": 2,
+      "role": "admin",
+      "area": "security",
+      "srs_ref": "3.21.3 REQ-2, 3.20.3 REQ-2",
+      "title": "Role-based permissions on resources",
+      "user_visible_behavior": "Each role has a set of permissions (for example 'report.view', 'report.export', 'user.manage'). Staff and admin pages and APIs check the permission; a user without it gets 403 from the API and a 'not allowed' page in the UI. An admin can view the permission matrix and grant or revoke a permission for a role.",
+      "status": "not_started",
+      "verification": [
+        "Unit: requirePermission middleware allows a user whose role has the permission and rejects others with 403.",
+        "API: a customer calling a staff report endpoint gets 403; staff gets 200; anonymous gets 401.",
+        "API: a customer or staff calling an admin user endpoint gets 403; admin gets 200.",
+        "API: admin revokes 'report.export' from staff, then staff export returns 403; granting it back restores 200.",
+        "API: admin cannot remove 'user.manage' from the admin role (prevents lockout).",
+        "E2E: admin opens the permission screen, toggles a permission for staff, and the staff user's access changes accordingly."
+      ],
+      "evidence": [],
+      "notes": "Needs new tables (permissions, role_permissions) and a Prisma migration. Role and permissions are checked per request from the DB so changes apply immediately."
+    },
+    {
+      "id": "adm-001",
+      "priority": 3,
+      "role": "admin",
+      "area": "user-management",
+      "srs_ref": "3.20.3 REQ-1",
+      "title": "List and view users",
+      "user_visible_behavior": "The admin sees a paginated list of users with username, email, role, status and created date, can search by username or email and filter by role and status, and can open a user to see full details.",
+      "status": "not_started",
+      "verification": [
+        "API: GET /api/admin/users returns a page of users without password hashes; search, role and status filters narrow the result.",
+        "API: GET /api/admin/users/:id returns the user's details; an unknown id returns 404.",
+        "E2E: admin opens the user list, searches for a seeded user, and opens their detail page."
+      ],
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "adm-002",
+      "priority": 4,
+      "role": "admin",
+      "area": "user-management",
+      "srs_ref": "3.20.3 REQ-1, REQ-2",
+      "title": "Add a user with a role",
+      "user_visible_behavior": "The admin creates a user by entering username, email, password and role (customer, staff or admin). Fields are validated and duplicates are rejected with a clear message. The new user can log in right away.",
+      "status": "not_started",
+      "verification": [
+        "API: POST /api/admin/users with valid data returns 201; missing fields, weak password, invalid role, duplicate username or email return 400/409 with a message.",
+        "API: the created user can log in and has the chosen role.",
+        "E2E: admin fills the add-user form, submits, sees a success toast, and the user appears in the list."
+      ],
+      "evidence": [],
+      "notes": "Admin-created accounts skip email verification (assumption; confirm with product owner)."
+    },
+    {
+      "id": "adm-003",
+      "priority": 5,
+      "role": "admin",
+      "area": "user-management",
+      "srs_ref": "3.20.3 REQ-1, REQ-2",
+      "title": "Edit a user, including role and status",
+      "user_visible_behavior": "The admin edits a user's email, profile fields, role and status (active or locked). A locked user cannot log in. The admin cannot demote or lock their own account.",
+      "status": "not_started",
+      "verification": [
+        "API: PATCH /api/admin/users/:id updates the fields; invalid values return 400.",
+        "API: after changing a customer to staff, that user gets 200 on staff endpoints on the next request.",
+        "API: a locked user gets a clear error on login; unlocking restores login.",
+        "API: an admin changing their own role or status gets 400.",
+        "E2E: admin edits a user's role in the UI and the list shows the new role."
+      ],
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "adm-004",
+      "priority": 6,
+      "role": "admin",
+      "area": "user-management",
+      "srs_ref": "3.20.3 REQ-1",
+      "title": "Delete a user",
+      "user_visible_behavior": "The admin deletes a user after a confirmation prompt. The user disappears from the default list and can no longer log in. A user with active auctions or active bids cannot be deleted and the admin is told why. The admin cannot delete their own account.",
+      "status": "not_started",
+      "verification": [
+        "API: DELETE /api/admin/users/:id on a user with no active auctions or bids returns 200; that user can no longer log in.",
+        "API: deleting a user with an active auction or active bid returns 409 with a reason.",
+        "API: deleting yourself returns 400.",
+        "E2E: admin deletes a user through the confirm dialog and the row disappears."
+      ],
+      "evidence": [],
+      "notes": "Soft delete (status 'deleted') so auction, bid and credit history stays intact. Assumption; confirm with product owner."
+    },
+    {
+      "id": "adm-005",
+      "priority": 7,
+      "role": "admin",
+      "area": "user-management",
+      "srs_ref": "3.20.3 REQ-3",
+      "title": "Admin changes a user's password",
+      "user_visible_behavior": "The admin sets a new password for any user (without knowing the old one). The same password rules as registration apply. The user's old password stops working and the new one works.",
+      "status": "not_started",
+      "verification": [
+        "API: PUT /api/admin/users/:id/password with a valid password returns 200; a weak password returns 400.",
+        "API: login with the old password fails and with the new password succeeds.",
+        "E2E: admin sets a new password from the user detail page and sees a success toast."
+      ],
+      "evidence": [],
+      "notes": "Customers already change their own password (ChangePassword page); this is the admin-side reset."
+    },
+    {
+      "id": "stf-001",
+      "priority": 8,
+      "role": "staff",
+      "area": "statistics",
+      "srs_ref": "3.19.3 REQ-1, REQ-2",
+      "title": "Filter and list auctions for statistics",
+      "user_visible_behavior": "On the statistics page staff pick a from date, a to date and an auction status (all, upcoming, active, ended, cancelled) and see every matching auction with title, seller, start and end time, status, starting price, final price, winner and commission. A summary row shows the count and totals.",
+      "status": "not_started",
+      "verification": [
+        "API: GET /api/staff/auctions?from&to&status returns only auctions in the range with that status; totals match the rows.",
+        "API: from after to, or an invalid date or status, returns 400.",
+        "API: the date range is inclusive of both days (assumption: filter on auction start time).",
+        "E2E: staff sets a range and status, submits, and the table shows the seeded matching auctions and the correct count."
+      ],
+      "evidence": [],
+      "notes": "Which date the range filters on (start, end or created) is not stated in the SRS; assumed start_time. Status uses the effective status, same as the rest of the app."
+    },
+    {
+      "id": "stf-002",
+      "priority": 9,
+      "role": "staff",
+      "area": "report",
+      "srs_ref": "3.19.3 REQ-3",
+      "title": "Export the statistics list to Excel",
+      "user_visible_behavior": "Staff click 'Export to Excel' and download an .xlsx file holding the same rows and summary that the current filter shows, with a header row and the filter range in the file name.",
+      "status": "not_started",
+      "verification": [
+        "API: GET /api/staff/auctions/export with the same filters returns an .xlsx content type and attachment header.",
+        "Unit: parsing the generated workbook gives a header row plus one row per auction matching the list endpoint.",
+        "E2E: staff click Export and a file named like auctions_<from>_<to>.xlsx downloads."
+      ],
+      "evidence": [],
+      "notes": "Requires an xlsx library on the backend (e.g. exceljs)."
+    },
+    {
+      "id": "stf-003",
+      "priority": 10,
+      "role": "staff",
+      "area": "statistics",
+      "srs_ref": "3.19.3 REQ-4",
+      "title": "Chart of the statistics",
+      "user_visible_behavior": "Under the filter, a chart shows the number of auctions per day in the selected range broken down by status, and a second chart shows final sale value per day. The charts update when the filter changes and show an empty state when nothing matches.",
+      "status": "not_started",
+      "verification": [
+        "API: GET /api/staff/auctions/summary returns per-day counts by status and per-day sale value; the counts add up to the list total.",
+        "E2E: after filtering, the chart renders with data points for the seeded days; with a range that has no auctions, the empty state shows."
+      ],
+      "evidence": [],
+      "notes": "Requires a chart library on the frontend (e.g. recharts)."
+    },
+    {
+      "id": "stf-004",
+      "priority": 11,
+      "role": "staff",
+      "area": "statistics",
+      "srs_ref": "3.19.3 (optional: revenue or customers)",
+      "title": "Revenue and customer statistics",
+      "user_visible_behavior": "For the selected date range staff see system revenue (sum of commission from settled auctions) and customer figures: new registrations, number of active bidders and sellers, and the top 5 sellers and bidders by value. These figures are included in the Excel export as a second sheet.",
+      "status": "not_started",
+      "verification": [
+        "API: GET /api/staff/revenue?from&to returns total commission equal to the sum of auction_settlements.commission_amount in the range.",
+        "API: GET /api/staff/customers?from&to returns registrations, active bidder and seller counts and top-5 lists matching seeded data.",
+        "E2E: staff see the revenue and customer cards for a range with seeded settlements."
+      ],
+      "evidence": [],
+      "notes": "SRS marks this as optional ('You can...'). Do it last."
+    }
+  ]
+}

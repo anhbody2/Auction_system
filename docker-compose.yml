@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: auction
       POSTGRES_DB: auction
     ports:
-      - "5433:5432"
+      - "5436:5432"
     volumes:
       - auction_pgdata:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d
