@@ -118,7 +118,7 @@
       "srs_ref": "3.20.3 REQ-1, REQ-2",
       "title": "Edit a user, including role and status",
       "user_visible_behavior": "The admin edits a user's email, profile fields, role and status (active or locked). A locked user cannot log in. The admin cannot demote or lock their own account.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "API: PATCH /api/admin/users/:id updates the fields; invalid values return 400.",
         "API: after changing a customer to staff, that user gets 200 on staff endpoints on the next request.",
@@ -126,7 +126,12 @@
         "API: an admin changing their own role or status gets 400.",
         "E2E: admin edits a user's role in the UI and the list shows the new role."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-18 API: be/tests/admin.users.edit.test.ts (5 tests) - PATCH /api/admin/users/:id updates email/profile/role; invalid email/role/status and unknown fields 400, taken email 409, unknown id 404; customer changed to staff passes report.view check on next request with the same token and /api/auth/me shows staff; locked user login 403 'This account is locked...' and existing session gets 401; unlock restores login; admin changing own role/status 400",
+        "2026-10-18 Auth: requireAuth/optionalAuth now re-read role and status from DB per request (locked/disabled/deleted sessions are dropped)",
+        "2026-10-18 E2E: e2e/adm-003-edit-user.spec.ts - admin edits a user's name and role to staff, toast, detail and list show staff; own role/status selects disabled",
+        "2026-10-18 npm run verify exit 0: vitest 23 files / 124 tests, fe build ok, Playwright 23/23"
+      ],
       "notes": ""
     },
     {

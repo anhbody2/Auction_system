@@ -34,6 +34,7 @@ authRouter.post(
     const ok = user && (await bcrypt.compare(password, user.passwordHash));
     if (!user || !ok) throw new HttpError(401, 'Invalid username/email or password');
     if (user.status === 'disabled') throw new HttpError(403, 'This account is disabled');
+    if (user.status === 'locked') throw new HttpError(403, 'This account is locked. Contact an administrator.');
     res.cookie(config.cookieName, signToken(user), cookieOptions);
     res.json({ user: await getPublicUser(user.id) });
   }),

@@ -1,4 +1,4 @@
-import type { NextFunction, Request, Response } from 'express';
+import type { Request } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../config';
 import { prisma } from '../db';
@@ -41,33 +41,39 @@ function readUser(req: Request): AuthUser | undefined {
   }
 }
 
-export function optionalAuth(req: Request, _res: Response, next: NextFunction) {
-  req.user = readUser(req);
-  next();
-}
-
-export function requireAuth(req: Request, _res: Response, next: NextFunction) {
-  req.user = readUser(req);
-  if (!req.user) return next(new HttpError(401, 'Authentication required'));
-  next();
-}
-
 /** Statuses that may not use the API even with a valid token. */
 export const BLOCKED_STATUSES = ['locked', 'disabled', 'deleted'];
 
 /**
- * sec-002: role and permissions are read from the DB on every request, so a role change
- * or a revoked permission applies to the very next call (the role in the token is only a hint).
+ * Checks the token, then re-reads role and status from the DB so a role change, lock or delete
+ * applies to the very next request (the role in the token is only a hint). undefined = anonymous.
  */
+async function loadSessionUser(req: Request): Promise<AuthUser | undefined> {
+  const tokenUser = readUser(req);
+  if (!tokenUser) return undefined;
+  const user = await prisma.user.findUnique({ where: { id: tokenUser.id }, select: { role: true, status: true } });
+  if (!user || BLOCKED_STATUSES.includes(user.status)) return undefined;
+  const role = (ROLES as readonly string[]).includes(user.role) ? (user.role as Role) : 'customer';
+  return { ...tokenUser, role };
+}
+
+export const optionalAuth = asyncHandler(async (req, _res, next) => {
+  req.user = await loadSessionUser(req);
+  next();
+});
+
+export const requireAuth = asyncHandler(async (req, _res, next) => {
+  req.user = await loadSessionUser(req);
+  if (!req.user) throw new HttpError(401, 'Authentication required');
+  next();
+});
+
+/** sec-002: role and permissions are read from the DB on every request. */
 export function requirePermission(code: string) {
   return asyncHandler(async (req, _res, next) => {
-    const tokenUser = readUser(req);
-    if (!tokenUser) throw new HttpError(401, 'Authentication required');
-    const user = await prisma.user.findUnique({ where: { id: tokenUser.id }, select: { role: true, status: true } });
-    if (!user || BLOCKED_STATUSES.includes(user.status)) throw new HttpError(401, 'Authentication required');
-    const role = (ROLES as readonly string[]).includes(user.role) ? (user.role as Role) : 'customer';
-    req.user = { ...tokenUser, role };
-    const grant = await prisma.rolePermission.findFirst({ where: { role, permission: { code } } });
+    req.user = await loadSessionUser(req);
+    if (!req.user) throw new HttpError(401, 'Authentication required');
+    const grant = await prisma.rolePermission.findFirst({ where: { role: req.user.role, permission: { code } } });
     if (!grant) throw new HttpError(403, 'You do not have permission to do this');
     next();
   });

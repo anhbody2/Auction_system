@@ -115,4 +115,9 @@
 
 - Completed: POST /api/admin/users (status active, email verified immediately - assumption from feature notes still to confirm); fe /admin/users/new form with client + server validation
 - Verification: npm run verify exit 0 -> vitest 119, fe build, Playwright 22/22
-- Next best step: adm-003 edit a user (role, status, lock)
+
+### Session 005 (cont.) adm-003
+
+- Completed: PATCH /api/admin/users/:id (email, fullName, phone, address, role, status active|locked; strict schema; self role/status change 400); login rejects locked accounts; requireAuth/optionalAuth re-read role+status from DB on every request so lock and role changes apply immediately (one extra indexed query per authed request); fe AdminUserEdit form on the detail page
+- Verification: npm run verify exit 0 -> vitest 124, fe build, Playwright 23/23
+- Next best step: adm-004 delete a user (soft delete)

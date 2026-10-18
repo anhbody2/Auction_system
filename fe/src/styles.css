@@ -117,3 +117,4 @@ th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: u
 .badge-user-pending { background: #fff4e5; color: #9a6700; }
 .badge-user-locked { background: #ffebe9; color: #cf222e; }
 .badge-user-deleted { background: #eef0f3; color: #57606a; }
+.admin-panels { display: grid; gap: 1rem; margin-top: 1rem; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); align-items: start; }

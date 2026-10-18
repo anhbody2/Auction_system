@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ApiError, api, money } from '../api';
+import { useAuth } from '../auth';
+import { AdminUserEdit } from '../components/AdminUserEdit';
 import type { AdminUserRow } from './AdminUsers';
 
 export interface AdminUser extends AdminUserRow {
@@ -17,6 +19,7 @@ export interface AdminUser extends AdminUserRow {
 /** adm-001: full details of one user. */
 export function AdminUserDetailPage() {
   const { id } = useParams();
+  const { user: me } = useAuth();
   const [user, setUser] = useState<AdminUser | null>(null);
   const [error, setError] = useState('');
 
@@ -67,6 +70,11 @@ export function AdminUserDetailPage() {
           <dd>{new Date(user.createdAt).toLocaleString()}</dd>
         </dl>
       </div>
+      {user.status !== 'deleted' && (
+        <div className="admin-panels">
+          <AdminUserEdit key={user.updatedAt} user={user} isSelf={me?.id === user.id} onSaved={setUser} />
+        </div>
+      )}
     </div>
   );
 }
