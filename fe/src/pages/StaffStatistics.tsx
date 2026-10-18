@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { ApiError, api, money } from '../api';
+import { can, useAuth } from '../auth';
 import { StatusBadge } from '../components/AuctionBits';
 
 export interface StatFilter {
@@ -42,6 +43,7 @@ const when = (iso: string) => new Date(iso).toLocaleString([], { dateStyle: 'sho
 
 /** stf-001: filter auctions by start date range and status, list them with totals. */
 export function StaffStatisticsPage() {
+  const { user } = useAuth();
   const today = new Date();
   const [draft, setDraft] = useState<StatFilter>({
     from: isoDay(new Date(today.getTime() - 29 * 24 * 3600 * 1000)),
@@ -109,9 +111,17 @@ export function StaffStatisticsPage() {
       )}
       {data && (
         <>
-          <p data-testid="stat-count">
-            <strong>{data.summary.count}</strong> auction{data.summary.count === 1 ? '' : 's'}
-          </p>
+          <div className="row spread">
+            <p data-testid="stat-count">
+              <strong>{data.summary.count}</strong> auction{data.summary.count === 1 ? '' : 's'}
+            </p>
+            {can(user, 'report.export') && (
+              // stf-002: same filter as the table; the server streams an .xlsx attachment.
+              <a className="btn btn-ghost" href={`/api/staff/auctions/export?${statQuery(filter)}`} download>
+                Export to Excel
+              </a>
+            )}
+          </div>
           {data.auctions.length === 0 ? (
             <p className="muted">No auctions match this filter.</p>
           ) : (

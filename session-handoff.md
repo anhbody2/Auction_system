@@ -2,7 +2,8 @@
 
 State: round 1 (14 features) and round 2 (bid-003, sys-001, sys-002, sys-003) are passing and archived to
 `progress-feature-list/feature_list_1.json` and `feature_list_2.json`.
-Round 3 (SRS 3.19-3.21: staff statistics, admin users, security) is the active `feature_list.json`; sec-001, sec-002, adm-001, adm-002, adm-003, adm-004, adm-005, stf-001 passing.
+Round 3 (SRS 3.19-3.21: staff statistics, admin users, security) is the active `feature_list.json`; sec-001, sec-002, adm-001, adm-002, adm-003, adm-004, adm-005, stf-001, stf-002 passing.
+Note: root package.json `overrides` pin is-generator-function/is-async-function so tsx can load exceljs on Node 20.19+ (see claude-progress Session 005 stf-002).
 `./init.sh` exits 0 (98 vitest + fe build + 19 Playwright). Stop any running `npm run dev` first (Prisma DLL lock on Windows).
 
 ## Restart path

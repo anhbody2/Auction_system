@@ -207,13 +207,18 @@
       "srs_ref": "3.19.3 REQ-3",
       "title": "Export the statistics list to Excel",
       "user_visible_behavior": "Staff click 'Export to Excel' and download an .xlsx file holding the same rows and summary that the current filter shows, with a header row and the filter range in the file name.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "API: GET /api/staff/auctions/export with the same filters returns an .xlsx content type and attachment header.",
         "Unit: parsing the generated workbook gives a header row plus one row per auction matching the list endpoint.",
         "E2E: staff click Export and a file named like auctions_<from>_<to>.xlsx downloads."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-18 API: be/tests/staff.export.test.ts (4 tests) - GET /api/staff/auctions/export returns xlsx content type and 'attachment; filename=\"auctions_<from>_<to>.xlsx\"'; invalid filter 400; 401 anon, 403 customer; revoking report.export from staff -> 403 on export while list stays 200, re-grant -> 200",
+        "2026-10-18 Unit: parsing the generated workbook (exceljs) gives the header row plus one row per auction from the list endpoint in the same order with identical values, then a totals row equal to the list summary and a filter note",
+        "2026-10-18 E2E: e2e/stf-002-export.spec.ts - staff filter today+ended, click Export to Excel, download is auctions_<today>_<today>.xlsx, file holds header, the shown rows (incl. the new sold auction) and 'Total: n auctions'",
+        "2026-10-18 npm run verify exit 0: vitest 27 files / 142 tests, fe build ok, Playwright 27/27"
+      ],
       "notes": "Requires an xlsx library on the backend (e.g. exceljs)."
     },
     {

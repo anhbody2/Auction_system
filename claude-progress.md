@@ -137,4 +137,10 @@
 - Completed: be/src/lib/statistics.ts (shared filter schema from/to/status/tz, auctionStatistics rows + summary), GET /api/staff/auctions (report.view); fe StaffStatistics page (filter form, table, totals footer); test helper insertAuction (fixed-date rows with settlement); e2e helper createSoldAuction
 - Decisions: range filters on start_time (feature-list assumption); days are the client's local days via tz = getTimezoneOffset() (defaults to UTC); final price/winner only for ended auctions with a winner; commission only for settled sales
 - Verification: npm run verify exit 0 -> vitest 138, fe build, Playwright 26/26
-- Next best step: stf-002 Excel export
+
+### Session 005 (cont.) stf-002
+
+- Completed: exceljs 4.4.0 (be), be/src/lib/report.ts workbook builder (local times via tz, money formats, totals row, filter note), GET /api/staff/auctions/export (report.export); 'Export to Excel' link on the statistics page shown only with report.export
+- Dependency issue found and fixed: on Node 20.19+ tsx 4.19.2 mis-transforms the 'module-sync' entry of generator-function/async-function (pulled in deep under exceljs -> unzipper), so `tsx src/server.ts` crashed with 'SyntaxError: Unexpected string' (vitest was unaffected). Root package.json overrides pin is-generator-function 1.0.10 and is-async-function 2.0.0 (same API, no module-sync deps). If tsx is upgraded later these overrides can be retried without
+- Verification: npm run verify exit 0 -> vitest 142, fe build, Playwright 27/27
+- Next best step: stf-003 charts (recharts)

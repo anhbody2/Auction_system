@@ -17,5 +17,9 @@
   "devDependencies": {
     "@playwright/test": "1.48.2",
     "concurrently": "9.1.0"
+  },
+  "overrides": {
+    "is-generator-function": "1.0.10",
+    "is-async-function": "2.0.0"
   }
 }
