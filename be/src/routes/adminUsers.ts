@@ -1,8 +1,10 @@
 import type { Prisma } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db';
 import { HttpError, asyncHandler } from '../lib/http';
+import { emailField, fullNameField, passwordField, usernameField } from '../lib/validation';
 import { ROLES, requirePermission } from '../middleware/auth';
 
 export const USER_STATUSES = ['active', 'pending', 'locked', 'deleted'] as const;
@@ -84,5 +86,38 @@ adminUsersRouter.get(
   '/:id',
   asyncHandler(async (req, res) => {
     res.json({ user: await userDetail(parseUserId(req.params.id)) });
+  }),
+);
+
+const createSchema = z.object({
+  username: usernameField,
+  email: emailField,
+  password: passwordField,
+  role: z.enum(ROLES, { errorMap: () => ({ message: 'Role must be customer, staff or admin' }) }),
+  fullName: fullNameField.optional().or(z.literal('').transform(() => undefined)),
+});
+
+/** adm-002: admin-created accounts are active and verified at once (they skip the email confirmation step). */
+adminUsersRouter.post(
+  '/',
+  asyncHandler(async (req, res) => {
+    const data = createSchema.parse(req.body);
+    const taken: Record<string, string> = {};
+    if (await prisma.user.findUnique({ where: { email: data.email } })) taken.email = 'Email is already registered';
+    if (await prisma.user.findUnique({ where: { username: data.username } })) taken.username = 'Username is already taken';
+    if (Object.keys(taken).length) throw new HttpError(409, 'Account already exists', taken);
+
+    const user = await prisma.user.create({
+      data: {
+        username: data.username,
+        email: data.email,
+        passwordHash: await bcrypt.hash(data.password, 10),
+        role: data.role,
+        status: 'active',
+        emailVerifiedAt: new Date(),
+        info: { create: { fullName: data.fullName ?? null } },
+      },
+    });
+    res.status(201).json({ user: await userDetail(user.id) });
   }),
 );

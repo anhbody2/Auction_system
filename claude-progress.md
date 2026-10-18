@@ -110,4 +110,9 @@
 
 - Completed: be/src/routes/adminUsers.ts mounted at /api/admin/users (requirePermission user.manage): list with q/role/status/page/pageSize (deleted hidden unless status=deleted), detail with counts; fe pages AdminUsers (filters in URL, pager) and AdminUserDetail
 - Verification: npm run verify exit 0 -> vitest 113, fe build, Playwright 21/21
-- Next best step: adm-002 add a user with a role
+
+### Session 005 (cont.) adm-002
+
+- Completed: POST /api/admin/users (status active, email verified immediately - assumption from feature notes still to confirm); fe /admin/users/new form with client + server validation
+- Verification: npm run verify exit 0 -> vitest 119, fe build, Playwright 22/22
+- Next best step: adm-003 edit a user (role, status, lock)

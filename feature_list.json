@@ -97,13 +97,17 @@
       "srs_ref": "3.20.3 REQ-1, REQ-2",
       "title": "Add a user with a role",
       "user_visible_behavior": "The admin creates a user by entering username, email, password and role (customer, staff or admin). Fields are validated and duplicates are rejected with a clear message. The new user can log in right away.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "API: POST /api/admin/users with valid data returns 201; missing fields, weak password, invalid role, duplicate username or email return 400/409 with a message.",
         "API: the created user can log in and has the chosen role.",
         "E2E: admin fills the add-user form, submits, sees a success toast, and the user appears in the list."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-18 API: be/tests/admin.users.create.test.ts (6 tests) - POST /api/admin/users 201 creates active+verified user with role (email lowercased); new user logs in at once with that role; missing fields/weak password/invalid role 400 with field messages; duplicate username/email 409; staff 403",
+        "2026-10-18 E2E: e2e/adm-002-add-user.spec.ts - duplicate username shows 'Username is already taken'; valid form shows success toast, user appears in list as staff, logs in and lands on /staff/statistics",
+        "2026-10-18 npm run verify exit 0: vitest 22 files / 119 tests, fe build ok, Playwright 22/22"
+      ],
       "notes": "Admin-created accounts skip email verification (assumption; confirm with product owner)."
     },
     {
