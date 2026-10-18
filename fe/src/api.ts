@@ -28,6 +28,7 @@ export interface User {
   fullName: string | null;
   phone: string | null;
   address: string | null;
+  permissions: string[];
 }
 
 export type AuctionStatus = 'upcoming' | 'active' | 'ended' | 'cancelled';

@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { INCREMENT_LADDER } from '../src/lib/increments';
+import { DEFAULT_GRANTS, PERMISSIONS } from '../src/lib/permissions';
 
 const prisma = new PrismaClient();
 
@@ -55,6 +56,17 @@ export async function seed(client: PrismaClient = prisma) {
   for (const name of ['Electronics', 'Collectibles', 'Fashion', 'Home and Garden', 'Art', 'Vehicles']) {
     await client.category.upsert({ where: { name }, update: {}, create: { name } });
   }
+  // sec-002: make sure every permission exists and default grants are present (never removes grants).
+  for (const p of PERMISSIONS) {
+    await client.permission.upsert({ where: { code: p.code }, update: {}, create: p });
+  }
+  const perms = await client.permission.findMany();
+  await client.rolePermission.createMany({
+    skipDuplicates: true,
+    data: Object.entries(DEFAULT_GRANTS).flatMap(([role, codes]) =>
+      codes.map((code) => ({ role, permissionId: perms.find((p) => p.code === code)!.id })),
+    ),
+  });
   // Keep BID_INCREMENT_RULES in step with the ladder the API applies (bid-003).
   await client.$transaction([
     client.bidIncrementRule.deleteMany(),

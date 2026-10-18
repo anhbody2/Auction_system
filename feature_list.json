@@ -50,7 +50,7 @@
       "srs_ref": "3.21.3 REQ-2, 3.20.3 REQ-2",
       "title": "Role-based permissions on resources",
       "user_visible_behavior": "Each role has a set of permissions (for example 'report.view', 'report.export', 'user.manage'). Staff and admin pages and APIs check the permission; a user without it gets 403 from the API and a 'not allowed' page in the UI. An admin can view the permission matrix and grant or revoke a permission for a role.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Unit: requirePermission middleware allows a user whose role has the permission and rejects others with 403.",
         "API: a customer calling a staff report endpoint gets 403; staff gets 200; anonymous gets 401.",
@@ -59,7 +59,13 @@
         "API: admin cannot remove 'user.manage' from the admin role (prevents lockout).",
         "E2E: admin opens the permission screen, toggles a permission for staff, and the staff user's access changes accordingly."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-18 Migration 20261018055638_role_permissions: permissions + role_permissions tables with default grants (staff: report.view, report.export; admin: user.manage, permission.manage); seed re-adds missing defaults",
+        "2026-10-18 Unit+API: be/tests/sec.permissions.test.ts (8 tests) - requirePermission 200/403/401; role re-read from DB per request (customer promoted to staff passes on next call with the same token); admin endpoint /api/admin/permissions 401 anon, 403 customer and staff, 200 admin; revoke report.export -> 403, grant -> 200; removing user.manage/permission.manage from admin -> 400; unknown role/permission -> 400",
+        "2026-10-18 Staff report endpoints do not exist yet: the staff 403/200 checks run on a probe app with the real requirePermission middleware; stf-001/002 repeat them on the real routes",
+        "2026-10-18 E2E: e2e/sec-002-permissions.spec.ts - admin unticks report.view for staff, staff sees not-allowed and no Statistics link, admin re-grants, staff lands on statistics again",
+        "2026-10-18 npm run verify exit 0: vitest 20 files / 106 tests, fe build ok, Playwright 20/20"
+      ],
       "notes": "Needs new tables (permissions, role_permissions) and a Prisma migration. Role and permissions are checked per request from the DB so changes apply immediately."
     },
     {

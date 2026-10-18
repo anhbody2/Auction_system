@@ -58,12 +58,14 @@ export function homeFor(user: Pick<User, 'role'>) {
   return '/dashboard';
 }
 
-export function RequireAuth({ children, roles }: { children: ReactNode; roles?: string[] }) {
+export const can = (user: User | null, permission: string) => !!user?.permissions?.includes(permission);
+
+export function RequireAuth({ children, permission }: { children: ReactNode; permission?: string }) {
   const { user, loading } = useAuth();
   const location = useLocation();
   if (loading) return <p className="muted">Loading...</p>;
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
-  if (roles && !roles.includes(user.role)) {
+  if (permission && !can(user, permission)) {
     return (
       <div className="card narrow" data-testid="not-allowed">
         <h1>Not allowed</h1>

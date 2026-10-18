@@ -10,6 +10,7 @@ import { DashboardPage } from './pages/Dashboard';
 import { ForgotPasswordPage } from './pages/ForgotPassword';
 import { HomePage } from './pages/Home';
 import { LoginPage } from './pages/Login';
+import { AdminPermissionsPage } from './pages/AdminPermissions';
 import { AdminUsersPage } from './pages/AdminUsers';
 import { MyAuctionsPage } from './pages/MyAuctions';
 import { MyBiddingsPage } from './pages/MyBiddings';
@@ -39,8 +40,9 @@ export function App() {
         <Route path="/profile" element={authed(<ProfilePage />)} />
         <Route path="/change-password" element={authed(<ChangePasswordPage />)} />
         <Route path="/credit" element={authed(<CreditPage />)} />
-        <Route path="/staff/statistics" element={<RequireAuth roles={['staff']}><StaffStatisticsPage /></RequireAuth>} />
-        <Route path="/admin/users" element={<RequireAuth roles={['admin']}><AdminUsersPage /></RequireAuth>} />
+        <Route path="/staff/statistics" element={<RequireAuth permission="report.view"><StaffStatisticsPage /></RequireAuth>} />
+        <Route path="/admin/users" element={<RequireAuth permission="user.manage"><AdminUsersPage /></RequireAuth>} />
+        <Route path="/admin/permissions" element={<RequireAuth permission="permission.manage"><AdminPermissionsPage /></RequireAuth>} />
         <Route path="*" element={<p>Page not found.</p>} />
       </Route>
     </Routes>

@@ -1,6 +1,6 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { money } from '../api';
-import { useAuth } from '../auth';
+import { can, useAuth } from '../auth';
 
 export function Layout() {
   const { user, logout } = useAuth();
@@ -27,8 +27,9 @@ export function Layout() {
               <NavLink to="/credit">Credit</NavLink>
             </>
           )}
-          {user?.role === 'staff' && <NavLink to="/staff/statistics">Statistics</NavLink>}
-          {user?.role === 'admin' && <NavLink to="/admin/users">Users</NavLink>}
+          {can(user, 'report.view') && <NavLink to="/staff/statistics">Statistics</NavLink>}
+          {can(user, 'user.manage') && <NavLink to="/admin/users">Users</NavLink>}
+          {can(user, 'permission.manage') && <NavLink to="/admin/permissions">Permissions</NavLink>}
           {user && <NavLink to="/profile">Profile</NavLink>}
         </nav>
         <div className="userbox">

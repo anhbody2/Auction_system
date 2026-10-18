@@ -215,3 +215,24 @@ model EmailVerificationToken {
 
   @@map("email_verification_tokens")
 }
+
+// sec-002: role-based permissions. Roles are the values of users.role.
+model Permission {
+  id          BigInt           @id @default(autoincrement())
+  code        String           @unique @db.VarChar(50)
+  description String           @db.VarChar(255)
+  createdAt   DateTime         @default(now()) @map("created_at")
+  roles       RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  role         String     @db.VarChar(20)
+  permissionId BigInt     @map("permission_id")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([role, permissionId])
+  @@map("role_permissions")
+}

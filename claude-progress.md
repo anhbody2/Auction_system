@@ -98,4 +98,11 @@
 - Verification: ./init.sh exit 0 -> vitest 19 files / 98 tests, fe build ok, Playwright 19/19
 - Note: e2e cust-002 renames carol, so later specs must not assert on carol's full name
 - Not yet done: API-level role enforcement is sec-002 (role currently only in token/UI; staff/admin can still call customer APIs)
-- Next best step: sec-002 role-based permissions (permissions + role_permissions tables, requirePermission middleware reading role from DB per request)
+
+### Session 005 (cont.) sec-002
+
+- Completed: permissions/role_permissions tables (migration with default grants), be/src/lib/permissions.ts, requirePermission(code) middleware (re-reads role and status from DB each request; locked/disabled/deleted -> 401), /api/admin/permissions matrix + PUT /api/admin/roles/:role/permissions/:code (admin keeps user.manage and permission.manage), user payload includes permissions; fe guards and nav by permission (can()), /admin/permissions matrix page
+- Decision: admin does not hold report.* by default (keeps sec-001 nav: admin sees Users and Permissions, not Statistics); admin can grant them
+- Verification: npm run verify exit 0 -> vitest 106, fe build, Playwright 20/20
+- Noise, not a failure: e2e server logs 'job ... failed: table does not exist' during globalSetup's migrate reset (1s job ticks while tables are dropped); next tick succeeds
+- Next best step: adm-001 list and view users

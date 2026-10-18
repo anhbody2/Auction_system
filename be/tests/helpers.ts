@@ -10,7 +10,7 @@ export async function resetDb() {
   await prisma.$executeRawUnsafe(`
     TRUNCATE auction_messages, auction_settlements, credit_transactions, bid_tickets, auctions,
       goods_images, goods, categories, bid_increment_rules, password_reset_tokens,
-      email_verification_tokens, user_info, users RESTART IDENTITY CASCADE`);
+      email_verification_tokens, user_info, users, role_permissions RESTART IDENTITY CASCADE`);
   await seed(prisma);
 }
 
