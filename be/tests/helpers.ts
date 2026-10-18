@@ -59,3 +59,53 @@ export async function loginAs(identifier: string, password = PASSWORD) {
   if (res.status !== 200) throw new Error(`login failed for ${identifier}: ${res.status}`);
   return agent;
 }
+
+/**
+ * Inserts an auction row directly (any dates, any stored status) for reporting tests.
+ * With `sold`, also records a won settlement: winner, final price and commission.
+ */
+export async function insertAuction(opts: {
+  seller: string;
+  name: string;
+  start: string;
+  end: string;
+  initialPrice?: number;
+  status?: string;
+  sold?: { winner: string; price: number; commission: number; settledAt?: string };
+}) {
+  const seller = await prisma.user.findUniqueOrThrow({ where: { username: opts.seller } });
+  const goods = await prisma.goods.create({ data: { sellerId: seller.id, name: opts.name } });
+  const winner = opts.sold ? await prisma.user.findUniqueOrThrow({ where: { username: opts.sold.winner } }) : null;
+  const start = new Date(opts.start);
+  const end = new Date(opts.end);
+  const auction = await prisma.auction.create({
+    data: {
+      sellerId: seller.id,
+      goodsId: goods.id,
+      name: opts.name,
+      initialPrice: opts.initialPrice ?? 100,
+      currentPrice: opts.sold?.price ?? null,
+      durationMinutes: Math.round((end.getTime() - start.getTime()) / 60_000),
+      startTime: start,
+      endTime: end,
+      status: opts.status ?? (opts.sold ? 'ended' : 'upcoming'),
+      winnerId: winner?.id ?? null,
+      closedAt: opts.sold ? end : null,
+    },
+  });
+  if (opts.sold && winner) {
+    const bid = await prisma.bidTicket.create({
+      data: { auctionId: auction.id, bidderId: winner.id, amount: opts.sold.price, status: 'won', wonAt: end },
+    });
+    await prisma.auctionSettlement.create({
+      data: {
+        auctionId: auction.id,
+        winningBidId: bid.id,
+        commissionAmount: opts.sold.commission,
+        settlementStatus: 'settled',
+        settledAt: new Date(opts.sold.settledAt ?? opts.end),
+      },
+    });
+  }
+  return auction;
+}

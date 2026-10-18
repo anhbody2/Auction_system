@@ -14,6 +14,7 @@ import { creditRouter } from './routes/credit';
 import { devRouter } from './routes/dev';
 import { meRouter } from './routes/me';
 import { messagesRouter } from './routes/messages';
+import { staffRouter } from './routes/staff';
 
 export function createApp() {
   const app = express();
@@ -36,6 +37,7 @@ export function createApp() {
   app.use('/api/me', meRouter);
   app.use('/api/admin/users', adminUsersRouter);
   app.use('/api/admin', adminRouter);
+  app.use('/api/staff', staffRouter);
   app.use('/api/credit', creditRouter);
   app.use('/api', auctionsRouter);
   app.use('/api', bidsRouter);

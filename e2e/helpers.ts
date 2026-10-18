@@ -49,3 +49,17 @@ export async function logout(page: Page) {
   await page.getByRole('button', { name: 'Log out' }).click();
   await expect(page).toHaveURL(/\/login$/);
 }
+
+/** alice sells, bob wins at $150 (5% commission = $7.50); the auction is expired and settled. */
+export async function createSoldAuction(request: APIRequestContext, name: string) {
+  await request.post('/api/auth/login', { data: { identifier: 'alice', password: PASSWORD } });
+  const auction = await createAuctionViaApi(request, { name, initialPrice: 100, minIncrement: 10 });
+  await request.post('/api/auth/login', { data: { identifier: 'bob', password: PASSWORD } });
+  expect((await request.post(`/api/auctions/${auction.id}/bids`, { data: { amount: 150 } })).status()).toBe(201);
+  await request.post(`/api/dev/auctions/${auction.id}/expire`);
+  await expect
+    .poll(async () => (await (await request.get(`/api/dev/auctions/${auction.id}/raw`)).json()).status)
+    .toBe('ended');
+  await request.post('/api/auth/logout');
+  return auction;
+}

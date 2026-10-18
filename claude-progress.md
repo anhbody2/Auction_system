@@ -131,4 +131,10 @@
 
 - Completed: PUT /api/admin/users/:id/password (registration password rules, confirm must match, invalidates open reset links); fe AdminSetPassword panel on the user detail page
 - Verification: npm run verify exit 0 -> vitest 133, fe build, Playwright 25/25
-- Next best step: stf-001 statistics filter and list
+
+### Session 005 (cont.) stf-001
+
+- Completed: be/src/lib/statistics.ts (shared filter schema from/to/status/tz, auctionStatistics rows + summary), GET /api/staff/auctions (report.view); fe StaffStatistics page (filter form, table, totals footer); test helper insertAuction (fixed-date rows with settlement); e2e helper createSoldAuction
+- Decisions: range filters on start_time (feature-list assumption); days are the client's local days via tz = getTimezoneOffset() (defaults to UTC); final price/winner only for ended auctions with a winner; commission only for settled sales
+- Verification: npm run verify exit 0 -> vitest 138, fe build, Playwright 26/26
+- Next best step: stf-002 Excel export

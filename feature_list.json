@@ -185,14 +185,18 @@
       "srs_ref": "3.19.3 REQ-1, REQ-2",
       "title": "Filter and list auctions for statistics",
       "user_visible_behavior": "On the statistics page staff pick a from date, a to date and an auction status (all, upcoming, active, ended, cancelled) and see every matching auction with title, seller, start and end time, status, starting price, final price, winner and commission. A summary row shows the count and totals.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "API: GET /api/staff/auctions?from&to&status returns only auctions in the range with that status; totals match the rows.",
         "API: from after to, or an invalid date or status, returns 400.",
         "API: the date range is inclusive of both days (assumption: filter on auction start time).",
         "E2E: staff sets a range and status, submits, and the table shows the seeded matching auctions and the correct count."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-18 API: be/tests/staff.statistics.test.ts (5 tests) - GET /api/staff/auctions?from&to&status returns auctions whose start_time is in the range (both days inclusive, client tz offset honoured) with title, seller, start/end, effective status, starting/final price, winner, commission; status filter narrows; summary count and totals equal the rows; from>to, invalid date/format, missing date, invalid status -> 400; 401 anon, 403 customer/admin, 200 staff",
+        "2026-10-18 E2E: e2e/stf-001-statistics.spec.ts - after a real sold auction (bob wins at 150, commission 7.50), staff filters today+ended, row shows title/seller/winner/final/commission, count and Total match row count, all rows ended; cancelled filter excludes it; from>to shows the error",
+        "2026-10-18 npm run verify exit 0: vitest 26 files / 138 tests, fe build ok, Playwright 26/26"
+      ],
       "notes": "Which date the range filters on (start, end or created) is not stated in the SRS; assumed start_time. Status uses the effective status, same as the rest of the app."
     },
     {

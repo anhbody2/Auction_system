@@ -2,7 +2,7 @@
 
 State: round 1 (14 features) and round 2 (bid-003, sys-001, sys-002, sys-003) are passing and archived to
 `progress-feature-list/feature_list_1.json` and `feature_list_2.json`.
-Round 3 (SRS 3.19-3.21: staff statistics, admin users, security) is the active `feature_list.json`; sec-001, sec-002, adm-001, adm-002, adm-003, adm-004, adm-005 passing.
+Round 3 (SRS 3.19-3.21: staff statistics, admin users, security) is the active `feature_list.json`; sec-001, sec-002, adm-001, adm-002, adm-003, adm-004, adm-005, stf-001 passing.
 `./init.sh` exits 0 (98 vitest + fe build + 19 Playwright). Stop any running `npm run dev` first (Prisma DLL lock on Windows).
 
 ## Restart path
@@ -27,6 +27,7 @@ Round 3 (SRS 3.19-3.21: staff statistics, admin users, security) is the active `
 | Roles, role landing (sec-001) | be/src/middleware/auth.ts (role in JWT) | auth.tsx homeFor, RequireAuth roles; pages/StaffStatistics, AdminUsers | sec.login-roles, e2e sec-001 |
 | Permissions (sec-002) | be/src/lib/permissions.ts, middleware/auth.ts requirePermission, routes/admin.ts | auth.tsx can(); pages/AdminPermissions | sec.permissions, e2e sec-002 |
 | Admin users (adm-*) | be/src/routes/adminUsers.ts | pages/AdminUsers, AdminUserDetail | admin.users.*, e2e adm-* |
+| Staff statistics (stf-*) | be/src/lib/statistics.ts, routes/staff.ts | pages/StaffStatistics | staff.*, e2e stf-* |
 | Dev helpers | be/src/routes/dev.ts (outbox, expire auction) | n/a | used by e2e |
 
 To start new work, create a fresh `feature_list.json` at the root (CLAUDE.md startup expects it) and record progress with `node scripts/feature.js <id> <status> "evidence..."`.
