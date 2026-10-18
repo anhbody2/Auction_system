@@ -108,3 +108,12 @@ th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: u
 .toast-success { background: var(--success); }
 .toast-error { background: var(--danger); }
 .toast-info { background: #334155; }
+
+/* Admin user management */
+.filters { align-items: flex-end; margin-bottom: 1rem; }
+.grow { flex: 1; min-width: 200px; }
+.pager { justify-content: center; margin-top: 1rem; }
+.badge-user-active { background: #e7f6ec; color: #1a7f37; }
+.badge-user-pending { background: #fff4e5; color: #9a6700; }
+.badge-user-locked { background: #ffebe9; color: #cf222e; }
+.badge-user-deleted { background: #eef0f3; color: #57606a; }

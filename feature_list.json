@@ -76,13 +76,17 @@
       "srs_ref": "3.20.3 REQ-1",
       "title": "List and view users",
       "user_visible_behavior": "The admin sees a paginated list of users with username, email, role, status and created date, can search by username or email and filter by role and status, and can open a user to see full details.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "API: GET /api/admin/users returns a page of users without password hashes; search, role and status filters narrow the result.",
         "API: GET /api/admin/users/:id returns the user's details; an unknown id returns 404.",
         "E2E: admin opens the user list, searches for a seeded user, and opens their detail page."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-18 API: be/tests/admin.users.list.test.ts (7 tests) - GET /api/admin/users pages users (no password hashes), q searches username/email case-insensitively, role and status filters narrow, invalid filter 400; GET /api/admin/users/:id returns details, unknown/garbage id 404; staff/customer 403",
+        "2026-10-18 E2E: e2e/adm-001-list-users.spec.ts - admin sees list, searches bob, filters role staff, opens staff detail page",
+        "2026-10-18 npm run verify exit 0: vitest 21 files / 113 tests, fe build ok, Playwright 21/21"
+      ],
       "notes": ""
     },
     {

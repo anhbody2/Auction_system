@@ -105,4 +105,9 @@
 - Decision: admin does not hold report.* by default (keeps sec-001 nav: admin sees Users and Permissions, not Statistics); admin can grant them
 - Verification: npm run verify exit 0 -> vitest 106, fe build, Playwright 20/20
 - Noise, not a failure: e2e server logs 'job ... failed: table does not exist' during globalSetup's migrate reset (1s job ticks while tables are dropped); next tick succeeds
-- Next best step: adm-001 list and view users
+
+### Session 005 (cont.) adm-001
+
+- Completed: be/src/routes/adminUsers.ts mounted at /api/admin/users (requirePermission user.manage): list with q/role/status/page/pageSize (deleted hidden unless status=deleted), detail with counts; fe pages AdminUsers (filters in URL, pager) and AdminUserDetail
+- Verification: npm run verify exit 0 -> vitest 113, fe build, Playwright 21/21
+- Next best step: adm-002 add a user with a role

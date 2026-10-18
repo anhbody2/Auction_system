@@ -11,6 +11,7 @@ import { ForgotPasswordPage } from './pages/ForgotPassword';
 import { HomePage } from './pages/Home';
 import { LoginPage } from './pages/Login';
 import { AdminPermissionsPage } from './pages/AdminPermissions';
+import { AdminUserDetailPage } from './pages/AdminUserDetail';
 import { AdminUsersPage } from './pages/AdminUsers';
 import { MyAuctionsPage } from './pages/MyAuctions';
 import { MyBiddingsPage } from './pages/MyBiddings';
@@ -42,6 +43,7 @@ export function App() {
         <Route path="/credit" element={authed(<CreditPage />)} />
         <Route path="/staff/statistics" element={<RequireAuth permission="report.view"><StaffStatisticsPage /></RequireAuth>} />
         <Route path="/admin/users" element={<RequireAuth permission="user.manage"><AdminUsersPage /></RequireAuth>} />
+        <Route path="/admin/users/:id" element={<RequireAuth permission="user.manage"><AdminUserDetailPage /></RequireAuth>} />
         <Route path="/admin/permissions" element={<RequireAuth permission="permission.manage"><AdminPermissionsPage /></RequireAuth>} />
         <Route path="*" element={<p>Page not found.</p>} />
       </Route>

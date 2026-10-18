@@ -6,6 +6,7 @@ import { asyncHandler, errorHandler } from './lib/http';
 import { closeDueAuctions } from './lib/settlement';
 import { jsonReplacer } from './lib/json';
 import { adminRouter } from './routes/admin';
+import { adminUsersRouter } from './routes/adminUsers';
 import { auctionsRouter } from './routes/auctions';
 import { authRouter } from './routes/auth';
 import { bidsRouter } from './routes/bids';
@@ -33,6 +34,7 @@ export function createApp() {
   );
   app.use('/api/auth', authRouter);
   app.use('/api/me', meRouter);
+  app.use('/api/admin/users', adminUsersRouter);
   app.use('/api/admin', adminRouter);
   app.use('/api/credit', creditRouter);
   app.use('/api', auctionsRouter);
