@@ -101,3 +101,39 @@ export async function auctionStatistics(f: StatFilter, now = new Date()) {
   };
   return { rows, summary };
 }
+
+export const MAX_CHART_DAYS = 366;
+
+export interface DayBucket {
+  date: string;
+  upcoming: number;
+  active: number;
+  ended: number;
+  cancelled: number;
+  total: number;
+  saleValue: Prisma.Decimal;
+}
+
+/**
+ * stf-003: per local day of the range (every day, zeros included), auction counts by status and the
+ * final sale value of the auctions that started that day. Built from the same rows as the list,
+ * so the counts add up to the list total.
+ */
+export function dailyBuckets(f: StatFilter, rows: StatRow[]): DayBucket[] {
+  const days: DayBucket[] = [];
+  const index = new Map<string, DayBucket>();
+  for (let t = Date.parse(`${f.from}T00:00:00Z`); t <= Date.parse(`${f.to}T00:00:00Z`); t += DAY_MS) {
+    const date = new Date(t).toISOString().slice(0, 10);
+    const bucket = { date, upcoming: 0, active: 0, ended: 0, cancelled: 0, total: 0, saleValue: new Prisma.Decimal(0) };
+    days.push(bucket);
+    index.set(date, bucket);
+  }
+  for (const r of rows) {
+    const bucket = index.get(localDay(r.startTime, f.tz));
+    if (!bucket) continue;
+    bucket[r.status] += 1;
+    bucket.total += 1;
+    if (r.finalPrice) bucket.saleValue = bucket.saleValue.plus(r.finalPrice);
+  }
+  return days;
+}

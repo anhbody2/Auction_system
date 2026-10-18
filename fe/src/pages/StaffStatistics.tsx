@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ApiError, api, money } from '../api';
 import { can, useAuth } from '../auth';
 import { StatusBadge } from '../components/AuctionBits';
+import { StaffCharts } from '../components/StaffCharts';
 
 export interface StatFilter {
   from: string;
@@ -103,6 +104,7 @@ export function StaffStatisticsPage() {
         </button>
       </form>
       <p className="muted small">Auctions are matched on their start time; both dates are included.</p>
+      <StaffCharts filter={filter} />
 
       {error && (
         <p className="error" role="alert">

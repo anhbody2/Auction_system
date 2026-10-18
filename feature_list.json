@@ -229,12 +229,17 @@
       "srs_ref": "3.19.3 REQ-4",
       "title": "Chart of the statistics",
       "user_visible_behavior": "Under the filter, a chart shows the number of auctions per day in the selected range broken down by status, and a second chart shows final sale value per day. The charts update when the filter changes and show an empty state when nothing matches.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "API: GET /api/staff/auctions/summary returns per-day counts by status and per-day sale value; the counts add up to the list total.",
         "E2E: after filtering, the chart renders with data points for the seeded days; with a range that has no auctions, the empty state shows."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-18 API: be/tests/staff.summary.test.ts (5 tests) - GET /api/staff/auctions/summary returns every day of the range with counts by status and per-day sale value; per-day totals and values add up to the list count and totalFinalPrice for all/ended/cancelled/active; buckets by client local day (tz); invalid filter 400, >366 days 400; 401/403",
+        "2026-10-18 E2E: e2e/stf-003-charts.spec.ts - 7-day range renders stacked status chart (legend Upcoming/Active/Ended/Cancelled, 7 day targets, today's Ended >= 1, hover tooltip) and sale value chart (today's value > 0); chart counts sum to the list count; 2001 range shows the empty state",
+        "2026-10-18 Visual check: rendered screenshot reviewed (columns <=24px, 4px rounded tops, 2px gaps, integer count ticks, legend, tooltip, data table view); palette validated with dataviz validate_palette.js (4 slots, all checks pass, contrast WARN relieved by the table view and legend)",
+        "2026-10-18 npm run verify exit 0: vitest 28 files / 147 tests, fe build ok, Playwright 28/28"
+      ],
       "notes": "Requires a chart library on the frontend (e.g. recharts)."
     },
     {

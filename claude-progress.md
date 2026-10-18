@@ -143,4 +143,11 @@
 - Completed: exceljs 4.4.0 (be), be/src/lib/report.ts workbook builder (local times via tz, money formats, totals row, filter note), GET /api/staff/auctions/export (report.export); 'Export to Excel' link on the statistics page shown only with report.export
 - Dependency issue found and fixed: on Node 20.19+ tsx 4.19.2 mis-transforms the 'module-sync' entry of generator-function/async-function (pulled in deep under exceljs -> unzipper), so `tsx src/server.ts` crashed with 'SyntaxError: Unexpected string' (vitest was unaffected). Root package.json overrides pin is-generator-function 1.0.10 and is-async-function 2.0.0 (same API, no module-sync deps). If tsx is upgraded later these overrides can be retried without
 - Verification: npm run verify exit 0 -> vitest 142, fe build, Playwright 27/27
-- Next best step: stf-003 charts (recharts)
+
+### Session 005 (cont.) stf-003
+
+- Completed: dailyBuckets + GET /api/staff/auctions/summary (report.view, max 366 days); fe ColumnChart (dependency-free SVG: stacked columns, hover/focus tooltip, legend, data-table view) and StaffCharts on the statistics page; empty state when nothing matches
+- Decision: no chart library (recharts was only a suggestion) - avoids another dependency after the exceljs/tsx issue; status colours are the validated reference categorical slots 1-4
+- Fixed on the way: filter forms (statistics and admin users) stacked vertically because the global `form { flex-direction: column }` beat `.row`; `.filters` now sets row direction
+- Verification: npm run verify exit 0 -> vitest 147, fe build, Playwright 28/28
+- Next best step: stf-004 revenue and customer statistics (last feature of round 3)
