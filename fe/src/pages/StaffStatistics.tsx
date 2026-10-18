@@ -4,6 +4,7 @@ import { ApiError, api, money } from '../api';
 import { can, useAuth } from '../auth';
 import { StatusBadge } from '../components/AuctionBits';
 import { StaffCharts } from '../components/StaffCharts';
+import { StaffInsights } from '../components/StaffInsights';
 
 export interface StatFilter {
   from: string;
@@ -105,6 +106,7 @@ export function StaffStatisticsPage() {
       </form>
       <p className="muted small">Auctions are matched on their start time; both dates are included.</p>
       <StaffCharts filter={filter} />
+      <StaffInsights filter={filter} />
 
       {error && (
         <p className="error" role="alert">

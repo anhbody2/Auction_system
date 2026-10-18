@@ -250,13 +250,17 @@
       "srs_ref": "3.19.3 (optional: revenue or customers)",
       "title": "Revenue and customer statistics",
       "user_visible_behavior": "For the selected date range staff see system revenue (sum of commission from settled auctions) and customer figures: new registrations, number of active bidders and sellers, and the top 5 sellers and bidders by value. These figures are included in the Excel export as a second sheet.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "API: GET /api/staff/revenue?from&to returns total commission equal to the sum of auction_settlements.commission_amount in the range.",
         "API: GET /api/staff/customers?from&to returns registrations, active bidder and seller counts and top-5 lists matching seeded data.",
         "E2E: staff see the revenue and customer cards for a range with seeded settlements."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-18 API: be/tests/staff.insights.test.ts (5 tests) - GET /api/staff/revenue totalCommission equals SUM(auction_settlements.commission_amount) settled in range (33.5 for March fixture; April separate); GET /api/staff/customers returns registrations (customers created in range), active bidders/sellers and top-5 sellers/bidders by value matching fixtures; top lists capped at 5; export workbook has second sheet 'Revenue and customers' with these figures; invalid range 400; 401/403",
+        "2026-10-18 E2E: e2e/stf-004-revenue-customers.spec.ts - after a settled sale today, staff page shows commission, sales value, registrations, active bidders/sellers equal to the API, alice in top sellers, bob in top bidders; screenshot reviewed",
+        "2026-10-18 ./init.sh exit 0: vitest 29 files / 152 tests, fe build ok, Playwright 29/29"
+      ],
       "notes": "SRS marks this as optional ('You can...'). Do it last."
     }
   ]

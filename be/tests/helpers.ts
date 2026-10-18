@@ -95,7 +95,7 @@ export async function insertAuction(opts: {
   });
   if (opts.sold && winner) {
     const bid = await prisma.bidTicket.create({
-      data: { auctionId: auction.id, bidderId: winner.id, amount: opts.sold.price, status: 'won', wonAt: end },
+      data: { auctionId: auction.id, bidderId: winner.id, amount: opts.sold.price, status: 'won', wonAt: end, createdAt: start },
     });
     await prisma.auctionSettlement.create({
       data: {

@@ -55,6 +55,8 @@ export async function createSoldAuction(request: APIRequestContext, name: string
   await request.post('/api/auth/login', { data: { identifier: 'alice', password: PASSWORD } });
   const auction = await createAuctionViaApi(request, { name, initialPrice: 100, minIncrement: 10 });
   await request.post('/api/auth/login', { data: { identifier: 'bob', password: PASSWORD } });
+  // Other specs spend bob's credit; top up so this helper works at any point in the suite.
+  expect((await request.post('/api/credit/topup', { data: { amount: 150 } })).ok()).toBe(true);
   expect((await request.post(`/api/auctions/${auction.id}/bids`, { data: { amount: 150 } })).status()).toBe(201);
   await request.post(`/api/dev/auctions/${auction.id}/expire`);
   await expect

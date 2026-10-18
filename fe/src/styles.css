@@ -150,3 +150,13 @@ th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: u
 .chart-table { margin-top: 0.5rem; font-size: 0.85rem; }
 .chart-table summary { cursor: pointer; color: var(--muted); }
 .chart-empty { color: var(--muted); text-align: center; margin: 0.5rem 0 1.25rem; }
+
+/* Revenue and customers (stf-004) */
+.insights { margin: 0.5rem 0 1.5rem; }
+.insights h2 { margin: 0 0 0.25rem; font-size: 1.15rem; }
+.top-lists { margin-top: 1rem; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.top-list { margin: 0.5rem 0 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.35rem; }
+.top-list li span:first-child { font-weight: 600; }
+.top-list li { padding-left: 0.2rem; }
+.top-list li > * + * { margin-left: 0.6rem; }
+.top-list strong { float: right; font-variant-numeric: tabular-nums; }

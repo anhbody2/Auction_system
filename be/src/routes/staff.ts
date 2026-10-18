@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { asyncHandler } from '../lib/http';
 import { auctionWorkbook, reportFileName } from '../lib/report';
 import { HttpError } from '../lib/http';
+import { customerStatistics, revenueStatistics } from '../lib/insights';
 import { MAX_CHART_DAYS, auctionStatistics, dailyBuckets, statFilterSchema } from '../lib/statistics';
 import { requirePermission } from '../middleware/auth';
 
@@ -24,8 +25,12 @@ staffRouter.get(
   requirePermission('report.export'),
   asyncHandler(async (req, res) => {
     const filter = statFilterSchema.parse(req.query);
-    const { rows, summary } = await auctionStatistics(filter);
-    const wb = auctionWorkbook(filter, rows, summary);
+    const [{ rows, summary }, revenue, customers] = await Promise.all([
+      auctionStatistics(filter),
+      revenueStatistics(filter),
+      customerStatistics(filter),
+    ]);
+    const wb = auctionWorkbook(filter, rows, summary, { revenue, customers });
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${reportFileName(filter)}"`);
     res.send(Buffer.from(await wb.xlsx.writeBuffer()));
@@ -44,5 +49,25 @@ staffRouter.get(
     }
     const { rows, summary } = await auctionStatistics(filter);
     res.json({ filter, days: dailyBuckets(filter, rows), summary });
+  }),
+);
+
+/** stf-004: system revenue (commission on sales settled in the range). */
+staffRouter.get(
+  '/revenue',
+  requirePermission('report.view'),
+  asyncHandler(async (req, res) => {
+    const filter = statFilterSchema.parse(req.query);
+    res.json({ filter, revenue: await revenueStatistics(filter) });
+  }),
+);
+
+/** stf-004: registrations, active bidders and sellers, top 5 sellers and bidders. */
+staffRouter.get(
+  '/customers',
+  requirePermission('report.view'),
+  asyncHandler(async (req, res) => {
+    const filter = statFilterSchema.parse(req.query);
+    res.json({ filter, customers: await customerStatistics(filter) });
   }),
 );

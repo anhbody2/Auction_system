@@ -8,7 +8,7 @@
 - Standard startup path: start Docker Desktop, then `./init.sh` (npm install + full verify). `npm run dev` runs API on :4000 and web on :5173 (Vite proxies /api)
 - Standard verification path: `npm run verify` = `npm test` (vitest on DB auction_test + fe build) and `npm run e2e` (Playwright on DB auction_e2e, servers on :4100/:5180)
 - Demo accounts: alice / bob / carol (customers), staff (staff), admin (admin); password `Password123!` for all (docs/accounts.md; `npm run db:seed -w be` reseeds the dev DB)
-- Feature list: round 1 (14 features) archived to progress-feature-list/feature_list_1.json; round 2 (bid-003, sys-001, sys-002, sys-003, all passing) archived to progress-feature-list/feature_list_2.json. Round 3 (SRS 3.19-3.21, 11 features) is the active feature_list.json at the root
+- Feature list: round 1 (14 features) archived to progress-feature-list/feature_list_1.json; round 2 (bid-003, sys-001, sys-002, sys-003, all passing) archived to progress-feature-list/feature_list_2.json. round 3 (SRS 3.19-3.21: sec-001/002, adm-001..005, stf-001..004, all passing) archived to progress-feature-list/feature_list_3.json. No active feature_list.json at the root
 - Current blocker: none
 
 ## Session Log
@@ -150,4 +150,12 @@
 - Decision: no chart library (recharts was only a suggestion) - avoids another dependency after the exceljs/tsx issue; status colours are the validated reference categorical slots 1-4
 - Fixed on the way: filter forms (statistics and admin users) stacked vertically because the global `form { flex-direction: column }` beat `.row`; `.filters` now sets row direction
 - Verification: npm run verify exit 0 -> vitest 147, fe build, Playwright 28/28
-- Next best step: stf-004 revenue and customer statistics (last feature of round 3)
+
+### Session 005 (cont.) stf-004 and round 3 wrap-up
+
+- Completed: be/src/lib/insights.ts (revenueStatistics: commission/sales of settlements settled in range; customerStatistics: customer registrations, distinct bidders and sellers, top 5 sellers and bidders by settled value), GET /api/staff/revenue and /api/staff/customers (report.view), second Excel sheet 'Revenue and customers'; fe StaffInsights tiles and top-5 lists
+- Fixed on the way: e2e helper createSoldAuction now tops up bob's credit first (later specs ran him out of credit in the full suite)
+- Verification: ./init.sh exit 0 -> vitest 29 files / 152 tests, fe build ok, Playwright 29/29
+- All 11 round 3 features passing; feature list archived to progress-feature-list/feature_list_3.json
+- Still unconfirmed with product owner (recorded in feature notes): statistics range filters on start_time; soft delete keeps username/email reserved; admin-created accounts skip email verification; revenue counts by settlement date; admin does not hold report.* by default
+- Next best step: write a round 4 feature_list.json at the root (CLAUDE.md startup expects one)
