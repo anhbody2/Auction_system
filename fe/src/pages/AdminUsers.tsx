@@ -1,6 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
+import { useAuth } from '../auth';
+import { DeleteUser } from '../components/DeleteUser';
 
 export interface AdminUserRow {
   id: number;
@@ -18,7 +20,9 @@ const PAGE_SIZE = 20;
 
 /** adm-001: search, filter and page through users. Filters live in the URL so the list survives a reload. */
 export function AdminUsersPage() {
+  const { user: me } = useAuth();
   const [params, setParams] = useSearchParams();
+  const [reload, setReload] = useState(0);
   const q = params.get('q') ?? '';
   const role = params.get('role') ?? '';
   const status = params.get('status') ?? '';
@@ -34,7 +38,7 @@ export function AdminUsersPage() {
     api<{ users: AdminUserRow[]; total: number }>(`/admin/users?${qs}`)
       .then(setData)
       .catch(() => setError('Could not load users'));
-  }, [q, role, status, page]);
+  }, [q, role, status, page, reload]);
 
   const apply = (e: FormEvent) => {
     e.preventDefault();
@@ -111,6 +115,9 @@ export function AdminUsersPage() {
                   <th>Role</th>
                   <th>Status</th>
                   <th>Created</th>
+                  <th>
+                    <span className="sr-only">Actions</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -125,6 +132,11 @@ export function AdminUsersPage() {
                       <span className={`badge badge-user-${u.status}`}>{u.status}</span>
                     </td>
                     <td>{new Date(u.createdAt).toLocaleDateString()}</td>
+                    <td>
+                      {u.status !== 'deleted' && u.id !== me?.id && (
+                        <DeleteUser user={u} onDeleted={() => setReload((n) => n + 1)} />
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

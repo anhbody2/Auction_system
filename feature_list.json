@@ -142,14 +142,18 @@
       "srs_ref": "3.20.3 REQ-1",
       "title": "Delete a user",
       "user_visible_behavior": "The admin deletes a user after a confirmation prompt. The user disappears from the default list and can no longer log in. A user with active auctions or active bids cannot be deleted and the admin is told why. The admin cannot delete their own account.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "API: DELETE /api/admin/users/:id on a user with no active auctions or bids returns 200; that user can no longer log in.",
         "API: deleting a user with an active auction or active bid returns 409 with a reason.",
         "API: deleting yourself returns 400.",
         "E2E: admin deletes a user through the confirm dialog and the row disappears."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-18 API: be/tests/admin.users.delete.test.ts (5 tests) - DELETE /api/admin/users/:id soft-deletes (status deleted, row kept), user can no longer log in (401 generic) and existing session 401, hidden from default list but listed with status=deleted, second delete 404; seller with open auction 409 'Cannot delete alice: they have 1 open auction'; bidder with leading bid on open auction 409; deleting self 400; staff 403",
+        "2026-10-18 E2E: e2e/adm-004-delete-user.spec.ts - Keep cancels; Yes, delete shows toast and the row disappears; alice refused with reason; no delete button on own row; deleted user login 401",
+        "2026-10-18 npm run verify exit 0: vitest 24 files / 129 tests, fe build ok, Playwright 24/24"
+      ],
       "notes": "Soft delete (status 'deleted') so auction, bid and credit history stays intact. Assumption; confirm with product owner."
     },
     {

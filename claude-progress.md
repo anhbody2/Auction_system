@@ -120,4 +120,10 @@
 
 - Completed: PATCH /api/admin/users/:id (email, fullName, phone, address, role, status active|locked; strict schema; self role/status change 400); login rejects locked accounts; requireAuth/optionalAuth re-read role+status from DB on every request so lock and role changes apply immediately (one extra indexed query per authed request); fe AdminUserEdit form on the detail page
 - Verification: npm run verify exit 0 -> vitest 124, fe build, Playwright 23/23
-- Next best step: adm-004 delete a user (soft delete)
+
+### Session 005 (cont.) adm-004
+
+- Completed: DELETE /api/admin/users/:id soft delete (status 'deleted'); blocked by open auctions as seller or leading ('active') bids on open auctions; login and forgot-password treat deleted as unknown; fe DeleteUser inline confirm in the user list
+- Known: a deleted user's username/email stay reserved (unique columns), so they cannot re-register with them
+- Verification: npm run verify exit 0 -> vitest 129, fe build, Playwright 24/24
+- Next best step: adm-005 admin sets a user's password

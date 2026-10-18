@@ -161,3 +161,32 @@ adminUsersRouter.patch(
     res.json({ user: await userDetail(id) });
   }),
 );
+
+/**
+ * adm-004: soft delete (status 'deleted') so auction, bid and credit history stays intact.
+ * Blocked while the user sells an open auction or holds the leading bid on one.
+ */
+adminUsersRouter.delete(
+  '/:id',
+  asyncHandler(async (req, res) => {
+    const id = parseUserId(req.params.id);
+    if (id === req.user!.id) throw new HttpError(400, 'You cannot delete your own account');
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user || user.status === 'deleted') throw new HttpError(404, 'User not found');
+
+    const now = new Date();
+    const open = { status: { notIn: ['ended', 'cancelled'] }, endTime: { gt: now } };
+    const [auctions, bids] = await Promise.all([
+      prisma.auction.count({ where: { sellerId: id, ...open } }),
+      prisma.bidTicket.count({ where: { bidderId: id, status: 'active', auction: open } }),
+    ]);
+    const reasons = [];
+    if (auctions) reasons.push(`${auctions} open auction${auctions === 1 ? '' : 's'}`);
+    if (bids) reasons.push(`${bids} leading bid${bids === 1 ? '' : 's'} on open auctions`);
+    if (reasons.length) {
+      throw new HttpError(409, `Cannot delete ${user.username}: they have ${reasons.join(' and ')}`);
+    }
+    await prisma.user.update({ where: { id }, data: { status: 'deleted' } });
+    res.json({ message: `User ${user.username} deleted` });
+  }),
+);

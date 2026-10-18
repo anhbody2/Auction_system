@@ -32,7 +32,8 @@ authRouter.post(
       where: { OR: [{ email: identifier.toLowerCase() }, { username: identifier }] },
     });
     const ok = user && (await bcrypt.compare(password, user.passwordHash));
-    if (!user || !ok) throw new HttpError(401, 'Invalid username/email or password');
+    // Deleted accounts (adm-004) look like unknown ones.
+    if (!user || !ok || user.status === 'deleted') throw new HttpError(401, 'Invalid username/email or password');
     if (user.status === 'disabled') throw new HttpError(403, 'This account is disabled');
     if (user.status === 'locked') throw new HttpError(403, 'This account is locked. Contact an administrator.');
     res.cookie(config.cookieName, signToken(user), cookieOptions);
@@ -107,7 +108,7 @@ authRouter.post(
   asyncHandler(async (req, res) => {
     const { email } = z.object({ email: emailField }).parse(req.body);
     const user = await prisma.user.findUnique({ where: { email } });
-    if (user && user.status !== 'disabled') {
+    if (user && user.status !== 'disabled' && user.status !== 'deleted') {
       const { token, tokenHash } = newToken();
       await prisma.$transaction([
         // Only the newest link stays valid.
