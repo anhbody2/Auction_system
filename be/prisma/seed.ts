@@ -11,6 +11,12 @@ const DEMO_USERS = [
   { username: 'carol', email: 'carol@example.com', fullName: 'Carol Customer', credit: 500 },
 ];
 
+// Internal accounts (sec-001), same password. Documented in docs/accounts.md.
+const STAFF_USERS = [
+  { username: 'staff', email: 'staff@example.com', fullName: 'Sam Staff', role: 'staff' },
+  { username: 'admin', email: 'admin@example.com', fullName: 'Ada Admin', role: 'admin' },
+];
+
 export async function seed(client: PrismaClient = prisma) {
   const passwordHash = await bcrypt.hash('Password123!', 10);
   for (const u of DEMO_USERS) {
@@ -28,6 +34,21 @@ export async function seed(client: PrismaClient = prisma) {
         transactions: {
           create: { transactionType: 'topup', amount: u.credit, balanceBefore: 0, balanceAfter: u.credit, description: 'Opening balance' },
         },
+      },
+    });
+  }
+  for (const u of STAFF_USERS) {
+    await client.user.upsert({
+      where: { email: u.email },
+      update: {},
+      create: {
+        email: u.email,
+        username: u.username,
+        passwordHash,
+        role: u.role,
+        status: 'active',
+        emailVerifiedAt: new Date(),
+        info: { create: { fullName: u.fullName } },
       },
     });
   }

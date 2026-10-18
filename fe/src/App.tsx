@@ -10,11 +10,13 @@ import { DashboardPage } from './pages/Dashboard';
 import { ForgotPasswordPage } from './pages/ForgotPassword';
 import { HomePage } from './pages/Home';
 import { LoginPage } from './pages/Login';
+import { AdminUsersPage } from './pages/AdminUsers';
 import { MyAuctionsPage } from './pages/MyAuctions';
 import { MyBiddingsPage } from './pages/MyBiddings';
 import { ProfilePage } from './pages/Profile';
 import { RegisterPage } from './pages/Register';
 import { ResetPasswordPage } from './pages/ResetPassword';
+import { StaffStatisticsPage } from './pages/StaffStatistics';
 import { VerifyEmailPage } from './pages/VerifyEmail';
 
 const authed = (el: ReactElement) => <RequireAuth>{el}</RequireAuth>;
@@ -37,6 +39,8 @@ export function App() {
         <Route path="/profile" element={authed(<ProfilePage />)} />
         <Route path="/change-password" element={authed(<ChangePasswordPage />)} />
         <Route path="/credit" element={authed(<CreditPage />)} />
+        <Route path="/staff/statistics" element={<RequireAuth roles={['staff']}><StaffStatisticsPage /></RequireAuth>} />
+        <Route path="/admin/users" element={<RequireAuth roles={['admin']}><AdminUsersPage /></RequireAuth>} />
         <Route path="*" element={<p>Page not found.</p>} />
       </Route>
     </Routes>

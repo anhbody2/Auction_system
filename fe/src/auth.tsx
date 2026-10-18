@@ -51,10 +51,25 @@ export function useAuth() {
   return ctx;
 }
 
-export function RequireAuth({ children }: { children: ReactNode }) {
+/** Where each role lands after login (sec-001). */
+export function homeFor(user: Pick<User, 'role'>) {
+  if (user.role === 'admin') return '/admin/users';
+  if (user.role === 'staff') return '/staff/statistics';
+  return '/dashboard';
+}
+
+export function RequireAuth({ children, roles }: { children: ReactNode; roles?: string[] }) {
   const { user, loading } = useAuth();
   const location = useLocation();
   if (loading) return <p className="muted">Loading...</p>;
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  if (roles && !roles.includes(user.role)) {
+    return (
+      <div className="card narrow" data-testid="not-allowed">
+        <h1>Not allowed</h1>
+        <p className="muted">Your account does not have access to this page.</p>
+      </div>
+    );
+  }
   return <>{children}</>;
 }

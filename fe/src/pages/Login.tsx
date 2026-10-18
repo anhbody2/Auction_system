@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ApiError } from '../api';
-import { useAuth } from '../auth';
+import { homeFor, useAuth } from '../auth';
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -17,9 +17,9 @@ export function LoginPage() {
     setError('');
     setBusy(true);
     try {
-      await login(identifier, password);
+      const user = await login(identifier, password);
       const from = (location.state as { from?: string } | null)?.from;
-      navigate(from && from !== '/login' ? from : '/dashboard');
+      navigate(from && from !== '/login' ? from : homeFor(user));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Login failed');
     } finally {

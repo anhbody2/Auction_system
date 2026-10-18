@@ -19,15 +19,17 @@ export function Layout() {
         </Link>
         <nav>
           <NavLink to="/">Auctions</NavLink>
-          {user && (
+          {user?.role === 'customer' && (
             <>
               <NavLink to="/dashboard">Dashboard</NavLink>
               <NavLink to="/my-auctions">My Auctions</NavLink>
               <NavLink to="/my-bids">My Biddings</NavLink>
               <NavLink to="/credit">Credit</NavLink>
-              <NavLink to="/profile">Profile</NavLink>
             </>
           )}
+          {user?.role === 'staff' && <NavLink to="/staff/statistics">Statistics</NavLink>}
+          {user?.role === 'admin' && <NavLink to="/admin/users">Users</NavLink>}
+          {user && <NavLink to="/profile">Profile</NavLink>}
         </nav>
         <div className="userbox">
           {user ? (
@@ -35,7 +37,13 @@ export function Layout() {
               <span className="who" data-testid="current-user">
                 {user.username}
               </span>
-              <span className="pill">{money(user.creditBalance - user.heldBalance)}</span>
+              {user.role === 'customer' ? (
+                <span className="pill">{money(user.creditBalance - user.heldBalance)}</span>
+              ) : (
+                <span className="pill" data-testid="current-role">
+                  {user.role}
+                </span>
+              )}
               <button className="btn btn-ghost" onClick={onLogout}>
                 Log out
               </button>

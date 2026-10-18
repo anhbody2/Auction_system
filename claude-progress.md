@@ -7,8 +7,8 @@
 - Schema source of truth: docs/ERD_edited.md (docs/ERD.md is the untouched original)
 - Standard startup path: start Docker Desktop, then `./init.sh` (npm install + full verify). `npm run dev` runs API on :4000 and web on :5173 (Vite proxies /api)
 - Standard verification path: `npm run verify` = `npm test` (vitest on DB auction_test + fe build) and `npm run e2e` (Playwright on DB auction_e2e, servers on :4100/:5180)
-- Demo accounts: alice / bob / carol, password `Password123!` (`npm run db:seed -w be` reseeds the dev DB)
-- Feature list: round 1 (14 features) archived to progress-feature-list/feature_list_1.json; round 2 (bid-003, sys-001, sys-002, sys-003, all passing) archived to progress-feature-list/feature_list_2.json. No active feature_list.json at the root
+- Demo accounts: alice / bob / carol (customers), staff (staff), admin (admin); password `Password123!` for all (docs/accounts.md; `npm run db:seed -w be` reseeds the dev DB)
+- Feature list: round 1 (14 features) archived to progress-feature-list/feature_list_1.json; round 2 (bid-003, sys-001, sys-002, sys-003, all passing) archived to progress-feature-list/feature_list_2.json. Round 3 (SRS 3.19-3.21, 11 features) is the active feature_list.json at the root
 - Current blocker: none
 
 ## Session Log
@@ -88,3 +88,14 @@
 - Verification run: feature_list.json parses; no code changed
 - Open decisions (in feature notes): which date the statistics range filters on (assumed start_time); soft delete for users; admin-created accounts skip email verification
 - Next best step: start sec-001
+
+### Session 005
+
+- Date: 2026-10-18
+- Goal: start round 3; sec-001 one login page with role-based landing
+- Startup: baseline ./init.sh first failed with Prisma EPERM because `npm run dev` was running and held the query-engine DLL; stopped those node processes, rerun green (93 vitest, fe build, 18 Playwright). Committed the round 3 feature list and the DB port change 5433 -> 5436 as a baseline commit
+- Completed sec-001: role carried in the JWT and req.user (tokens without a role read as customer); seed adds staff and admin accounts (docs/accounts.md); fe homeFor(role) landing after login; RequireAuth takes optional roles and shows a 'Not allowed' page; nav shows customer links only to customers, Statistics to staff, Users to admin; placeholder pages /staff/statistics and /admin/users (filled by stf-* and adm-*)
+- Verification: ./init.sh exit 0 -> vitest 19 files / 98 tests, fe build ok, Playwright 19/19
+- Note: e2e cust-002 renames carol, so later specs must not assert on carol's full name
+- Not yet done: API-level role enforcement is sec-002 (role currently only in token/UI; staff/admin can still call customer APIs)
+- Next best step: sec-002 role-based permissions (permissions + role_permissions tables, requirePermission middleware reading role from DB per request)

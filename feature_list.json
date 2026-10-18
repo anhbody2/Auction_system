@@ -26,7 +26,7 @@
       "srs_ref": "3.21.3 REQ-1",
       "title": "One login page for customer, staff and admin",
       "user_visible_behavior": "Customers, staff and admins sign in on the same login page. After login each lands on their own home: customer on the existing dashboard, staff on the statistics page, admin on the user management page. The navigation only shows links the user's role can use.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Seed: npm run db:seed -w be creates one staff and one admin account (credentials documented in docs/).",
         "Unit: the JWT and /api/me include the user's role.",
@@ -34,7 +34,12 @@
         "E2E: logging in as staff lands on /staff/statistics; as admin lands on /admin/users; as customer lands on the existing dashboard.",
         "E2E: a customer does not see Staff or Admin links in the navigation."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-18 Seed creates staff/staff@example.com (role staff) and admin/admin@example.com (role admin), password Password123!, documented in docs/accounts.md",
+        "2026-10-18 Unit+API: be/tests/sec.login-roles.test.ts - signToken puts role in JWT; login as alice/staff/admin returns 200 with role customer/staff/admin in body, cookie JWT and /api/auth/me",
+        "2026-10-18 E2E: e2e/sec-001-role-login.spec.ts - staff lands on /staff/statistics, admin on /admin/users, customer on /dashboard; customer nav has no Statistics/Users links; customer opening staff/admin URL sees not-allowed page",
+        "2026-10-18 ./init.sh exit 0: vitest 19 files / 98 tests, fe build ok, Playwright 19/19"
+      ],
       "notes": "Role is read from the DB at login and put in the token. A role change takes effect on next login unless sec-002 re-reads it per request (preferred)."
     },
     {
