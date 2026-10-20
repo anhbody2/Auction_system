@@ -193,3 +193,13 @@
 - Unverified: header with two pills was not checked at phone width (no layout test)
 - Still unconfirmed with product owner: the crd-002 label reading; bid-004 gap steps
 - Next best step: upl-001 (check that sharp installs on Windows + Node 20 first)
+
+### Session 007 (cont.) upl-001
+
+- User confirmed the crd-002 label reading and the bid-004 gap steps ($0.05 under $1, $2.50 for $50-100); recorded in the feature notes
+- Completed: multer 2.0.2 + sharp 0.33.5 (sharp checked under node and tsx on Node 20.20 first: works); be/src/lib/images.ts (fitImage, storeImage, isStoredUpload), POST /api/uploads, /uploads static serving; auctions.imageUrl now only accepts this server's uploads; fe ImageUpload component on the create-auction form (replaces the Image URL field until sell-003)
+- Storage: UPLOAD_DIR, default be/uploads/ (gitignored); e2e uses be/uploads/e2e; vitest uses a temp dir
+- Verification: npm run verify exit 0 -> vitest 34 files / 174 tests, fe build ok, Playwright 33/33
+- Note: ./init.sh failed at npm install (EPERM, Prisma DLL) because the user's `npm run dev` was running; not stopped. The running Vite dev server needs a restart to pick up the new /uploads proxy
+- Known gaps: unused uploads are never cleaned up; image still optional on the auction form (required comes with gds-001)
+- Next best step: gds-001 (My goods page; reuse ImageUpload with max > 1 and isStoredUpload)

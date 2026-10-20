@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiError, CONDITION_LABELS, api, type Auction } from '../api';
 import { Field } from '../components/Field';
+import { ImageUpload } from '../components/ImageUpload';
 import { useToast } from '../toast';
 
 interface Category {
@@ -102,7 +103,13 @@ export function CreateAuctionPage() {
             {selectError('condition')}
           </div>
         </div>
-        <Field label="Image URL (optional)" type="url" {...bind('imageUrl')} />
+        <ImageUpload
+          label="Image (optional)"
+          name="imageUrl"
+          value={values.imageUrl ? [values.imageUrl] : []}
+          onChange={(urls) => set('imageUrl')({ target: { value: urls[0] ?? '' } })}
+          error={errors.imageUrl}
+        />
         <div className="grid stats">
           <Field label="Starting price" inputMode="decimal" {...bind('initialPrice')} />
           <Field label="Reserve price (optional)" inputMode="decimal" {...bind('reservePrice')} />

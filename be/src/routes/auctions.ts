@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { prisma } from '../db';
 import { auctionInclude, auctionView } from '../lib/auctions';
 import { HttpError, asyncHandler } from '../lib/http';
+import { isStoredUpload } from '../lib/images';
 import { optionalAuth, requireAuth } from '../middleware/auth';
 
 export const auctionsRouter = Router();
@@ -30,7 +31,8 @@ const itemSchema = z.object({
   description: z.string().trim().min(10, 'Description must be at least 10 characters').max(5000),
   categoryId: z.coerce.number({ invalid_type_error: 'Choose a category' }).int().positive('Choose a category'),
   condition: z.enum(CONDITIONS, { errorMap: () => ({ message: 'Choose a condition' }) }),
-  imageUrl: z.preprocess((v) => (v === '' ? undefined : v), z.string().trim().url('Enter a valid image URL').optional()),
+  // upl-001: images are uploaded (POST /api/uploads); only this server's upload URLs are accepted.
+  imageUrl: z.preprocess((v) => (v === '' ? undefined : v), z.string().trim().optional()),
 });
 
 // Prices and times are validated separately so cross-field errors show even when item fields are invalid.
@@ -88,6 +90,7 @@ auctionsRouter.post(
     const d = parseCreate(req.body);
     const category = await prisma.category.findUnique({ where: { id: BigInt(d.categoryId) } });
     if (!category) throw new HttpError(400, 'Validation failed', { categoryId: 'Choose a category' });
+    if (d.imageUrl && !(await isStoredUpload(d.imageUrl))) throw new HttpError(400, 'Validation failed', { imageUrl: 'Upload the image instead of linking to it' });
 
     const sellerId = req.user!.id;
     const now = new Date();

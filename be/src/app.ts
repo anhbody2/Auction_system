@@ -15,6 +15,17 @@ import { devRouter } from './routes/dev';
 import { meRouter } from './routes/me';
 import { messagesRouter } from './routes/messages';
 import { staffRouter } from './routes/staff';
+import { uploadsRouter } from './routes/uploads';
+
+/** Serves config.uploadDir, looked up per request so tests can point UPLOAD_DIR at a temp folder. */
+function uploadsStatic(): express.RequestHandler {
+  const handlers = new Map<string, express.RequestHandler>();
+  return (req, res, next) => {
+    const dir = config.uploadDir;
+    if (!handlers.has(dir)) handlers.set(dir, express.static(dir, { immutable: true, maxAge: '30d', index: false }));
+    handlers.get(dir)!(req, res, next);
+  };
+}
 
 export function createApp() {
   const app = express();
@@ -23,6 +34,16 @@ export function createApp() {
   app.use(express.json());
   app.use(cookieParser());
 
+  // upl-001: uploaded images; random names, so they can be cached for good.
+  app.use(
+    '/uploads',
+    (_req, res, next) => {
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      next();
+    },
+    uploadsStatic(),
+    (_req: express.Request, res: express.Response) => res.status(404).json({ error: 'Not found' }),
+  );
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
   // Safety net beside the hourly close job: settle auctions whose end time passed before serving
   // anything that might show them. SETTLE_ON_REQUEST=0 leaves closing to the scheduler only.
@@ -39,6 +60,7 @@ export function createApp() {
   app.use('/api/admin', adminRouter);
   app.use('/api/staff', staffRouter);
   app.use('/api/credit', creditRouter);
+  app.use('/api/uploads', uploadsRouter);
   app.use('/api', auctionsRouter);
   app.use('/api', bidsRouter);
   app.use('/api', messagesRouter);

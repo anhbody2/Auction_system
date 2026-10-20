@@ -26,6 +26,7 @@ export default defineConfig({
         JWT_SECRET: 'e2e-secret',
         NODE_ENV: 'e2e',
         AUCTION_JOB_INTERVAL_MS: '1000',
+        UPLOAD_DIR: 'be/uploads/e2e',
       },
     },
     {

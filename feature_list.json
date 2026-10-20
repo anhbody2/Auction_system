@@ -75,7 +75,7 @@
         "2026-10-20 ./init.sh exit 0: vitest 32 files / 162 tests, fe build ok, Playwright 31/31",
         "2026-10-20 Docs: docs/changes/crd-002.md, docs/credit-model.md (UI labels, ledger meaning)"
       ],
-      "notes": "ASSUMPTION, to confirm with the product owner: the SRS line 'Change available credit to credit, update new - locked credit' and 'Only update credit after auction closed' are read as: show the balance as 'Credit' (changes only at close, deposit and withdraw) plus a separate 'Locked credit'. The spendable amount (credit - locked) is still enforced on the server but is not the headline number. Depends on crd-001. Done: ledger balance_before/balance_after now store the credit balance (was available) so the history column can be called Credit after; older rows keep the old meaning. The label reading is still unconfirmed."
+      "notes": "ASSUMPTION, to confirm with the product owner: the SRS line 'Change available credit to credit, update new - locked credit' and 'Only update credit after auction closed' are read as: show the balance as 'Credit' (changes only at close, deposit and withdraw) plus a separate 'Locked credit'. The spendable amount (credit - locked) is still enforced on the server but is not the headline number. Depends on crd-001. Done: ledger balance_before/balance_after now store the credit balance (was available) so the history column can be called Credit after; older rows keep the old meaning. The user confirmed this label reading on 2026-10-20."
     },
     {
       "id": "upl-001",
@@ -85,7 +85,7 @@
       "srs_ref": "Customer - Create Auction (image), Req-1, Req-2",
       "title": "Image upload endpoint with 5 MB limit and automatic resize",
       "user_visible_behavior": "Sellers upload image files from their device instead of typing a URL. JPEG, PNG and WebP are accepted. A file of 5 MB or less is stored as is. A larger file is resized and recompressed by the server until it is under 5 MB, and the seller sees the stored image. Files that are not images, or are over a hard cap (e.g. 20 MB), are rejected with a clear message.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Unit (be/tests/upload.resize.test.ts): the resize helper turns a generated image over 5 MB into one at or under 5 MB and keeps its aspect ratio. An image under 5 MB is returned unchanged.",
         "Integration (be/tests/upload.api.test.ts): POST /api/uploads (multipart, signed in) returns 201 with a URL for a small PNG. A >5 MB image returns 201 and the stored file is <= 5 MB. A .txt file returns 400. A request that is not signed in returns 401.",
@@ -93,7 +93,13 @@
         "E2E (e2e/upl-001-image-upload.spec.ts): a seller picks a fixture image in a file input and sees a preview with the uploaded image.",
         "Docs: docs/image-upload.md describes accepted types, the 5 MB limit, the hard cap, how the resize works (step down the long edge and the quality until it is under 5 MB) and where files are stored. docs/changes/upl-001.md lists changed files."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-20 Unit: be/tests/upload.resize.test.ts (5 tests) - 200x100 PNG returned byte for byte; 2600x1600 noise PNG (>5 MB) -> PNG <= 5 MB, same aspect, smaller width; 4000x3000 q100 JPEG (>5 MB) -> JPEG <= 5 MB, 4:3 kept; 200 KB limit honoured; text and GIF rejected \"Only JPEG, PNG and WebP images are accepted\"",
+        "2026-10-20 Integration: be/tests/upload.api.test.ts (7 tests) - small PNG 201 /uploads/<32 hex>.png, client filename \"../../evil name.png\" not used on disk; GET serves image/png + nosniff, same bytes; >5 MB PNG 201 resized, stored file <= 5 MB; notes.txt and fake.png (text) 400; 20 MB + 1 byte 413 \"Image must be 20 MB or smaller\"; no file 400; signed out 401 and nothing written; unknown file 404; auction imageUrl accepts an upload, https://example.com/cat.png 400",
+        "2026-10-20 E2E: e2e/upl-001-image-upload.spec.ts (2 tests) - alice picks a .txt (alert, no preview), then a 320x240 PNG: preview from /uploads, naturalWidth 320, served image/png; created auction page shows that image; ~12 MB PNG shows \"Resized from 1x.x MB to x.x MB to fit the 5 MB limit\", stored <= 5 MB, aspect 2600/1600 kept",
+        "2026-10-20 npm run verify exit 0: vitest 34 files / 174 tests, fe build ok, Playwright 33/33. ./init.sh itself failed at npm install postinstall (EPERM on the Prisma query engine DLL) because the user had npm run dev running; install had completed and the schema is unchanged, so verify was run directly",
+        "2026-10-20 Docs: docs/image-upload.md, docs/changes/upl-001.md"
+      ],
       "notes": "Suggested libraries: multer (multipart) and sharp (resize). Store files on local disk under be/uploads/ (gitignored) and serve them at /uploads/<random-name>. Never use the client's filename on disk. Generate e2e fixtures at test time or keep them small in e2e/fixtures/. Check that sharp installs on Windows and Node 20 before relying on it (see the tsx/exceljs issue in claude-progress.md)."
     },
     {
@@ -189,7 +195,7 @@
         "Docs: docs/changes/bid-004.md lists changed files and the gaps decided below."
       ],
       "evidence": [],
-      "notes": "ASSUMPTION, to confirm with the product owner: the SRS gives no step for $0-1 or $50-100. Keep the current $0.05 (under $1) and $2.50 ($50-100) steps unless told otherwise. The current ladder (bid-003) has $5 for $100-500, $10 for $500-1000, $25 for $1000-5000 and $100 over $5000; the SRS merges these into $10 for $100-1000 and $100 over $1000. Added 2026-10-20 after SRS.txt gained this section."
+      "notes": "CONFIRMED by the user 2026-10-20: the SRS gives no step for $0-1 or $50-100. Keep the current $0.05 (under $1) and $2.50 ($50-100) steps unless told otherwise. The current ladder (bid-003) has $5 for $100-500, $10 for $500-1000, $25 for $1000-5000 and $100 over $5000; the SRS merges these into $10 for $100-1000 and $100 over $1000. Added 2026-10-20 after SRS.txt gained this section."
     }
   ]
 }

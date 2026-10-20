@@ -6,6 +6,9 @@ export default defineConfig({
   server: {
     port: Number(process.env.FE_PORT ?? 5173),
     strictPort: true,
-    proxy: { '/api': process.env.API_URL ?? 'http://localhost:4000' },
+    proxy: {
+      '/api': process.env.API_URL ?? 'http://localhost:4000',
+      '/uploads': process.env.API_URL ?? 'http://localhost:4000',
+    },
   },
 });
