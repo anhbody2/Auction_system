@@ -17,7 +17,6 @@ interface Tx {
 interface Summary {
   balance: number;
   held: number;
-  available: number;
   transactions: Tx[];
 }
 
@@ -79,23 +78,21 @@ export function CreditPage() {
       <h1>Credit account</h1>
       <div className="grid stats">
         <div className="card">
-          <div className="muted small">Available</div>
-          <div className="big" data-testid="credit-available">{money(data.available)}</div>
-        </div>
-        <div className="card">
-          <div className="muted small">Held in active bids</div>
-          <div className="big" data-testid="credit-held">{money(data.held)}</div>
-        </div>
-        <div className="card">
-          <div className="muted small">Total balance</div>
+          <div className="muted small">Credit</div>
           <div className="big" data-testid="credit-balance">{money(data.balance)}</div>
+          <div className="muted small">Changes on top up, withdrawal and when an auction closes</div>
+        </div>
+        <div className="card">
+          <div className="muted small">Locked credit</div>
+          <div className="big" data-testid="credit-held">{money(data.held)}</div>
+          <div className="muted small">Held in active bids; unlocked as soon as you are outbid</div>
         </div>
       </div>
       <div className="grid stats" style={{ marginTop: '1rem' }}>
         <AmountForm action="topup" label="Top up" onDone={onDone} />
         <AmountForm action="withdraw" label="Withdraw" onDone={onDone} />
       </div>
-      <p className="muted small">Top-ups are simulated; no real payment is taken.</p>
+      <p className="muted small">Bids and withdrawals can use your credit minus your locked credit. Top-ups are simulated; no real payment is taken.</p>
 
       <h2>Transaction history</h2>
       {data.transactions.length === 0 ? (
@@ -109,7 +106,7 @@ export function CreditPage() {
                 <th>Type</th>
                 <th>Details</th>
                 <th>Amount</th>
-                <th>Available after</th>
+                <th>Credit after</th>
               </tr>
             </thead>
             <tbody>

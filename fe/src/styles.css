@@ -62,7 +62,8 @@ input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--
 .btn-primary { background: var(--primary); color: var(--primary-ink); }
 .btn-danger { background: var(--danger); color: #fff; }
 .btn-ghost { background: transparent; border-color: var(--border); color: var(--text); }
-.pill { background: #eef2ff; color: var(--primary); border-radius: 999px; padding: 0.15rem 0.6rem; font-size: 0.85rem; font-weight: 600; }
+.pill { background: #eef2ff; color: var(--primary); border-radius: 999px; padding: 0.15rem 0.6rem; font-size: 0.85rem; font-weight: 600; white-space: nowrap; }
+.pill-muted { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
 
 .badge { display: inline-block; border-radius: 999px; padding: 0.1rem 0.55rem; font-size: 0.75rem; font-weight: 600; text-transform: capitalize; }
 .badge-active, .badge-winning, .badge-won { background: #e3f6ea; color: var(--success); }

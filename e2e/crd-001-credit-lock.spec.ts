@@ -31,7 +31,6 @@ test('crd-001: outbid credit is unlocked at once; the winner stays locked until 
   // Outbid: the lock is gone while the auction is still running.
   await login(page, 'crd_first');
   await expectCredit(page, '$500.00', '$0.00');
-  await expect(page.getByTestId('credit-available')).toHaveText('$500.00');
   await expect(page.getByTestId('transactions')).toContainText('Outbid on Lock Test Clock');
   await logout(page);
 

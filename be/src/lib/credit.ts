@@ -25,7 +25,8 @@ export async function lockBalances(tx: Tx, userId: bigint) {
 
 /**
  * Applies one credit movement inside a transaction and records it.
- * balance_before/balance_after on the ledger row are the *available* balance (credit - held).
+ * balance_before/balance_after on the ledger row are the credit balance (crd-002), so hold and release
+ * rows show it unchanged: credit only moves on top up, withdraw and auction close.
  *  topup:   credit += amount
  *  withdraw: credit -= amount        (needs available >= amount)
  *  hold:    held   += amount         (needs available >= amount)
@@ -69,8 +70,8 @@ export async function applyCredit(tx: Tx, m: Movement) {
       bidTicketId: m.bidTicketId,
       transactionType: m.type,
       amount,
-      balanceBefore: available,
-      balanceAfter: newBalance.minus(newHeld),
+      balanceBefore: balance,
+      balanceAfter: newBalance,
       description: m.description,
     },
   });

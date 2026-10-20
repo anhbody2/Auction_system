@@ -182,3 +182,14 @@
 - Finding: the behaviour already existed (bids.ts outbid release, settlement.ts pay-from-held at close); no app code change. A temporary break of the outbid release made 3/4 lock tests fail, so the tests do catch it
 - Verification: npm run verify exit 0 -> vitest 31 files / 159 tests, fe build ok, Playwright 30/30
 - Next best step: crd-002 (UI labels); needs the product owner to confirm the label reading in its notes
+
+### Session 007 - crd-002 (and bid-004 added)
+
+- Date: 2026-10-20
+- Startup: Docker Desktop was not running; started it. Baseline ./init.sh exit 0 (vitest 159, fe build, Playwright 30/30)
+- Found: SRS.txt (uncommitted user edit, left uncommitted along with CLAUDE.md) has a new section 'DB - increment bidding rules' not in the feature list. Added bid-004 (not_started, priority 8) with the gaps ($0-1, $50-100) recorded as an assumption
+- Completed crd-002: header pill, dashboard, /credit and bid panel show 'Credit' (balance) and 'Locked credit' (held, captioned 'Held in active bids'); no 'Available credit' label. Ledger balance_before/after now store the credit balance (be/src/lib/credit.ts), so hold/release rows leave it unchanged; rows written before keep the old 'available' meaning
+- Verification: ./init.sh exit 0 -> vitest 32 files / 162 tests, fe build ok, Playwright 31/31
+- Unverified: header with two pills was not checked at phone width (no layout test)
+- Still unconfirmed with product owner: the crd-002 label reading; bid-004 gap steps
+- Next best step: upl-001 (check that sharp installs on Windows + Node 20 first)

@@ -22,6 +22,8 @@ test('bid-001: bidder places valid bids; low, over-credit, own and ended-auction
   await expect(page.getByTestId('current-price')).toHaveText('$100.00');
   await expect(page.getByTestId('next-min-bid')).toHaveText('$105.00');
   await expect(page.getByTestId('bid-history').getByRole('row').nth(1)).toContainText('bob');
+  // The bid locks credit but does not spend it (crd-002 labels)
+  await expect(page.getByText(/^Credit: \$[\d,.]+ · Locked credit: \$[\d,.]+$/)).toBeVisible();
 
   // Equal / below increment rejected
   await page.getByLabel('Your bid').fill('100');

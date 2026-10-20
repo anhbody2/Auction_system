@@ -70,7 +70,9 @@ export function BidPanel({ auction, onBid }: { auction: Auction; onBid: () => vo
       <button className="btn btn-primary" type="submit" disabled={busy}>
         {busy ? 'Placing...' : 'Place bid'}
       </button>
-      <span className="muted small">Available credit: {money(user.creditBalance - user.heldBalance)}</span>
+      <span className="muted small">
+        Credit: {money(user.creditBalance)} · Locked credit: {money(user.heldBalance)}
+      </span>
     </form>
   );
 }

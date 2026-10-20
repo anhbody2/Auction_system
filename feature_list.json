@@ -1,7 +1,7 @@
 {
   "project": "Online Auction System",
   "last_updated": "2026-10-20",
-  "scope": "Round 4. Only the requirements in SRS.txt: Seller - Manage Goods, Customer - Create Auction (image upload; start date + duration), Customer - Dashboard credit, Customer - System UI. Builds on rounds 1-3 (archived in progress-feature-list/).",
+  "scope": "Round 4. Only the requirements in SRS.txt: Seller - Manage Goods, Customer - Create Auction (image upload; start date + duration), Customer - Dashboard credit, Customer - System UI, DB - increment bidding rules. Builds on rounds 1-3 (archived in progress-feature-list/).",
   "conventions": {
     "tests": "Playwright e2e specs go in e2e/ as <id>-<slug>.spec.ts. Unit and API/integration tests use the existing vitest setup in be/tests/ as <area>.<topic>.test.ts. Every feature needs both kinds unless its verification list says otherwise.",
     "change_docs": "Each feature writes docs/changes/<id>.md listing the files it added or changed and why. Features with design decisions (image resize, credit model) also add a topic doc under docs/, as named in their verification list.",
@@ -60,7 +60,7 @@
       "srs_ref": "Customer - System UI, Req-1, Req-2",
       "title": "UI shows 'Credit' and 'Locked credit' instead of 'Available credit'",
       "user_visible_behavior": "The header pill, the dashboard and the /credit page no longer show a figure labelled 'Available credit'. They show 'Credit' (the customer's balance) and 'Locked credit' (held in active bids). Credit changes only on deposit, withdrawal and when an auction closes (payment or seller proceeds), not when a bid is placed or outbid. Locked credit changes on bid and outbid. The bid panel still stops a bid larger than credit minus locked credit, with the message 'Bid exceeds your available credit'.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Unit (fe or be/tests/credit.summary.test.ts): GET /api/credit returns balance and held. The UI's 'Credit' value is balance and does not change after a bid that is not yet closed.",
         "E2E (e2e/crd-002-credit-ui.spec.ts): bob with $1000 bids $100. The header pill and the dashboard 'Credit' still show $1,000.00 and 'Locked credit' shows $100.00. No 'Available credit' label appears anywhere on the dashboard, header or /credit.",
@@ -68,8 +68,14 @@
         "E2E: existing specs e2e/cust-005-credit.spec.ts and e2e/bid-001-make-bid.spec.ts are updated to the new labels and test ids and still pass.",
         "Docs: docs/changes/crd-002.md; docs/credit-model.md updated with the UI labels."
       ],
-      "evidence": [],
-      "notes": "ASSUMPTION, to confirm with the product owner: the SRS line 'Change available credit to credit, update new - locked credit' and 'Only update credit after auction closed' are read as: show the balance as 'Credit' (changes only at close, deposit and withdraw) plus a separate 'Locked credit'. The spendable amount (credit - locked) is still enforced on the server but is not the headline number. Depends on crd-001."
+      "evidence": [
+        "2026-10-20 Unit: be/tests/credit.summary.test.ts (3 tests) - GET /api/credit balance stays 1000 through bid 100 (held 100), outbid (held 0), re-bid 200 and end time (held 200); after closeDueAuctions balance 800 held 0; ledger rows topup 0->1000, hold/release/hold 1000->1000, payment 1000->800; bid over credit minus locked still 400 \"Bid exceeds your available credit\"",
+        "2026-10-20 E2E: e2e/crd-002-credit-ui.spec.ts - fresh bidder with $1,000.00 bids $100 through the UI: header-credit/dashboard-credit/credit-balance $1,000.00, header-locked/dashboard-locked/credit-held $100.00, no text matching /available credit/i on dashboard or /credit; after expire + close $900.00 and $0.00, history Credit after $900.00",
+        "2026-10-20 E2E: cust-005, crd-001 and bid-001 specs updated to the new test ids/labels and pass",
+        "2026-10-20 ./init.sh exit 0: vitest 32 files / 162 tests, fe build ok, Playwright 31/31",
+        "2026-10-20 Docs: docs/changes/crd-002.md, docs/credit-model.md (UI labels, ledger meaning)"
+      ],
+      "notes": "ASSUMPTION, to confirm with the product owner: the SRS line 'Change available credit to credit, update new - locked credit' and 'Only update credit after auction closed' are read as: show the balance as 'Credit' (changes only at close, deposit and withdraw) plus a separate 'Locked credit'. The spendable amount (credit - locked) is still enforced on the server but is not the headline number. Depends on crd-001. Done: ledger balance_before/balance_after now store the credit balance (was available) so the history column can be called Credit after; older rows keep the old meaning. The label reading is still unconfirmed."
     },
     {
       "id": "upl-001",
@@ -165,6 +171,25 @@
       ],
       "evidence": [],
       "notes": "The current schema allows a minimum of 1 minute; it becomes 1 hour. E2E specs that need an auction to end already use POST /api/dev/auctions/:id/expire, so the higher minimum should not slow tests. Update helpers that send endTime. Depends on sell-003 (same form and endpoint)."
+    },
+    {
+      "id": "bid-004",
+      "priority": 8,
+      "role": "customer",
+      "area": "bidding",
+      "srs_ref": "DB - increment bidding rules, Req",
+      "title": "Bid increment ladder updated to the SRS ranges",
+      "user_visible_behavior": "The minimum next bid follows the SRS ladder: $0.50 steps from $1 to $10, $1 steps from $10 to $50, $10 steps from $100 to $1000 and $100 steps over $1000. The bid panel and the next-minimum-bid figure use the new steps, and BID_INCREMENT_RULES in the database holds the same ranges.",
+      "status": "not_started",
+      "verification": [
+        "Unit (be/tests/bid.increment.test.ts, updated): ladderIncrement gives 0.50 at $1 and $9.99, 1 at $10 and $49.99, 10 at $100 and $999.99, 100 at $1000 and $5000.",
+        "Unit: the seeded bid_increment_rules rows match INCREMENT_LADDER.",
+        "E2E (e2e/bid-004-increment-ladder.spec.ts): after a $100 bid the next minimum bid shows $110.00; after a $1000 bid it shows $1,100.00.",
+        "E2E: existing specs that expect the old $5 step at $100 (bid-001 and others) are updated to the new step and still pass.",
+        "Docs: docs/changes/bid-004.md lists changed files and the gaps decided below."
+      ],
+      "evidence": [],
+      "notes": "ASSUMPTION, to confirm with the product owner: the SRS gives no step for $0-1 or $50-100. Keep the current $0.05 (under $1) and $2.50 ($50-100) steps unless told otherwise. The current ladder (bid-003) has $5 for $100-500, $10 for $500-1000, $25 for $1000-5000 and $100 over $5000; the SRS merges these into $10 for $100-1000 and $100 over $1000. Added 2026-10-20 after SRS.txt gained this section."
     }
   ]
 }

@@ -39,7 +39,14 @@ export function Layout() {
                 {user.username}
               </span>
               {user.role === 'customer' ? (
-                <span className="pill">{money(user.creditBalance - user.heldBalance)}</span>
+                <>
+                  <span className="pill" title="Credit">
+                    Credit <span data-testid="header-credit">{money(user.creditBalance)}</span>
+                  </span>
+                  <span className="pill pill-muted" title="Locked credit: held in active bids">
+                    Locked credit <span data-testid="header-locked">{money(user.heldBalance)}</span>
+                  </span>
+                </>
               ) : (
                 <span className="pill" data-testid="current-role">
                   {user.role}
