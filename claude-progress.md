@@ -8,7 +8,7 @@
 - Standard startup path: start Docker Desktop, then `./init.sh` (npm install + full verify). `npm run dev` runs API on :4000 and web on :5173 (Vite proxies /api)
 - Standard verification path: `npm run verify` = `npm test` (vitest on DB auction_test + fe build) and `npm run e2e` (Playwright on DB auction_e2e, servers on :4100/:5180)
 - Demo accounts: alice / bob / carol (customers), staff (staff), admin (admin); password `Password123!` for all (docs/accounts.md; `npm run db:seed -w be` reseeds the dev DB)
-- Feature list: round 1 (14 features) archived to progress-feature-list/feature_list_1.json; round 2 (bid-003, sys-001, sys-002, sys-003, all passing) archived to progress-feature-list/feature_list_2.json. round 3 (SRS 3.19-3.21: sec-001/002, adm-001..005, stf-001..004, all passing) archived to progress-feature-list/feature_list_3.json. round 4 (crd-001/002, upl-001, gds-001/002, sell-003/004, bid-004, all passing) archived to progress-feature-list/feature_list_4.json. No active feature_list.json at the root (progress-feature-list/feature_list.json is the untouched bootstrap template)
+- Feature list: round 1 (14 features) archived to progress-feature-list/feature_list_1.json; round 2 (bid-003, sys-001, sys-002, sys-003, all passing) archived to progress-feature-list/feature_list_2.json. round 3 (SRS 3.19-3.21: sec-001/002, adm-001..005, stf-001..004, all passing) archived to progress-feature-list/feature_list_3.json. round 4 (crd-001/002, upl-001, gds-001/002, sell-003/004, bid-004, all passing) archived to progress-feature-list/feature_list_4.json. Round 5 (from SRS.txt, 2026-10-20: sell-005 cancel rules, rt-001 Redux + real-time bids, crd-003 stable credit UI, sell-006 available goods only, cmt-001 comments close) is the active feature_list.json at the root: sell-005 passing (2026-10-21), the rest not_started (progress-feature-list/feature_list.json is the untouched bootstrap template)
 - Uploads: images stored in UPLOAD_DIR (default be/uploads/, gitignored); see docs/image-upload.md
 - Current blocker: none
 
@@ -237,3 +237,14 @@
 - The running dev server needs a restart: new migration (bid rules) is applied by `prisma migrate deploy` at dev start, and Vite needs the new /uploads proxy
 - Known gaps: unused uploads are never deleted; uploads are not tied to a user; server error messages format money without thousands separators
 - Next best step: write a round 5 feature_list.json when SRS.txt gets new requirements
+
+### Session 008 - round 5 start, sell-005
+
+- Date: 2026-10-21
+- Startup: ./init.sh failed at npm install (EPERM on the Prisma query engine DLL; the user's `npm run dev` is running on :4000/:5173, not stopped). Baseline `npm run verify` exit 0: vitest 39 files / 201 tests, fe build ok, Playwright 39/39
+- Completed sell-005: POST /api/auctions/:id/cancel lets the seller cancel only while start_time is in the future (checked on start_time, not just status); admin (role check, not a grantable permission) cancels upcoming or active; release logic unchanged. fe CancelAuction: seller button only while upcoming, admin sees 'Cancel auction (admin)'. Rules in docs/auction-cancel.md
+- Tests updated, not weakened: sell-002 unit + e2e rewritten for the new rules; fixture cancels of started auctions in 5 vitest files and cust-007 e2e now done by the admin; cust-006 fixture created upcoming
+- Verification: npm run verify exit 0 -> vitest 40 files / 206 tests, fe build ok, Playwright 40/40
+- Not verified: ./init.sh end to end (blocked by the running dev server, same as session 007). The running Vite dev server picks up the fe change by HMR; the API needs no restart beyond tsx watch
+- Uncommitted user edits left alone: CLAUDE.md, SRS.txt (fe/tsconfig.tsbuildinfo is a build artefact)
+- Next best step: rt-001 (Redux Toolkit store + SSE real-time bids)

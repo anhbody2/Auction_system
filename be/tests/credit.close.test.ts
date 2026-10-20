@@ -65,7 +65,7 @@ describe('crd-001 the winning lock lasts until close; commission is taken at clo
     expect(await money('alice')).toEqual({ balance: 1000, held: 0 });
   });
 
-  it('cancelled by the seller: the leader lock is released and their other locks are untouched', async () => {
+  it('cancelled by an admin (sell-005: started auctions): the leader lock is released and their other locks are untouched', async () => {
     const alice = await loginAs('alice');
     const bob = await loginAs('bob');
     const other = await createAuction(alice, { name: 'Other', initialPrice: 200 });
@@ -73,7 +73,7 @@ describe('crd-001 the winning lock lasts until close; commission is taken at clo
     await bid(bob, other.id, 200);
     await bid(bob, a.id, 150);
 
-    expect((await alice.post(`/api/auctions/${a.id}/cancel`)).status).toBe(200);
+    expect((await (await loginAs('admin')).post(`/api/auctions/${a.id}/cancel`)).status).toBe(200);
 
     expect(await money('bob')).toEqual({ balance: 1000, held: 200 });
   });

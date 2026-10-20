@@ -10,8 +10,9 @@ test('cust-006: seller sees own auctions by status with highest bid, and opens o
   const upcoming = await createAuctionViaApi(page.request, { name: 'Ivy Upcoming', startTime: soon(60), duration: { value: 1, unit: 'hours' } });
   const ended = await createAuctionViaApi(page.request, { name: 'Ivy Ended' });
   await page.request.post(`/api/dev/auctions/${ended.id}/expire`);
-  const cancelled = await createAuctionViaApi(page.request, { name: 'Ivy Cancelled' });
-  await page.request.post(`/api/auctions/${cancelled.id}/cancel`);
+  // A seller can cancel only before the start time (sell-005)
+  const cancelled = await createAuctionViaApi(page.request, { name: 'Ivy Cancelled', startTime: soon(60), duration: { value: 1, unit: 'hours' } });
+  expect((await page.request.post(`/api/auctions/${cancelled.id}/cancel`)).status()).toBe(200);
   await logout(page);
 
   await login(page, 'bob');

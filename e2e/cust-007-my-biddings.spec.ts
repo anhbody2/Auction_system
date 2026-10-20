@@ -36,7 +36,8 @@ test('cust-007: bidder sees each auction with latest bid, highest bid and outcom
   await rival.close();
   await logout(page);
 
-  await login(page, 'alice');
+  // The auction has started, so only an admin can cancel it (sell-005)
+  await login(page, 'admin');
   expect((await page.request.post(`/api/auctions/${cancelled.id}/cancel`)).status()).toBe(200);
   await logout(page);
 

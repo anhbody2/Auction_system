@@ -1,13 +1,23 @@
 import { useState } from 'react';
 import { ApiError, api, type Auction } from '../api';
+import { useAuth } from '../auth';
 import { useToast } from '../toast';
 
+/**
+ * sell-005: the seller can cancel only while the auction is upcoming (status is derived from start_time,
+ * and the countdown reloads at the start); an admin can cancel any upcoming or active auction.
+ */
 export function CancelAuction({ auction, onDone }: { auction: Auction; onDone: () => void }) {
   const toast = useToast();
+  const { user } = useAuth();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  if (!auction.isOwner || (auction.status !== 'active' && auction.status !== 'upcoming')) return null;
+  const isAdmin = user?.role === 'admin';
+  const allowed = isAdmin
+    ? auction.status === 'active' || auction.status === 'upcoming'
+    : auction.isOwner && auction.status === 'upcoming';
+  if (!allowed) return null;
 
   const cancel = async () => {
     setBusy(true);
@@ -41,7 +51,7 @@ export function CancelAuction({ auction, onDone }: { auction: Auction; onDone: (
         </>
       ) : (
         <button className="btn btn-ghost" onClick={() => setConfirming(true)}>
-          Cancel auction
+          {isAdmin ? 'Cancel auction (admin)' : 'Cancel auction'}
         </button>
       )}
     </div>

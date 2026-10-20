@@ -18,7 +18,7 @@ describe('guest-003 search', () => {
     const ended = await createAuction(bob, { name: 'Polaroid camera', description: 'Instant film camera.', categoryId: cats.Electronics });
     await prisma.auction.update({ where: { id: BigInt(ended.id) }, data: { endTime: new Date(Date.now() - 1000) } });
     const cancelled = await createAuction(bob, { name: 'Cancelled camera', categoryId: cats.Electronics });
-    await bob.post(`/api/auctions/${cancelled.id}/cancel`);
+    await (await loginAs('admin')).post(`/api/auctions/${cancelled.id}/cancel`); // started, so only an admin can cancel (sell-005)
   });
 
   it('by seller name (username or full name)', async () => {

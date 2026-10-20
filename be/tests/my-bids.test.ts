@@ -37,7 +37,7 @@ describe('cust-007 manage your biddings (+ settlement)', () => {
 
     ids.cancelled = await mk('Cancelled');
     await bob.post(`/api/auctions/${ids.cancelled}/bids`).send({ amount: 100 });
-    await alice.post(`/api/auctions/${ids.cancelled}/cancel`);
+    await (await loginAs('admin')).post(`/api/auctions/${ids.cancelled}/cancel`); // started, so only an admin can cancel (sell-005)
 
     await mk('Never bid by bob');
   });

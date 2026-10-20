@@ -1,9 +1,13 @@
 import { expect, test } from '@playwright/test';
 import { createAuctionViaApi, login, logout } from './helpers';
 
-test('sell-002: seller cancels an auction; bids rejected, credit released, non-owner blocked', async ({ page }) => {
+const inMinutes = (m: number) => new Date(Date.now() + m * 60_000).toISOString();
+
+test('sell-002: cancelling an auction; bids rejected, credit released, non-owner blocked', async ({ page }) => {
   await login(page, 'alice');
-  const auction = await createAuctionViaApi(page.request, { name: 'Cancel Me Vase', initialPrice: 100 });
+  // sell-005: the seller cancels before the start; once bids are in (started) only the admin can cancel.
+  const upcoming = await createAuctionViaApi(page.request, { name: 'Cancel Me Vase', initialPrice: 100, startTime: inMinutes(60), duration: { value: 1, unit: 'hours' } });
+  const auction = await createAuctionViaApi(page.request, { name: 'Cancel Me Jug', initialPrice: 100 });
   await logout(page);
 
   // carol bids so she has credit held
@@ -17,15 +21,28 @@ test('sell-002: seller cancels an auction; bids rejected, credit released, non-o
   await expect(page.getByTestId('current-price')).toHaveText('$150.00');
   expect((await (await page.request.get('/api/credit')).json()).held).toBe(start.held + 150);
 
-  // Non-owner cannot cancel
-  await expect(page.getByRole('button', { name: 'Cancel auction' })).toHaveCount(0);
+  // Non-owner cannot cancel either auction
+  await expect(page.getByRole('button', { name: /Cancel auction/ })).toHaveCount(0);
   expect((await page.request.post(`/api/auctions/${auction.id}/cancel`)).status()).toBe(403);
+  await page.goto(`/auctions/${upcoming.id}`);
+  await expect(page.getByTestId('status')).toHaveText('upcoming');
+  await expect(page.getByRole('button', { name: /Cancel auction/ })).toHaveCount(0);
+  expect((await page.request.post(`/api/auctions/${upcoming.id}/cancel`)).status()).toBe(403);
   await logout(page);
 
-  // Seller cancels
+  // Seller cancels the upcoming auction
   await login(page, 'alice');
-  await page.goto(`/auctions/${auction.id}`);
+  await page.goto(`/auctions/${upcoming.id}`);
   await page.getByRole('button', { name: 'Cancel auction' }).click();
+  await page.getByRole('button', { name: 'Yes, cancel auction' }).click();
+  await expect(page.getByTestId('status')).toHaveText('cancelled');
+  await logout(page);
+
+  // The admin cancels the started auction that has carol's bid
+  await login(page, 'admin');
+  await page.goto(`/auctions/${auction.id}`);
+  await page.getByRole('button', { name: 'Cancel auction (admin)' }).click();
+  await expect(page.getByText('All 1 bid(s) will be voided')).toBeVisible();
   await page.getByRole('button', { name: 'Yes, cancel auction' }).click();
   await expect(page.getByTestId('status')).toHaveText('cancelled');
   await logout(page);
@@ -40,5 +57,5 @@ test('sell-002: seller cancels an auction; bids rejected, credit released, non-o
   expect(credit.held).toBe(start.held);
   expect(credit.available).toBe(before);
   await page.goto('/credit');
-  await expect(page.getByTestId('transactions').getByRole('row').nth(1)).toContainText('Auction cancelled: Cancel Me Vase');
+  await expect(page.getByTestId('transactions').getByRole('row').nth(1)).toContainText('Auction cancelled: Cancel Me Jug');
 });

@@ -17,7 +17,7 @@ describe('guest-002 homepage listing', () => {
     ids.old = (await createAuction(alice, { name: 'Old lamp' })).id;
     await prisma.auction.update({ where: { id: BigInt(ids.old) }, data: { status: 'ended', endTime: new Date(Date.now() - 10 * 24 * 3600 * 1000) } });
     ids.cancelled = (await createAuction(alice, { name: 'Cancelled lamp' })).id;
-    await alice.post(`/api/auctions/${ids.cancelled}/cancel`);
+    await (await loginAs('admin')).post(`/api/auctions/${ids.cancelled}/cancel`); // started, so only an admin can cancel (sell-005)
   });
 
   it('guests see live, upcoming and just-completed auctions (not cancelled or old)', async () => {

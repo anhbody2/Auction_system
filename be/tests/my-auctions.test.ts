@@ -16,7 +16,7 @@ describe('cust-006 manage your auctions', () => {
     ids.ended = (await createAuction(alice, { name: 'Ended one' })).id;
     await prisma.auction.update({ where: { id: BigInt(ids.ended) }, data: { endTime: new Date(Date.now() - 1000) } });
     ids.cancelled = (await createAuction(alice, { name: 'Cancelled one' })).id;
-    await alice.post(`/api/auctions/${ids.cancelled}/cancel`);
+    await (await loginAs('admin')).post(`/api/auctions/${ids.cancelled}/cancel`); // started, so only an admin can cancel (sell-005)
     await createAuction(bob, { name: 'Bob auction' });
   });
 

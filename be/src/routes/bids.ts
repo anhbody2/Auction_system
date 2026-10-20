@@ -75,10 +75,16 @@ bidsRouter.post(
     await prisma.$transaction(async (tx) => {
       const auction = await lockAuction(tx, auctionId);
       if (!auction) throw new HttpError(404, 'Auction not found');
-      if (auction.sellerId !== req.user!.id) throw new HttpError(403, 'Only the seller can cancel this auction');
+      // sell-005: the seller may cancel only before the start time; after that only an admin can.
+      const isAdmin = req.user!.role === 'admin';
+      if (!isAdmin && auction.sellerId !== req.user!.id) throw new HttpError(403, 'Only the seller can cancel this auction');
       const status = effectiveStatus(auction);
       if (status === 'cancelled') throw new HttpError(400, 'This auction is already cancelled');
       if (status === 'ended') throw new HttpError(400, 'An auction that has ended cannot be cancelled');
+      // Checked on start_time, not only the stored status, so it holds before the start job has run.
+      if (!isAdmin && auction.startTime.getTime() <= Date.now()) {
+        throw new HttpError(403, 'This auction has started; only an admin can cancel it');
+      }
 
       const held = await tx.bidTicket.findMany({ where: { auctionId, status: 'active' } });
       for (const t of held) {

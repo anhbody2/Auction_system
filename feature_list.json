@@ -1,0 +1,140 @@
+{
+  "project": "Online Auction System",
+  "last_updated": "2026-10-21",
+  "scope": "Round 5. Only the requirements in SRS.txt: System - UI update - Navbar & Dashboard (credit), System - UI update - Auction Page (real-time bids, Redux Toolkit), System - UI update - Auction Create Section (available goods only), Seller - Auction Details (cancel rules), System - Comment Section (comments close with the auction). Builds on rounds 1-4 (archived in progress-feature-list/).",
+  "conventions": {
+    "tests": "Playwright e2e specs go in e2e/ as <id>-<slug>.spec.ts. Unit and API/integration tests use the existing vitest setup in be/tests/ as <area>.<topic>.test.ts. Frontend store logic (Redux slices) gets unit tests too: add a vitest setup for fe/ if none exists, or put pure slice tests where the existing vitest run picks them up. Every feature needs both kinds unless its verification list says otherwise.",
+    "change_docs": "Each feature writes docs/changes/<id>.md listing the files it added or changed and why. Features with design decisions (real-time transport, store shape, cancel rules) also add or update a topic doc under docs/, as named in their verification list.",
+    "run_all": "./init.sh (npm install + npm run verify = vitest + fe build + Playwright) must exit 0 before a feature moves to passing.",
+    "existing_tests": "When a feature changes behaviour that an older spec checks (cancel rules, disabled goods options, the messages section), update that spec to check the new behaviour. Do not delete it or weaken it."
+  },
+  "rules": {
+    "single_active_feature": true,
+    "passing_requires_evidence": true,
+    "do_not_skip_verification": true
+  },
+  "status_legend": {
+    "not_started": "Work has not begun.",
+    "in_progress": "The feature is the current active task.",
+    "blocked": "Work cannot continue until a documented blocker is resolved.",
+    "passing": "Required verification has passed and evidence is recorded."
+  },
+  "roles": {
+    "customer": "A signed-in user who bids on auctions and comments on them.",
+    "seller": "A customer acting as a seller: owns goods and auctions. Same users.role value 'customer'.",
+    "admin": "users.role 'admin'. The only role that can cancel an auction after it has started."
+  },
+  "features": [
+    {
+      "id": "sell-005",
+      "priority": 1,
+      "role": "seller",
+      "area": "auction-cancel",
+      "srs_ref": "Seller - Auction Details, Req-1, Req-2 (High Priority)",
+      "title": "Seller can cancel only before the start time; after that only an admin can cancel",
+      "user_visible_behavior": "While an auction is upcoming (start time not reached), its seller sees 'Cancel auction' on the auction page and can cancel it. Once the start time arrives the seller's button is gone and the server refuses a seller cancel with 'This auction has started; only an admin can cancel it'. This holds even if the start job has not yet flipped the status, because the check uses start_time, not only the status column. An admin sees 'Cancel auction (admin)' on any upcoming or active auction and can cancel it. Cancelling still voids all bids and releases every held amount, as before. Ended or already cancelled auctions cannot be cancelled by anyone.",
+      "status": "passing",
+      "verification": [
+        "Unit (be/tests/auction.cancel.test.ts, updated): the seller cancels an upcoming auction -> 200, status 'cancelled'.",
+        "Unit: the seller cancels an auction whose start_time has passed -> 403 'This auction has started; only an admin can cancel it'. Check this both with status 'active' and with status still 'upcoming' but start_time in the past.",
+        "Unit: a non-owner customer and a staff user get 403 on cancel.",
+        "Integration (be/tests/auction.cancel.admin.test.ts): an admin cancels an active auction that has bids -> 200. All bid tickets become 'cancelled', every bidder's held_balance goes back to its value before their bid, and 'release' ledger rows say 'Auction cancelled: <name>'.",
+        "Integration: admin cancel on an ended or already cancelled auction -> 400 with the existing messages.",
+        "E2E (e2e/sell-005-cancel-rules.spec.ts): alice creates an upcoming auction and sees and uses 'Cancel auction'. On a second auction that has started, alice sees no cancel button. The admin logs in, opens it, cancels it, and the bidder's /credit shows locked credit back to $0.00.",
+        "E2E: e2e/sell-002-cancel-auction.spec.ts is updated: the seller-cancel part uses an upcoming auction, and the cancel-with-bids part is done by the admin. It still passes.",
+        "Docs: docs/changes/sell-005.md lists changed files. docs/auction-cancel.md states who can cancel, when, and what happens to bids and credit."
+      ],
+      "evidence": [
+        "2026-10-21: npm run verify exit 0 -> vitest 40 files / 206 tests, fe build ok, Playwright 40/40 (./init.sh's npm install hit EPERM on prisma generate because the user's npm run dev was running; verify run directly, as in earlier sessions)",
+        "be/tests/auction.cancel.test.ts (5 tests): upcoming seller cancel 200; active 403 'This auction has started; only an admin can cancel it'; start_time passed with stored status 'upcoming' 403 and row unchanged; non-owner and staff 403; ended/cancelled 400",
+        "be/tests/auction.cancel.admin.test.ts (3 tests): admin cancels an active auction with 3 tickets -> all 'cancelled', both bidders' held back to the value before their bids, release row 'Auction cancelled: Brass Clock'; admin cancels upcoming; ended/cancelled 400",
+        "e2e/sell-005-cancel-rules.spec.ts passes; e2e/sell-002-cancel-auction.spec.ts updated (seller cancels upcoming, admin cancels the one with bids) and passes",
+        "Fixture cancels of started auctions in credit.close/homepage/my-auctions/my-bids/search tests and cust-007 e2e moved to the admin; cust-006 fixture created upcoming. All pass",
+        "Docs: docs/auction-cancel.md, docs/changes/sell-005.md"
+      ],
+      "notes": "Current code: be/src/routes/bids.ts POST /auctions/:id/cancel lets the seller cancel while upcoming or active, and fe/src/components/CancelAuction.tsx shows the button for the owner in both states. Admin has no cancel path today. Reuse the same route and allow it when req.user.role === 'admin' (or add a permission code through be/src/lib/permissions.ts if that fits the round-3 permission model better), so the release logic stays in one place. CONFIRMED by the user on 2026-10-20: staff cannot cancel; only the admin can. DONE: implemented as a role check (req.user.role === 'admin', re-read from the DB per request), not a permission code, so it cannot be granted to staff."
+    },
+    {
+      "id": "rt-001",
+      "priority": 2,
+      "role": "customer",
+      "area": "realtime-bids",
+      "srs_ref": "System - UI update - Auction Page, Req-1, Req-2",
+      "title": "Auction page bids live in a Redux Toolkit store and update in real time",
+      "user_visible_behavior": "Two people watching the same auction page see each other's bids appear within a couple of seconds, without reloading: the current price, next minimum bid, bid count and bid history all update. When a viewer is outbid the page shows that they are no longer leading. The bid panel and the bid history read from one global store (Redux Toolkit), so a new bid from any source (own submit or a pushed event) updates every part of the page at once. Two bids sent at the same moment are both handled safely: one wins, the other gets the normal 'must be at least <next min bid>' error and the panel shows the new minimum.",
+      "status": "not_started",
+      "verification": [
+        "Unit (fe store tests, e.g. fe/src/store/auctionSlice.test.ts): adding a bid event updates currentPrice, nextMinBid, bidCount and puts the bid at the top of the history. A duplicate event (same bid id) is ignored. An event for a different auction id does not change the current auction.",
+        "Integration (be/tests/bid.events.test.ts): a client subscribed to the auction's event stream receives a 'bid' event with the bid id, amount, bidder username, new current price and next min bid after POST /api/auctions/:id/bids succeeds. A rejected bid sends no event.",
+        "Integration (be/tests/bid.concurrent.test.ts): two bidders send the same amount at once (Promise.all). Exactly one gets 201 and the other gets 400. held_balance and the leading ticket stay consistent (one active ticket, sum of holds correct).",
+        "E2E (e2e/rt-001-realtime-bids.spec.ts): two browser contexts (bob and carol) open the same active auction. carol bids; bob's page shows the new price, the new history row and the new minimum without a reload. bob then bids and carol's page updates the same way.",
+        "E2E: the existing e2e/bid-001-make-bid.spec.ts and bid-003/bid-004 increment specs still pass with the store in place.",
+        "Docs: docs/realtime.md describes the transport, the event format, reconnect behaviour and the store shape. docs/changes/rt-001.md lists changed files, including the new fe/src/store/ files."
+      ],
+      "evidence": [],
+      "notes": "Current code: fe/src/pages/AuctionDetail.tsx keeps auction and bids in local useState and reloads only after the viewer's own bid or the countdown elapsing; nothing pushes other users' bids. There is no Redux in fe/package.json yet: add @reduxjs/toolkit and react-redux at exact versions, a store in fe/src/store/ with an auction slice, and the Provider in fe/src/main.tsx. Suggested transport: Server-Sent Events (GET /api/auctions/:id/events) from Express. It needs no new server dependency and goes through the existing Vite /api proxy. Publish the event after the bid transaction commits in be/src/routes/bids.ts. Check that the proxy does not buffer SSE (set Cache-Control: no-cache and flush headers). socket.io is the alternative if SSE proves awkward; record the choice in docs/realtime.md. This store is the base for crd-003 and cmt-001."
+    },
+    {
+      "id": "crd-003",
+      "priority": 3,
+      "role": "customer",
+      "area": "credit-ui",
+      "srs_ref": "System - UI update - Navbar & Dashboard, Req-1 (High Priority)",
+      "title": "Navbar and dashboard credit loads once and changes only when an auction finishes; locked credit updates on bids",
+      "user_visible_behavior": "The 'Credit' figure in the navbar and on the dashboard is fetched once when the page loads. After that it does not change while the customer bids, is outbid or raises a bid. It is fetched again only when an auction the customer is involved in finishes (as bidder or seller), or after a deposit or withdrawal on /credit. 'Locked credit' does update straight away: it goes up when the customer bids and down when they are outbid, including when the outbid comes from another user in real time.",
+      "status": "not_started",
+      "verification": [
+        "Unit (fe store tests, e.g. fe/src/store/creditSlice.test.ts): a 'bid placed' or 'outbid' action changes locked only; credit stays the same. An 'auction finished' action triggers a credit refetch.",
+        "Integration (be/tests/credit.events.test.ts): when the close job settles an auction, the winner, the outbid bidders and the seller each receive an 'auction-finished' event on their user event stream. When a user is outbid they receive an 'outbid' event with the released amount.",
+        "E2E (e2e/crd-003-credit-stable.spec.ts): bob with $1,000.00 bids $100. header-credit and dashboard-credit stay $1,000.00, and header-locked shows $100.00 without a reload. A network listener shows no extra GET /api/me or /api/credit call after the bid.",
+        "E2E: carol outbids bob in another context. bob's header-locked goes to $0.00 without a reload, and header-credit is still $1,000.00.",
+        "E2E: after /api/dev/auctions/:id/expire and the close job, carol's header-credit changes to her balance minus the price without a manual reload. Locked credit goes to $0.00.",
+        "E2E: the existing e2e/crd-002-credit-ui.spec.ts and e2e/cust-005-credit.spec.ts still pass.",
+        "Docs: docs/credit-model.md gets a 'When the UI refreshes' section. docs/changes/crd-003.md lists changed files."
+      ],
+      "evidence": [],
+      "notes": "Depends on rt-001 (store + event transport). Current code: fe/src/components/BidPanel.tsx calls useAuth().refresh() after every bid, which refetches the whole user (credit included). Layout.tsx reads user.creditBalance and user.heldBalance from the auth context. Move credit and locked into a Redux credit slice. Replace the refresh() after a bid with a locked-only update, and add a per-user event stream (e.g. GET /api/me/events) for 'outbid' and 'auction-finished'. CONFIRMED by the user on 2026-10-20: deposits and withdrawals on /credit still refresh credit at once."
+    },
+    {
+      "id": "sell-006",
+      "priority": 4,
+      "role": "seller",
+      "area": "auction-create",
+      "srs_ref": "System - UI update - Auction Create Section, Req-1",
+      "title": "Create-auction goods dropdown lists only available goods",
+      "user_visible_behavior": "On /auctions/new the Goods dropdown lists only goods with status 'available'. Goods that are in an auction or sold are left out entirely, not shown as disabled options. If none are available the existing 'All your goods are in an auction or sold.' message and the 'Add goods' link appear. A ?goodsId= link to goods that are not available does not preselect anything, and the seller sees 'That goods item is not available for a new auction'.",
+      "status": "not_started",
+      "verification": [
+        "Unit (be/tests/goods.list.test.ts, extended): GET /api/me/goods?status=available returns only the caller's available goods. Without the filter it still returns all of them for My goods.",
+        "Integration (be/tests/auction.create.test.ts, extended): creating an auction from goods that are in an auction or sold is still rejected on the server with 400.",
+        "E2E (e2e/sell-006-available-goods.spec.ts): a seller with one available, one in-auction and one sold goods item opens /auctions/new. The Goods select has exactly 2 options ('Choose goods...' plus the available item). The busy and sold names do not appear anywhere in the select.",
+        "E2E: opening /auctions/new?goodsId=<in-auction id> leaves the select empty and shows the not-available message.",
+        "E2E: e2e/sell-003-auction-from-goods.spec.ts is updated: the check that 'Busy Mirror (in auction)' is disabled becomes a check that it is absent. It still passes.",
+        "Docs: docs/changes/sell-006.md lists changed files."
+      ],
+      "evidence": [],
+      "notes": "Current code: fe/src/pages/CreateAuction.tsx already computes `available` but renders goods.map(...) with disabled options for the rest (line ~142). The fix is mainly to render `available` instead. A server-side ?status=available filter on /api/me/goods is optional but keeps the payload honest. The server-side rejection already exists from sell-003; just keep it covered by a test."
+    },
+    {
+      "id": "cmt-001",
+      "priority": 5,
+      "role": "customer",
+      "area": "comments",
+      "srs_ref": "System - Comment Section, Req-1",
+      "title": "Comments are open until the auction closes; afterwards the section is read-only and comments are kept",
+      "user_visible_behavior": "On an upcoming or active auction a signed-in user sees the comment box and can post. Guests see the comments and a 'Log in to comment' link. When the auction ends or is cancelled, the comment box disappears and the section shows 'Comments are closed' above the existing comments, which stay visible to everyone. The server refuses new comments on an ended or cancelled auction with 'Comments are closed for this auction'. If the auction ends while the page is open, the box closes without a reload (from the real-time end event or the countdown).",
+      "status": "not_started",
+      "verification": [
+        "Unit (be/tests/messages.test.ts, extended): POST /api/auctions/:id/messages on an upcoming and on an active auction by a signed-in user -> 201. Anonymous -> 401.",
+        "Unit: POST on an ended or cancelled auction -> 400 'Comments are closed for this auction'. Check 'ended' both with status 'ended' and with status 'active' but end_time in the past (close job not run yet).",
+        "Integration: comments posted before the close are still returned by GET /api/auctions/:id/messages after the close job and after a cancel. Nothing is deleted.",
+        "E2E (e2e/cmt-001-comments-close.spec.ts): bob comments on an active auction. After /api/dev/auctions/:id/expire, the page shows 'Comments are closed', has no comment textbox, and still shows bob's comment. A guest sees the same read-only list.",
+        "E2E: on an upcoming auction a signed-in user sees the textbox and can post a comment.",
+        "E2E: e2e/bid-002-messages.spec.ts still passes. Update it only if it posts on a non-active auction.",
+        "Docs: docs/changes/cmt-001.md lists changed files and the open/closed rule."
+      ],
+      "evidence": [],
+      "notes": "Current code: be/src/routes/messages.ts allows posting on any existing auction. fe/src/components/Messages.tsx polls every 10 s and always shows the form to signed-in users. The section is titled 'Messages'; rename the heading to 'Comments' only if the existing specs are updated to match. Use the auction's computed status (be/src/lib/auctions.ts) so the time-based rule is applied even before the jobs run. Optional: push new comments over the rt-001 event stream instead of the 10 s poll. CONFIRMED by the user on 2026-10-20: comments are open before the start time and while active; they close only when the auction ends or is cancelled."
+    }
+  ]
+}
