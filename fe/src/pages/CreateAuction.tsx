@@ -208,7 +208,7 @@ export function CreateAuctionPage() {
             )}
           </div>
         </div>
-        <p className="muted small">Bids rise by the standard increment ladder ($0.50 from $1, $1 from $10, $2.50 from $50, $5 from $100, $10 from $500, $25 from $1,000, $100 from $5,000).</p>
+        <p className="muted small">Bids rise by the standard increment ladder ($0.05 under $1, $0.50 from $1, $1 from $10, $2.50 from $50, $10 from $100, $100 from $1,000).</p>
         <button className="btn btn-primary" type="submit" disabled={busy}>
           {busy ? 'Creating...' : 'Create auction'}
         </button>

@@ -212,7 +212,7 @@
       "srs_ref": "DB - increment bidding rules, Req",
       "title": "Bid increment ladder updated to the SRS ranges",
       "user_visible_behavior": "The minimum next bid follows the SRS ladder: $0.50 steps from $1 to $10, $1 steps from $10 to $50, $10 steps from $100 to $1000 and $100 steps over $1000. The bid panel and the next-minimum-bid figure use the new steps, and BID_INCREMENT_RULES in the database holds the same ranges.",
-      "status": "in_progress",
+      "status": "passing",
       "verification": [
         "Unit (be/tests/bid.increment.test.ts, updated): ladderIncrement gives 0.50 at $1 and $9.99, 1 at $10 and $49.99, 10 at $100 and $999.99, 100 at $1000 and $5000.",
         "Unit: the seeded bid_increment_rules rows match INCREMENT_LADDER.",
@@ -220,7 +220,14 @@
         "E2E: existing specs that expect the old $5 step at $100 (bid-001 and others) are updated to the new step and still pass.",
         "Docs: docs/changes/bid-004.md lists changed files and the gaps decided below."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-20 Unit: be/tests/bid.increment.test.ts - ladderIncrement 0.50 at $1 and $9.99, 1 at $10 and $49.99, 2.50 at $50/$99.99, 10 at $100, $500 and $999.99, 100 at $1000 and $5000; seeded bid_increment_rules = the 6 ladder rows",
+        "2026-10-20 Integration: same file - after $100 nextMinBid 110, after $990 1000, after $1000 1100; $1099.99 400 \"Bid must be at least $1100.00\"; be/tests/bid.place.test.ts next min 110, $109.99 refused",
+        "2026-10-20 E2E: e2e/bid-004-increment-ladder.spec.ts - $100 bid shows next min $110.00; $1000 bid shows $1,100.00; $1099 refused. e2e/bid-001-make-bid.spec.ts updated to $110.00 / $109.99 and passes",
+        "2026-10-20 Migration 20261020120000_bid_increment_rules_srs applied by prisma migrate reset in both test DBs",
+        "2026-10-20 npm run verify exit 0: vitest 39 files / 201 tests, fe build ok, Playwright 39/39 (./init.sh stopped at npm install with EPERM on the Prisma DLL because the user dev server was running)",
+        "2026-10-20 Docs: docs/changes/bid-004.md"
+      ],
       "notes": "CONFIRMED by the user 2026-10-20: the SRS gives no step for $0-1 or $50-100. Keep the current $0.05 (under $1) and $2.50 ($50-100) steps unless told otherwise. The current ladder (bid-003) has $5 for $100-500, $10 for $500-1000, $25 for $1000-5000 and $100 over $5000; the SRS merges these into $10 for $100-1000 and $100 over $1000. Added 2026-10-20 after SRS.txt gained this section."
     }
   ]

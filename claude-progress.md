@@ -8,7 +8,8 @@
 - Standard startup path: start Docker Desktop, then `./init.sh` (npm install + full verify). `npm run dev` runs API on :4000 and web on :5173 (Vite proxies /api)
 - Standard verification path: `npm run verify` = `npm test` (vitest on DB auction_test + fe build) and `npm run e2e` (Playwright on DB auction_e2e, servers on :4100/:5180)
 - Demo accounts: alice / bob / carol (customers), staff (staff), admin (admin); password `Password123!` for all (docs/accounts.md; `npm run db:seed -w be` reseeds the dev DB)
-- Feature list: round 1 (14 features) archived to progress-feature-list/feature_list_1.json; round 2 (bid-003, sys-001, sys-002, sys-003, all passing) archived to progress-feature-list/feature_list_2.json. round 3 (SRS 3.19-3.21: sec-001/002, adm-001..005, stf-001..004, all passing) archived to progress-feature-list/feature_list_3.json. No active feature_list.json at the root
+- Feature list: round 1 (14 features) archived to progress-feature-list/feature_list_1.json; round 2 (bid-003, sys-001, sys-002, sys-003, all passing) archived to progress-feature-list/feature_list_2.json. round 3 (SRS 3.19-3.21: sec-001/002, adm-001..005, stf-001..004, all passing) archived to progress-feature-list/feature_list_3.json. round 4 (crd-001/002, upl-001, gds-001/002, sell-003/004, bid-004, all passing) archived to progress-feature-list/feature_list_4.json. No active feature_list.json at the root (progress-feature-list/feature_list.json is the untouched bootstrap template)
+- Uploads: images stored in UPLOAD_DIR (default be/uploads/, gitignored); see docs/image-upload.md
 - Current blocker: none
 
 ## Session Log
@@ -226,3 +227,13 @@
 - Completed: be/src/lib/duration.ts; POST /api/auctions takes startTime + duration {value, unit hours|days} (1 h - 30 d), rejects endTime, stores end_time = start + duration; fe Duration amount/unit boxes with live "Ends ..." and client check
 - All test callers moved from endTime to duration
 - Verification: npm run verify exit 0 -> vitest 39 files / 199 tests, fe build ok, Playwright 38/38
+
+### Session 007 (cont.) bid-004 and round 4 wrap-up
+
+- Completed: INCREMENT_LADDER = $0.05 <$1, $0.50 $1-10, $1 $10-50, $2.50 $50-100, $10 $100-1000, $100 >= $1000; data migration 20261020120000_bid_increment_rules_srs rewrites bid_increment_rules; ladder hint on the create form; tests moved from the $5 to the $10 step at $100
+- Verification: npm run verify exit 0 -> vitest 39 files / 201 tests, fe build ok, Playwright 39/39
+- ./init.sh stopped at npm install (EPERM on the Prisma query engine DLL) because the user's `npm run dev` was running all session; the install itself completed and verify ran directly. Re-run ./init.sh with the dev server stopped to confirm the full path
+- All 8 round 4 features passing; feature list archived to progress-feature-list/feature_list_4.json
+- The running dev server needs a restart: new migration (bid rules) is applied by `prisma migrate deploy` at dev start, and Vite needs the new /uploads proxy
+- Known gaps: unused uploads are never deleted; uploads are not tied to a user; server error messages format money without thousands separators
+- Next best step: write a round 5 feature_list.json when SRS.txt gets new requirements

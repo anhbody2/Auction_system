@@ -16,7 +16,7 @@ describe('bid-001 make a bid', () => {
     const res = await bob.post(`/api/auctions/${a.id}/bids`).send({ amount: 100 });
     expect(res.status).toBe(201);
     const view = (await request(app).get(`/api/auctions/${a.id}`)).body.auction;
-    expect(view).toMatchObject({ currentPrice: 100, bidCount: 1, nextMinBid: 105 });
+    expect(view).toMatchObject({ currentPrice: 100, bidCount: 1, nextMinBid: 110 });
     expect(await credit(bob)).toMatchObject({ balance: 1000, held: 100, available: 900 });
   });
 
@@ -30,8 +30,8 @@ describe('bid-001 make a bid', () => {
     await bob.post(`/api/auctions/${a.id}/bids`).send({ amount: 100 });
     const equal = await carol.post(`/api/auctions/${a.id}/bids`).send({ amount: 100 });
     expect(equal.status).toBe(400);
-    expect(equal.body.fields.amount).toBe('Bid must be at least $105.00');
-    expect((await carol.post(`/api/auctions/${a.id}/bids`).send({ amount: 104.99 })).status).toBe(400);
+    expect(equal.body.fields.amount).toBe('Bid must be at least $110.00');
+    expect((await carol.post(`/api/auctions/${a.id}/bids`).send({ amount: 109.99 })).status).toBe(400);
   });
 
   it('outbidding releases the previous leader hold', async () => {
