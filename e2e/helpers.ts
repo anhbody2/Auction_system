@@ -1,4 +1,5 @@
 import { expect, type APIRequestContext, type Page } from '@playwright/test';
+import sharp from 'sharp';
 
 export const PASSWORD = 'Password123!';
 
@@ -63,4 +64,32 @@ export async function createSoldAuction(request: APIRequestContext, name: string
     .toBe('ended');
   await request.post('/api/auth/logout');
   return auction;
+}
+
+/** A small solid-colour PNG for upload tests. */
+export const testPng = (width = 320, height = 240, background = '#2a9d8f') =>
+  sharp({ create: { width, height, channels: 3, background } }).png().toBuffer();
+
+/** Uploads a test image as the signed-in user of `request` and returns its /uploads URL. */
+export async function uploadImageViaApi(request: APIRequestContext) {
+  const res = await request.post('/api/uploads', { multipart: { image: { name: 'item.png', mimeType: 'image/png', buffer: await testPng() } } });
+  expect(res.status()).toBe(201);
+  return (await res.json()).url as string;
+}
+
+/** Adds goods with one uploaded image as the signed-in user (gds-001). */
+export async function createGoodsViaApi(request: APIRequestContext, overrides: Record<string, unknown> = {}) {
+  const categories = (await (await request.get('/api/categories')).json()).categories;
+  const res = await request.post('/api/goods', {
+    data: {
+      name: 'E2E Goods',
+      description: 'Goods created by the e2e suite.',
+      categoryId: categories[0].id,
+      condition: 'used',
+      images: [await uploadImageViaApi(request)],
+      ...overrides,
+    },
+  });
+  expect(res.status()).toBe(201);
+  return (await res.json()).goods as { id: number; name: string; images: string[]; status: string };
 }

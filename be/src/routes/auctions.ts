@@ -4,12 +4,13 @@ import { z } from 'zod';
 import { prisma } from '../db';
 import { auctionInclude, auctionView } from '../lib/auctions';
 import { HttpError, asyncHandler } from '../lib/http';
+import { CONDITIONS } from '../lib/goods';
 import { isStoredUpload } from '../lib/images';
 import { optionalAuth, requireAuth } from '../middleware/auth';
 
 export const auctionsRouter = Router();
 
-export const CONDITIONS = ['new', 'like_new', 'used', 'for_parts'] as const;
+export { CONDITIONS };
 /** Ended auctions stay on the homepage ("just completed") for this many days. */
 const JUST_COMPLETED_DAYS = 7;
 

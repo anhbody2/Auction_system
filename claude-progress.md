@@ -203,3 +203,9 @@
 - Note: ./init.sh failed at npm install (EPERM, Prisma DLL) because the user's `npm run dev` was running; not stopped. The running Vite dev server needs a restart to pick up the new /uploads proxy
 - Known gaps: unused uploads are never cleaned up; image still optional on the auction form (required comes with gds-001)
 - Next best step: gds-001 (My goods page; reuse ImageUpload with max > 1 and isStoredUpload)
+
+### Session 007 (cont.) gds-001
+
+- Completed: be/src/lib/goods.ts (derived status, schema, refs check), POST /api/goods, GET /api/me/goods; fe My goods page (/goods), Add goods (/goods/new) with shared GoodsForm and ImageUpload (1-8 images); e2e helpers createGoodsViaApi/uploadImageViaApi
+- Verification: npm run verify exit 0 -> vitest 36 files / 181 tests, fe build ok, Playwright 34/34
+- Known: uploads are not tied to a user (a seller could reuse another user's upload URL if they knew it)

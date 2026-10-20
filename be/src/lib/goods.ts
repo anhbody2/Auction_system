@@ -1,0 +1,67 @@
+import type { Prisma } from '@prisma/client';
+import { z } from 'zod';
+import { HttpError } from './http';
+import { isStoredUpload } from './images';
+
+export const CONDITIONS = ['new', 'like_new', 'used', 'for_parts'] as const;
+export const MAX_GOODS_IMAGES = 8;
+
+/** Derived from the goods' auctions (gds-001); 'deleted' goods are hidden everywhere (gds-002). */
+export type GoodsState = 'available' | 'in_auction' | 'sold';
+
+export const goodsInclude = {
+  category: true,
+  images: { orderBy: { sortOrder: 'asc' } },
+  auctions: { select: { id: true, status: true, winnerId: true }, orderBy: { id: 'desc' } },
+} satisfies Prisma.GoodsInclude;
+
+type GoodsRow = Prisma.GoodsGetPayload<{ include: typeof goodsInclude }>;
+
+/**
+ * in_auction: an upcoming or active auction (an active one stays so until the close job ends it).
+ * sold: an ended auction with a winner. Otherwise available, including after a cancelled auction or
+ * one that ended without a winner.
+ */
+export function goodsState(auctions: { status: string; winnerId: bigint | null }[]): GoodsState {
+  if (auctions.some((a) => a.status === 'ended' && a.winnerId !== null)) return 'sold';
+  if (auctions.some((a) => a.status === 'upcoming' || a.status === 'active')) return 'in_auction';
+  return 'available';
+}
+
+export function goodsView(g: GoodsRow) {
+  const state = goodsState(g.auctions);
+  const open = g.auctions.find((a) => a.status === 'upcoming' || a.status === 'active');
+  return {
+    id: g.id,
+    name: g.name,
+    description: g.description,
+    condition: g.condition,
+    category: g.category ? { id: g.category.id, name: g.category.name } : null,
+    images: g.images.map((i) => i.imageUrl),
+    status: state,
+    auctionId: open?.id ?? g.auctions[0]?.id ?? null,
+    createdAt: g.createdAt,
+    updatedAt: g.updatedAt,
+  };
+}
+
+export const goodsSchema = z.object({
+  name: z.string().trim().min(3, 'Name must be at least 3 characters').max(255),
+  description: z.string().trim().min(10, 'Description must be at least 10 characters').max(5000),
+  categoryId: z.coerce.number({ invalid_type_error: 'Choose a category' }).int().positive('Choose a category'),
+  condition: z.enum(CONDITIONS, { errorMap: () => ({ message: 'Choose a condition' }) }),
+  images: z
+    .array(z.string().trim(), { invalid_type_error: 'Add at least one image', required_error: 'Add at least one image' })
+    .min(1, 'Add at least one image')
+    .max(MAX_GOODS_IMAGES, `Add at most ${MAX_GOODS_IMAGES} images`),
+});
+
+/** Checks the category exists and every image is one of this server's uploads. */
+export async function checkGoodsRefs(tx: Prisma.TransactionClient, d: z.infer<typeof goodsSchema>) {
+  const category = await tx.category.findUnique({ where: { id: BigInt(d.categoryId) } });
+  if (!category) throw new HttpError(400, 'Validation failed', { categoryId: 'Choose a category' });
+  for (const url of d.images) {
+    if (!(await isStoredUpload(url))) throw new HttpError(400, 'Validation failed', { images: 'Upload the images instead of linking to them' });
+  }
+  return category;
+}

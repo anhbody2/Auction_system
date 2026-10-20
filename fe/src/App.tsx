@@ -6,6 +6,7 @@ import { AuctionDetailPage } from './pages/AuctionDetail';
 import { ChangePasswordPage } from './pages/ChangePassword';
 import { CreateAuctionPage } from './pages/CreateAuction';
 import { CreditPage } from './pages/Credit';
+import { AddGoodsPage, MyGoodsPage } from './pages/MyGoods';
 import { DashboardPage } from './pages/Dashboard';
 import { ForgotPasswordPage } from './pages/ForgotPassword';
 import { HomePage } from './pages/Home';
@@ -36,6 +37,8 @@ export function App() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/auctions/:id" element={<AuctionDetailPage />} />
         <Route path="/auctions/new" element={authed(<CreateAuctionPage />)} />
+        <Route path="/goods" element={authed(<MyGoodsPage />)} />
+        <Route path="/goods/new" element={authed(<AddGoodsPage />)} />
         <Route path="/my-auctions" element={authed(<MyAuctionsPage />)} />
         <Route path="/my-bids" element={authed(<MyBiddingsPage />)} />
         <Route path="/dashboard" element={authed(<DashboardPage />)} />

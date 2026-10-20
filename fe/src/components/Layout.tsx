@@ -22,6 +22,7 @@ export function Layout() {
           {user?.role === 'customer' && (
             <>
               <NavLink to="/dashboard">Dashboard</NavLink>
+              <NavLink to="/goods">My goods</NavLink>
               <NavLink to="/my-auctions">My Auctions</NavLink>
               <NavLink to="/my-bids">My Biddings</NavLink>
               <NavLink to="/credit">Credit</NavLink>

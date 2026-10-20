@@ -66,3 +66,25 @@ export const CONDITION_LABELS: Record<string, string> = {
 
 export const money =(n: number | null | undefined) =>
   n == null ? '-' : `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/** gds-001: status is derived from the goods' auctions. */
+export type GoodsStatus = 'available' | 'in_auction' | 'sold';
+
+export interface Goods {
+  id: number;
+  name: string;
+  description: string | null;
+  condition: string | null;
+  category: { id: number; name: string } | null;
+  images: string[];
+  status: GoodsStatus;
+  auctionId: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const GOODS_STATUS_LABELS: Record<GoodsStatus, string> = {
+  available: 'available',
+  in_auction: 'in auction',
+  sold: 'sold',
+};

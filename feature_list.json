@@ -110,7 +110,7 @@
       "srs_ref": "Seller - Manage Goods 3.11.3 REQ-1; Create Auction (image) Req-2",
       "title": "My goods page: add goods with uploaded images and list them",
       "user_visible_behavior": "A new 'My goods' page (/goods), separate from My auctions and the other management pages, lists the seller's goods with thumbnail, name, category and status (available, in auction, sold). An 'Add goods' form takes name, description, category, condition and one or more uploaded images. At least one image is required. The seller sees only their own goods.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Integration (be/tests/goods.create.test.ts): POST /api/goods with name, categoryId and at least one uploaded image URL returns 201. A missing name, missing category or empty image list returns 400 with field errors. An image URL that is not one of this server's uploads returns 400.",
         "Integration (be/tests/goods.list.test.ts): GET /api/me/goods returns only the caller's goods, each with images and a derived status (available | in_auction | sold).",
@@ -118,7 +118,13 @@
         "E2E: bob does not see alice's goods on his My goods page.",
         "Docs: docs/changes/gds-001.md."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-20 Integration: be/tests/goods.create.test.ts (4 tests) - 201 with 2 uploaded images in order, status available, seller alice; empty name/category/images 400 with name/categoryId/images field errors (\"Add at least one image\"), nothing saved; https://example.com/cat.png and a missing /uploads file 400 \"Upload the images instead of linking to them\"; unknown category 400; signed out 401",
+        "2026-10-20 Integration: be/tests/goods.list.test.ts (3 tests) - /api/me/goods returns only the caller goods newest first with images and category; derived status available / in_auction (active, upcoming) / sold (ended with winner) / available (ended no winner, cancelled); deleted goods hidden; 401 signed out",
+        "2026-10-20 E2E: e2e/gds-001-add-goods.spec.ts - alice opens My goods from the nav, submit without image shows \"Add at least one image\", uploads box.png, sees preview, saves; row shows available, Collectibles, /uploads thumbnail; bob does not see it on his page or in /api/me/goods",
+        "2026-10-20 npm run verify exit 0: vitest 36 files / 181 tests, fe build ok, Playwright 34/34",
+        "2026-10-20 Docs: docs/changes/gds-001.md"
+      ],
       "notes": "Reuses the existing goods and goods_images tables. Derived status: in_auction = has an upcoming or active auction that has not ended; sold = has an ended auction with a winner; otherwise available. Depends on upl-001."
     },
     {
@@ -129,7 +135,7 @@
       "srs_ref": "Seller - Manage Goods 3.11.3 REQ-2",
       "title": "Edit and delete goods, blocked while in an active auction or sold",
       "user_visible_behavior": "On My goods the seller can edit a goods item (all fields and images) or delete it. Both actions are blocked if the item is in an upcoming or active auction, or has been sold. Blocked items show the reason and have Edit and Delete disabled. Delete asks for confirmation, and the item then disappears from the list.",
-      "status": "not_started",
+      "status": "in_progress",
       "verification": [
         "Integration (be/tests/goods.edit.test.ts): PATCH /api/goods/:id by its owner on available goods returns 200. On goods in an active or upcoming auction it returns 409 'Goods in an active auction cannot be changed'. On sold goods it returns 409 'Sold goods cannot be changed'. A non-owner gets 403 or 404.",
         "Integration (be/tests/goods.delete.test.ts): DELETE follows the same rules. A deleted item is soft deleted (status 'deleted'), drops out of /api/me/goods, and past auctions that reference it still load.",
