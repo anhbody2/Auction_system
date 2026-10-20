@@ -175,3 +175,10 @@
 - Completed: migration 20261020040000_drop_min_increment, ladder-only nextMinBid, field removed from API/UI/types/helpers; tests expecting a $10 step at $100 moved to the ladder's $5; details in docs/changes/drop-min-increment.md
 - Note: init.sh's npm install fails with EPERM on prisma generate while `npm run dev` is running (Windows locks the query engine DLL). Stop the dev server first
 - Verification: npm run verify exit 0 -> vitest 29 files / 152 tests, fe build ok, Playwright 29/29
+
+### Session 006 (cont.) crd-001
+
+- Completed: be/tests/credit.lock.test.ts, be/tests/credit.close.test.ts, e2e/crd-001-credit-lock.spec.ts, docs/credit-model.md, docs/changes/crd-001.md
+- Finding: the behaviour already existed (bids.ts outbid release, settlement.ts pay-from-held at close); no app code change. A temporary break of the outbid release made 3/4 lock tests fail, so the tests do catch it
+- Verification: npm run verify exit 0 -> vitest 31 files / 159 tests, fe build ok, Playwright 30/30
+- Next best step: crd-002 (UI labels); needs the product owner to confirm the label reading in its notes

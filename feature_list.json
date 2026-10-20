@@ -32,7 +32,7 @@
       "srs_ref": "Customer - Dashboard credit, Req-1, Req-2, Req-3 (High Priority)",
       "title": "Only the leading bid locks credit; outbid credit returns at once; winner's credit stays locked until close",
       "user_visible_behavior": "When a customer bids, the bid amount is locked from their credit. When someone else outbids them, their locked amount is unlocked straight away and they can use it again. The leading bidder's amount stays locked until the auction closes. At close the winner pays from the locked amount and the seller is credited the sale price minus commission. If no one wins (reserve not met, or the auction is cancelled), the lock is released. 'Held in active bids' keeps showing the total locked across all open auctions.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Unit (be/tests/credit.lock.test.ts): after A bids 100 and B bids 120 on the same auction, A's held_balance is 0 and B's is 120. A ledger row of type 'release' for A's ticket exists with description 'Outbid on <auction>'.",
         "Unit: a leader who raises their own bid from 100 to 150 has held_balance 150, not 250.",
@@ -42,8 +42,15 @@
         "E2E (e2e/crd-001-credit-lock.spec.ts): bob bids, carol outbids. On bob's /credit page 'Held in active bids' goes back to $0.00 without the auction closing. carol's page shows her bid held. After /api/dev/auctions/:id/expire and the close job, carol's credit drops by the price and her held amount is $0.00.",
         "Docs: docs/credit-model.md explains credit, locked (held) and available, and when each changes (bid, outbid, raise, close with winner, close without winner, cancel). docs/changes/crd-001.md lists changed files."
       ],
-      "evidence": [],
-      "notes": "Most of this already exists: be/src/routes/bids.ts releases the previous leader's hold inside the bid transaction, and be/src/lib/settlement.ts pays from held credit at close. The work is mainly to verify it end to end, fix any gap the tests find, and document the model. Do not move the commission charge; it stays at close."
+      "evidence": [
+        "2026-10-20 Unit: be/tests/credit.lock.test.ts (4 tests) - outbid unlocks at once with hold/release ledger rows \"Bid on\"/\"Outbid on\"; released credit bid elsewhere before close; raise own bid holds 150 not 250; held 300 = sum of leading bids across 3 auctions; held_balance == sum(active tickets) invariant checked",
+        "2026-10-20 Integration: be/tests/credit.close.test.ts (3 tests) - winner held 150 past end_time until closeDueAuctions; then winner 500->350, seller +142.50, settlement commission 7.50, outbid bidder no payment row; reserve not met and cancel release only that auction (held 350->200)",
+        "2026-10-20 Regression check: turning off the outbid release in bids.ts made 3/4 credit.lock tests fail; reverted",
+        "2026-10-20 E2E: e2e/crd-001-credit-lock.spec.ts - /credit shows held $100.00 then $0.00 after being outbid, ledger \"Outbid on Lock Test Clock\"; winner held $150.00 then balance $350.00 held $0.00 after close",
+        "2026-10-20 npm run verify exit 0: vitest 31 files / 159 tests, fe build ok, Playwright 30/30",
+        "2026-10-20 Docs: docs/credit-model.md, docs/changes/crd-001.md"
+      ],
+      "notes": "Most of this already exists: be/src/routes/bids.ts releases the previous leader's hold inside the bid transaction, and be/src/lib/settlement.ts pays from held credit at close. The work is mainly to verify it end to end, fix any gap the tests find, and document the model. Do not move the commission charge; it stays at close. Result: no application code change was needed; tests and docs added."
     },
     {
       "id": "crd-002",
