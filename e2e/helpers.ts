@@ -27,18 +27,26 @@ export async function registerViaApi(request: APIRequestContext, username: strin
 }
 
 /** Creates an auction via the API using the page's logged-in session. */
+/**
+ * Creates an auction as the signed-in user. Without a goodsId it first adds goods (one uploaded image) named
+ * like the auction; categoryId and condition overrides go to those goods (sell-003).
+ */
 export async function createAuctionViaApi(request: APIRequestContext, overrides: Record<string, unknown> = {}) {
-  const categories = (await (await request.get('/api/categories')).json()).categories;
+  const { categoryId, condition, ...auctionFields } = overrides;
+  const name = (auctionFields.name as string | undefined) ?? 'E2E Item';
+  const description = (auctionFields.description as string | undefined) ?? 'An item created by the e2e suite.';
+  const goodsId =
+    auctionFields.goodsId ??
+    (await createGoodsViaApi(request, { name, description, ...(categoryId ? { categoryId } : {}), ...(condition ? { condition } : {}) })).id;
   const res = await request.post('/api/auctions', {
     data: {
-      name: 'E2E Item',
-      description: 'An item created by the e2e suite.',
-      categoryId: categories[0].id,
-      condition: 'used',
+      name,
+      description,
       initialPrice: 100,
       startTime: new Date().toISOString(),
       endTime: new Date(Date.now() + 3600_000).toISOString(),
-      ...overrides,
+      ...auctionFields,
+      goodsId,
     },
   });
   expect(res.status()).toBe(201);

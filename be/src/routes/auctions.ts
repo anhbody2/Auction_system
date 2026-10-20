@@ -4,13 +4,14 @@ import { z } from 'zod';
 import { prisma } from '../db';
 import { auctionInclude, auctionView } from '../lib/auctions';
 import { HttpError, asyncHandler } from '../lib/http';
-import { CONDITIONS } from '../lib/goods';
-import { isStoredUpload } from '../lib/images';
+import { CONDITIONS, lockOwnGoods } from '../lib/goods';
 import { optionalAuth, requireAuth } from '../middleware/auth';
 
 export const auctionsRouter = Router();
 
 export { CONDITIONS };
+const GOODS_IN_AUCTION = 'These goods are already in an auction';
+const GOODS_SOLD = 'These goods have been sold';
 /** Ended auctions stay on the homepage ("just completed") for this many days. */
 const JUST_COMPLETED_DAYS = 7;
 
@@ -27,13 +28,12 @@ const optionalPrice = (label: string) =>
 const dateField = (label: string) =>
   z.coerce.date({ errorMap: () => ({ message: `${label} is required` }) });
 
+// sell-003: the auction is created for goods the seller already added (gds-001); goods details and images
+// come from there. categoryId, condition and imageUrl are no longer read.
 const itemSchema = z.object({
-  name: z.string().trim().min(3, 'Item name must be at least 3 characters').max(255),
+  goodsId: z.coerce.number({ invalid_type_error: 'Choose goods to auction' }).int().positive('Choose goods to auction'),
+  name: z.string().trim().min(3, 'Auction name must be at least 3 characters').max(255),
   description: z.string().trim().min(10, 'Description must be at least 10 characters').max(5000),
-  categoryId: z.coerce.number({ invalid_type_error: 'Choose a category' }).int().positive('Choose a category'),
-  condition: z.enum(CONDITIONS, { errorMap: () => ({ message: 'Choose a condition' }) }),
-  // upl-001: images are uploaded (POST /api/uploads); only this server's upload URLs are accepted.
-  imageUrl: z.preprocess((v) => (v === '' ? undefined : v), z.string().trim().optional()),
 });
 
 // Prices and times are validated separately so cross-field errors show even when item fields are invalid.
@@ -89,24 +89,14 @@ auctionsRouter.post(
   requireAuth,
   asyncHandler(async (req, res) => {
     const d = parseCreate(req.body);
-    const category = await prisma.category.findUnique({ where: { id: BigInt(d.categoryId) } });
-    if (!category) throw new HttpError(400, 'Validation failed', { categoryId: 'Choose a category' });
-    if (d.imageUrl && !(await isStoredUpload(d.imageUrl))) throw new HttpError(400, 'Validation failed', { imageUrl: 'Upload the image instead of linking to it' });
-
     const sellerId = req.user!.id;
     const now = new Date();
     const startTime = d.startTime < now ? now : d.startTime;
     const auction = await prisma.$transaction(async (tx) => {
-      const goods = await tx.goods.create({
-        data: {
-          sellerId,
-          categoryId: category.id,
-          name: d.name,
-          description: d.description,
-          condition: d.condition,
-          images: d.imageUrl ? { create: { imageUrl: d.imageUrl } } : undefined,
-        },
-      });
+      // Same row lock as goods edit/delete (gds-002), so the goods cannot change while the auction is created.
+      const { goods, state } = await lockOwnGoods(tx, BigInt(d.goodsId), sellerId);
+      if (state === 'in_auction') throw new HttpError(409, GOODS_IN_AUCTION, { goodsId: GOODS_IN_AUCTION });
+      if (state === 'sold') throw new HttpError(409, GOODS_SOLD, { goodsId: GOODS_SOLD });
       return tx.auction.create({
         data: {
           sellerId,

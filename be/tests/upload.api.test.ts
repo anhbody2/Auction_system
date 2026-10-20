@@ -5,7 +5,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { HARD_CAP_BYTES, MAX_IMAGE_BYTES, isStoredUpload } from '../src/lib/images';
 import { prisma } from '../src/db';
-import { app, createAuction, inMinutes, loginAs, resetDb } from './helpers';
+import { app, createAuction, loginAs, resetDb } from './helpers';
 import { noiseImage, solidPng } from './upload.fixtures';
 
 let dir: string;
@@ -87,25 +87,20 @@ describe('upl-001 POST /api/uploads', () => {
     expect(await readdir(dir)).toEqual(before);
   });
 
-  it('an auction takes an uploaded image URL but not a link to another site', async () => {
+  it("an auction shows its goods' uploaded images (sell-003: no image URL on the auction)", async () => {
     const alice = await loginAs('alice');
     const up = await alice.post('/api/uploads').attach('image', await solidPng(40, 30), { filename: 'item.png' });
-    const auction = await createAuction(alice, { imageUrl: up.body.url });
-    expect(auction.goods).toMatchObject({ images: [up.body.url] });
-
     const category = await prisma.category.findFirstOrThrow();
-    const linked = await alice.post('/api/auctions').send({
-      name: 'Linked image',
-      description: 'An item with an image from elsewhere.',
+    const goods = await alice.post('/api/goods').send({
+      name: 'Uploaded item',
+      description: 'An item with an uploaded image.',
       categoryId: Number(category.id),
       condition: 'used',
-      initialPrice: 100,
-      startTime: inMinutes(0),
-      endTime: inMinutes(60),
-      imageUrl: 'https://example.com/cat.png',
+      images: [up.body.url],
     });
-    expect(linked.status).toBe(400);
-    expect(linked.body.fields.imageUrl).toBe('Upload the image instead of linking to it');
+    expect(goods.status).toBe(201);
+    const auction = await createAuction(alice, { goodsId: goods.body.goods.id, imageUrl: 'https://example.com/cat.png' });
+    expect(auction.goods).toMatchObject({ images: [up.body.url] });
   });
 
   it('404s for unknown files and refuses look-alike URLs', async () => {

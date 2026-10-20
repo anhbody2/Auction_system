@@ -32,18 +32,54 @@ export async function registerUser(username: string, password = PASSWORD) {
 
 const inMinutes = (m: number) => new Date(Date.now() + m * 60_000).toISOString();
 
-/** Creates an auction through the API as the given (logged-in) agent. Starts now, ends in 60 min unless overridden. */
+/**
+ * Adds goods for the agent's user straight in the DB (sell-003 auctions need goods first). Image uploads are
+ * covered by the upload/goods tests, so this stores a placeholder image URL.
+ */
+export async function createGoodsFor(agent: request.Agent, opts: { name?: string; categoryId?: number; condition?: string; imageUrl?: string } = {}) {
+  const me = await agent.get('/api/me/profile');
+  if (me.status !== 200) throw new Error('createGoodsFor needs a logged-in agent');
+  const categoryId = opts.categoryId ?? Number((await prisma.category.findFirstOrThrow({ orderBy: { id: 'asc' } })).id);
+  return prisma.goods.create({
+    data: {
+      sellerId: BigInt(me.body.user.id),
+      categoryId: BigInt(categoryId),
+      name: opts.name ?? 'Vintage camera',
+      description: 'Goods added by the test helpers.',
+      condition: opts.condition ?? 'used',
+      images: { create: { imageUrl: opts.imageUrl ?? '/uploads/test-placeholder.png' } },
+    },
+  });
+}
+
+/**
+ * Creates an auction through the API as the given (logged-in) agent. Starts now, ends in 60 min unless
+ * overridden. Without a goodsId it first adds goods named like the auction; categoryId, condition and
+ * imageUrl overrides go to those goods.
+ */
 export async function createAuction(agent: request.Agent, overrides: Record<string, unknown> = {}) {
-  const category = await prisma.category.findFirstOrThrow();
+  const { categoryId, condition, imageUrl, ...auctionFields } = overrides;
+  const name = (auctionFields.name as string | undefined) ?? 'Vintage camera';
+  const goodsId =
+    auctionFields.goodsId ??
+    Number(
+      (
+        await createGoodsFor(agent, {
+          name,
+          categoryId: categoryId as number | undefined,
+          condition: condition as string | undefined,
+          imageUrl: imageUrl as string | undefined,
+        })
+      ).id,
+    );
   const res = await agent.post('/api/auctions').send({
-    name: 'Vintage camera',
+    name,
     description: 'A working film camera in good condition.',
-    categoryId: Number(category.id),
-    condition: 'used',
     initialPrice: 100,
     startTime: inMinutes(0),
     endTime: inMinutes(60),
-    ...overrides,
+    ...auctionFields,
+    goodsId,
   });
   if (res.status !== 201) throw new Error(`create auction failed: ${JSON.stringify(res.body)}`);
   return res.body.auction as { id: number; [k: string]: unknown };

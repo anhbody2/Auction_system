@@ -130,6 +130,9 @@ function GoodsActions({ goods, onDeleted }: { goods: Goods; onDeleted: () => voi
   }
   return (
     <div className="row">
+      <Link className="btn btn-primary btn-small" to={`/auctions/new?goodsId=${goods.id}`} aria-label={`Auction ${goods.name}`}>
+        Auction it
+      </Link>
       <Link className="btn btn-ghost btn-small" to={`/goods/${goods.id}/edit`} aria-label={`Edit ${goods.name}`}>
         Edit
       </Link>

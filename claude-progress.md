@@ -214,3 +214,9 @@
 
 - Completed: GET/PATCH/DELETE /api/goods/:id (owner only, 404 otherwise; 409 in auction or sold; soft delete); goods row locked FOR UPDATE during the check (lockOwnGoods/lockChangeableGoods) so sell-003 can take the same lock; fe Edit/Delete actions with inline confirm and disabled + reason, /goods/:id/edit
 - Verification: npm run verify exit 0 -> vitest 38 files / 191 tests, fe build ok, Playwright 35/35
+
+### Session 007 (cont.) sell-003
+
+- Completed: POST /api/auctions takes goodsId (locks goods with lockOwnGoods; 404 not own, 409 in auction/sold), no goods creation, imageUrl ignored; fe goods picker with preview and prefilled name/description, Add goods link when nothing is available, "Auction it" on My goods
+- Test helpers: be createAuction/createGoodsFor and e2e createAuctionViaApi add goods first; categoryId/condition overrides go to the goods (search tests unchanged)
+- Verification: npm run verify exit 0 -> vitest 38 files / 194 tests, fe build ok, Playwright 37/37

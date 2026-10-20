@@ -160,7 +160,7 @@
       "srs_ref": "Seller - Manage Goods REQ-1; Create Auction (image) Req-1",
       "title": "Create auction from existing goods (no image URL input)",
       "user_visible_behavior": "The create-auction form no longer asks for goods details or an image URL. The seller picks one of their available goods; its images and details are shown. Goods that are in an auction or sold cannot be picked. If the seller has no available goods, the form links to 'Add goods'. Auction name, description, starting price and reserve price stay on the form.",
-      "status": "in_progress",
+      "status": "passing",
       "verification": [
         "Integration (be/tests/auction.create.test.ts, updated): POST /api/auctions takes goodsId and no longer creates goods or accepts imageUrl. Goods owned by someone else returns 403/404. Goods already in an open auction or sold returns 409. Valid goods returns 201 linked to that goodsId.",
         "E2E (e2e/sell-003-auction-from-goods.spec.ts): alice with one available item creates an auction from it. The auction page shows the uploaded image. On My goods the item now shows 'in auction'.",
@@ -168,7 +168,14 @@
         "E2E: e2e/sell-001-create-auction.spec.ts and e2e/helpers.ts (createAuction/createSoldAuction) are updated to create goods first and still pass.",
         "Docs: docs/changes/sell-003.md."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-20 Integration: be/tests/auction.create.test.ts (updated, 8 tests) - POST /api/auctions with goodsId 201 linked to that goods_id, goods count unchanged, body imageUrl/condition/categoryId ignored, goods then in_auction; missing goodsId 400 \"Choose goods to auction\"; other seller/deleted/unknown goods 404; goods in open auction 409 \"These goods are already in an auction\"; sold 409 \"These goods have been sold\"; re-auction after cancelled/unsold 201",
+        "2026-10-20 Integration: be/tests/upload.api.test.ts - auction shows its goods uploaded image; an imageUrl on the auction body is ignored",
+        "2026-10-20 E2E: e2e/sell-003-auction-from-goods.spec.ts (2 tests) - no Image URL/Category/Condition fields; Busy Mirror (in auction) option disabled; picking Copper Kettle shows its uploaded image and prefills Auction name; auction page shows that image; My goods shows in auction; with all goods busy, and for a seller with no goods, the Add goods link replaces the form",
+        "2026-10-20 E2E: sell-001 and upl-001 specs and e2e/helpers.ts createAuctionViaApi/createSoldAuction updated to add goods first; all pass",
+        "2026-10-20 npm run verify exit 0: vitest 38 files / 194 tests, fe build ok, Playwright 37/37",
+        "2026-10-20 Docs: docs/changes/sell-003.md"
+      ],
       "notes": "The per-auction minimum increment was dropped on 2026-10-20 at the user's request (docs/changes/drop-min-increment.md); do not reintroduce it on the new form. Depends on gds-001."
     },
     {
@@ -179,7 +186,7 @@
       "srs_ref": "Customer - Create auction (duration), Req-1, Req-2, Req-3",
       "title": "Start date plus duration picker; server works out the end date",
       "user_visible_behavior": "Instead of an end date, the seller enters a start date/time and picks a duration with two option boxes: a number and a unit (hours or days). The smallest allowed duration is 1 hour and the largest is 30 days. The form shows the end date it works out ('Ends <date time>') as the seller changes the inputs. The server works out end_time = start_time + duration and saves both end_time and duration_minutes.",
-      "status": "not_started",
+      "status": "in_progress",
       "verification": [
         "Unit (be/tests/auction.duration.test.ts): the helper turns {value, unit} into minutes: 1 hour = 60 and 30 days = 43200. 59 minutes, 0 and 31 days are rejected with 'Duration must be between 1 hour and 30 days'.",
         "Integration: POST /api/auctions with startTime and duration returns 201. The stored end_time is exactly start_time + duration and duration_minutes matches. A client-supplied endTime is ignored or rejected.",
