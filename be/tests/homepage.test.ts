@@ -10,7 +10,7 @@ describe('guest-002 homepage listing', () => {
     const alice = await loginAs('alice');
     const bob = await loginAs('bob');
     ids.active = (await createAuction(alice, { name: 'Live lamp' })).id;
-    ids.upcoming = (await createAuction(alice, { name: 'Soon lamp', startTime: inMinutes(30), endTime: inMinutes(90) })).id;
+    ids.upcoming = (await createAuction(alice, { name: 'Soon lamp', startTime: inMinutes(30), duration: { value: 1, unit: 'hours' } })).id;
     ids.ended = (await createAuction(alice, { name: 'Done lamp', initialPrice: 100 })).id;
     await bob.post(`/api/auctions/${ids.ended}/bids`).send({ amount: 100 });
     await prisma.auction.update({ where: { id: BigInt(ids.ended) }, data: { endTime: new Date(Date.now() - 1000) } });

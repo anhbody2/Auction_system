@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { prisma } from '../db';
 import { auctionInclude, auctionView } from '../lib/auctions';
 import { HttpError, asyncHandler } from '../lib/http';
+import { durationField } from '../lib/duration';
 import { CONDITIONS, lockOwnGoods } from '../lib/goods';
 import { optionalAuth, requireAuth } from '../middleware/auth';
 
@@ -37,44 +38,31 @@ const itemSchema = z.object({
 });
 
 // Prices and times are validated separately so cross-field errors show even when item fields are invalid.
+// sell-004: the seller sends a start time and a duration; the server works out end_time.
 const termsSchema = z
   .object({
     initialPrice: price('Starting price'),
     reservePrice: optionalPrice('Reserve price'),
     startTime: dateField('Start time'),
-    endTime: dateField('End time'),
+    duration: durationField,
+    endTime: z.undefined({ errorMap: () => ({ message: 'The end time is worked out from the duration' }) }),
   })
   .superRefine((d, ctx) => {
     if (d.startTime.getTime() < Date.now() - 5 * 60 * 1000) {
       ctx.addIssue({ code: 'custom', path: ['startTime'], message: 'Start time cannot be in the past' });
-    }
-    if (d.endTime <= d.startTime) {
-      ctx.addIssue({ code: 'custom', path: ['endTime'], message: 'End time must be after start time' });
-    } else if (d.endTime.getTime() - d.startTime.getTime() < 60 * 1000) {
-      ctx.addIssue({ code: 'custom', path: ['endTime'], message: 'Auction must last at least 1 minute' });
-    } else if (d.endTime.getTime() - d.startTime.getTime() > 30 * 24 * 3600 * 1000) {
-      ctx.addIssue({ code: 'custom', path: ['endTime'], message: 'Auction can last at most 30 days' });
     }
     if (d.reservePrice !== undefined && d.reservePrice < d.initialPrice) {
       ctx.addIssue({ code: 'custom', path: ['reservePrice'], message: 'Reserve price cannot be below the starting price' });
     }
   });
 
-const timeOrderSchema = z
-  .object({ startTime: z.coerce.date(), endTime: z.coerce.date() })
-  .refine((d) => d.endTime > d.startTime, { path: ['endTime'], message: 'End time must be after start time' });
-
 function parseCreate(body: unknown) {
   const item = itemSchema.safeParse(body);
   const terms = termsSchema.safeParse(body);
   if (item.success && terms.success) return { ...item.data, ...terms.data };
   const issues = [...(item.success ? [] : item.error.issues), ...(terms.success ? [] : terms.error.issues)];
-  if (!terms.success) {
-    // Terms failed before its cross-field refinement ran; still report the time order when both dates parse.
-    const order = timeOrderSchema.safeParse(body);
-    if (!order.success && !issues.some((i) => i.path[0] === 'endTime')) issues.push(...order.error.issues);
-  }
-  throw new z.ZodError(issues);
+  // duration.value / duration.unit errors are reported on the one 'duration' field.
+  throw new z.ZodError(issues.map((i) => (i.path[0] === 'duration' ? { ...i, path: ['duration'] } : i)));
 }
 
 auctionsRouter.get(
@@ -106,8 +94,8 @@ auctionsRouter.post(
           initialPrice: d.initialPrice,
           reservePrice: d.reservePrice ?? null,
           startTime,
-          endTime: d.endTime,
-          durationMinutes: Math.round((d.endTime.getTime() - startTime.getTime()) / 60000),
+          endTime: new Date(startTime.getTime() + d.duration * 60_000),
+          durationMinutes: d.duration,
           status: startTime <= now ? 'active' : 'upcoming',
         },
         include: auctionInclude,

@@ -14,21 +14,23 @@ test('sell-001: seller creates an auction that other customers can see; invalid 
   await page.getByRole('link', { name: 'My Auctions' }).click();
   await page.getByRole('link', { name: '+ New auction' }).click();
 
-  // Invalid: negative price, end before start
+  // Invalid: negative price (server), then a duration under 1 hour (sell-004, checked before sending)
   await page.getByLabel('Goods').selectOption({ label: 'Antique Clock' });
   await expect(page.getByLabel('Auction name')).toHaveValue('Antique Clock');
   await expect(page.getByLabel('Description')).toHaveValue('A mahogany mantel clock from 1890, fully working.');
   await page.getByLabel('Starting price').fill('-10');
   await page.getByLabel('Start time').fill(local(60));
-  await page.getByLabel('End time').fill(local(10));
   await page.getByRole('button', { name: 'Create auction' }).click();
   await expect(page.getByText('Starting price must be greater than 0')).toBeVisible();
-  await expect(page.getByText('End time must be after start time')).toBeVisible();
+  await page.getByLabel('Duration amount').fill('0');
+  await page.getByRole('button', { name: 'Create auction' }).click();
+  await expect(page.getByText('Duration must be between 1 hour and 30 days')).toBeVisible();
 
   // Valid
   await page.getByLabel('Starting price').fill('200');
   await page.getByLabel('Start time').fill(local(0));
-  await page.getByLabel('End time').fill(local(120));
+  await page.getByLabel('Duration amount').fill('2');
+  await page.getByLabel('Duration unit').selectOption('Hours');
   await page.getByRole('button', { name: 'Create auction' }).click();
   await expect(page.getByRole('heading', { name: 'Antique Clock' })).toBeVisible();
   await expect(page.getByTestId('status')).toHaveText('active');

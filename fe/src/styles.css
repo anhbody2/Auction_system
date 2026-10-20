@@ -172,3 +172,6 @@ th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: u
 .badge-in_auction { background: #eef2ff; color: var(--primary); }
 .badge-sold { background: #eceef2; color: var(--muted); }
 .goods-thumb { width: 64px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); display: block; }
+
+/* sell-004: caption for a group of inputs (the Duration boxes) */
+.label { font-size: 0.9rem; font-weight: 500; }

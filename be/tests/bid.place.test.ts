@@ -91,7 +91,7 @@ describe('bid-001 make a bid', () => {
     await prisma.auction.update({ where: { id: BigInt(cancelled.id) }, data: { status: 'cancelled' } });
     expect((await bob.post(`/api/auctions/${cancelled.id}/bids`).send({ amount: 500 })).body.error).toBe('This auction has been cancelled');
 
-    const upcoming = await createAuction(alice, { startTime: inMinutes(30), endTime: inMinutes(90) });
+    const upcoming = await createAuction(alice, { startTime: inMinutes(30), duration: { value: 1, unit: 'hours' } });
     expect((await bob.post(`/api/auctions/${upcoming.id}/bids`).send({ amount: 500 })).body.error).toBe('This auction has not started yet');
 
     expect((await request(app).post(`/api/auctions/${upcoming.id}/bids`).send({ amount: 500 })).status).toBe(401);

@@ -6,7 +6,7 @@ import { createAuction, inMinutes, loginAs, resetDb } from './helpers';
 
 const status = async (id: number) => (await prisma.auction.findUniqueOrThrow({ where: { id: BigInt(id) } })).status;
 const setAuction = (id: number, data: { status?: string; startTime?: Date }) => prisma.auction.update({ where: { id: BigInt(id) }, data });
-const upcoming = { startTime: inMinutes(5), endTime: inMinutes(60) };
+const upcoming = { startTime: inMinutes(5), duration: { value: 1, unit: 'hours' } };
 
 describe('sys-001 start auction job', () => {
   beforeEach(resetDb);

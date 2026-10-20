@@ -186,7 +186,7 @@
       "srs_ref": "Customer - Create auction (duration), Req-1, Req-2, Req-3",
       "title": "Start date plus duration picker; server works out the end date",
       "user_visible_behavior": "Instead of an end date, the seller enters a start date/time and picks a duration with two option boxes: a number and a unit (hours or days). The smallest allowed duration is 1 hour and the largest is 30 days. The form shows the end date it works out ('Ends <date time>') as the seller changes the inputs. The server works out end_time = start_time + duration and saves both end_time and duration_minutes.",
-      "status": "in_progress",
+      "status": "passing",
       "verification": [
         "Unit (be/tests/auction.duration.test.ts): the helper turns {value, unit} into minutes: 1 hour = 60 and 30 days = 43200. 59 minutes, 0 and 31 days are rejected with 'Duration must be between 1 hour and 30 days'.",
         "Integration: POST /api/auctions with startTime and duration returns 201. The stored end_time is exactly start_time + duration and duration_minutes matches. A client-supplied endTime is ignored or rejected.",
@@ -194,7 +194,14 @@
         "E2E: the created auction's detail page shows the end time the server worked out.",
         "Docs: docs/changes/sell-004.md."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-20 Unit: be/tests/auction.duration.test.ts - durationToMinutes 1 hour=60, 48 hours=2 days=2880, 30 days=720 hours=43200; 0, 59 minutes, 31 days, 721 hours, -1 and 1.5 days rejected",
+        "2026-10-20 Integration: same file - startTime + 2 days stored end_time exactly start+48h, duration_minutes 2880, upcoming; start a minute ago starts now and ends now+3h; 0 h / 31 d / 721 h / \"abc\" 400 \"Duration must be between 1 hour and 30 days\", weeks 400 \"Choose hours or days\", missing 400 \"Choose a duration\", client endTime 400 \"The end time is worked out from the duration\"; no auction stored",
+        "2026-10-20 E2E: e2e/sell-004-duration.spec.ts - no End time input; unit options Hours, Days; 2 days shows \"Ends <start+48h>\"; 31 days and 0 hours show the message with no POST sent; created auction detail end-time equals the shown end; raw end-start 48h, durationMinutes 2880",
+        "2026-10-20 E2E: sell-001 spec and all helpers/specs that sent endTime updated to duration; all pass",
+        "2026-10-20 npm run verify exit 0: vitest 39 files / 199 tests, fe build ok, Playwright 38/38",
+        "2026-10-20 Docs: docs/changes/sell-004.md"
+      ],
       "notes": "The current schema allows a minimum of 1 minute; it becomes 1 hour. E2E specs that need an auction to end already use POST /api/dev/auctions/:id/expire, so the higher minimum should not slow tests. Update helpers that send endTime. Depends on sell-003 (same form and endpoint)."
     },
     {
@@ -205,7 +212,7 @@
       "srs_ref": "DB - increment bidding rules, Req",
       "title": "Bid increment ladder updated to the SRS ranges",
       "user_visible_behavior": "The minimum next bid follows the SRS ladder: $0.50 steps from $1 to $10, $1 steps from $10 to $50, $10 steps from $100 to $1000 and $100 steps over $1000. The bid panel and the next-minimum-bid figure use the new steps, and BID_INCREMENT_RULES in the database holds the same ranges.",
-      "status": "not_started",
+      "status": "in_progress",
       "verification": [
         "Unit (be/tests/bid.increment.test.ts, updated): ladderIncrement gives 0.50 at $1 and $9.99, 1 at $10 and $49.99, 10 at $100 and $999.99, 100 at $1000 and $5000.",
         "Unit: the seeded bid_increment_rules rows match INCREMENT_LADDER.",

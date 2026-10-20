@@ -7,7 +7,7 @@ test('sys-001: an upcoming auction becomes active once the start job runs', asyn
   const auction = await createAuctionViaApi(page.request, {
     name: 'Soon Starting Clock',
     startTime: new Date(Date.now() + 4000).toISOString(),
-    endTime: new Date(Date.now() + 3600_000).toISOString(),
+    duration: { value: 1, unit: 'hours' },
   });
   const raw = async () => (await (await page.request.get(`/api/dev/auctions/${auction.id}/raw`)).json()).status;
 

@@ -77,7 +77,7 @@ export async function createAuction(agent: request.Agent, overrides: Record<stri
     description: 'A working film camera in good condition.',
     initialPrice: 100,
     startTime: inMinutes(0),
-    endTime: inMinutes(60),
+    duration: { value: 1, unit: 'hours' },
     ...auctionFields,
     goodsId,
   });

@@ -30,12 +30,12 @@ describe('sell-001 create auction', () => {
 
   it('marks future auctions as upcoming', async () => {
     const alice = await loginAs('alice');
-    const a = await createAuction(alice, { startTime: inMinutes(30), endTime: inMinutes(90) });
+    const a = await createAuction(alice, { startTime: inMinutes(30), duration: { value: 1, unit: 'hours' } });
     expect(a.status).toBe('upcoming');
     expect(a.durationMinutes).toBe(60);
   });
 
-  it('rejects negative price, end before start, and missing fields', async () => {
+  it('rejects negative price, a duration over 30 days, and missing fields', async () => {
     const alice = await loginAs('alice');
     const res = await alice.post('/api/auctions').send({
       name: '',
@@ -43,7 +43,7 @@ describe('sell-001 create auction', () => {
       goodsId: '',
       initialPrice: -5,
       startTime: inMinutes(60),
-      endTime: inMinutes(10),
+      duration: { value: 31, unit: 'days' },
     });
     expect(res.status).toBe(400);
     expect(res.body.fields).toMatchObject({
@@ -51,7 +51,7 @@ describe('sell-001 create auction', () => {
       description: expect.any(String),
       goodsId: 'Choose goods to auction',
       initialPrice: 'Starting price must be greater than 0',
-      endTime: 'End time must be after start time',
+      duration: 'Duration must be between 1 hour and 30 days',
     });
   });
 
@@ -67,7 +67,7 @@ describe('sell-001 create auction', () => {
       description: 'Auction for a mantel clock in working order.',
       initialPrice: 100,
       startTime: inMinutes(0),
-      endTime: inMinutes(60),
+      duration: { value: 1, unit: 'hours' },
     });
 
     it('links the auction to the chosen goods; goods fields and imageUrl in the body are ignored', async () => {

@@ -79,7 +79,7 @@ export function AuctionDetailPage() {
           <dt>Starts</dt>
           <dd>{new Date(auction.startTime).toLocaleString()}</dd>
           <dt>Ends</dt>
-          <dd>{new Date(auction.endTime).toLocaleString()}</dd>
+          <dd data-testid="end-time">{new Date(auction.endTime).toLocaleString()}</dd>
           {auction.winner && (
             <>
               <dt>Winner</dt>

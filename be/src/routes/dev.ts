@@ -32,6 +32,6 @@ devRouter.get(
   '/auctions/:id/raw',
   asyncHandler(async (req, res) => {
     const a = await prisma.auction.findUniqueOrThrow({ where: { id: parseId(req.params.id) } });
-    res.json({ status: a.status, startTime: a.startTime, endTime: a.endTime, closedAt: a.closedAt, winnerId: a.winnerId });
+    res.json({ status: a.status, startTime: a.startTime, endTime: a.endTime, durationMinutes: a.durationMinutes, closedAt: a.closedAt, winnerId: a.winnerId });
   }),
 );

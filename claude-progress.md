@@ -220,3 +220,9 @@
 - Completed: POST /api/auctions takes goodsId (locks goods with lockOwnGoods; 404 not own, 409 in auction/sold), no goods creation, imageUrl ignored; fe goods picker with preview and prefilled name/description, Add goods link when nothing is available, "Auction it" on My goods
 - Test helpers: be createAuction/createGoodsFor and e2e createAuctionViaApi add goods first; categoryId/condition overrides go to the goods (search tests unchanged)
 - Verification: npm run verify exit 0 -> vitest 38 files / 194 tests, fe build ok, Playwright 37/37
+
+### Session 007 (cont.) sell-004
+
+- Completed: be/src/lib/duration.ts; POST /api/auctions takes startTime + duration {value, unit hours|days} (1 h - 30 d), rejects endTime, stores end_time = start + duration; fe Duration amount/unit boxes with live "Ends ..." and client check
+- All test callers moved from endTime to duration
+- Verification: npm run verify exit 0 -> vitest 39 files / 199 tests, fe build ok, Playwright 38/38

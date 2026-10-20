@@ -12,7 +12,7 @@ describe('cust-006 manage your auctions', () => {
     const bob = await loginAs('bob');
     ids.active = (await createAuction(alice, { name: 'Active one', initialPrice: 50 })).id;
     await bob.post(`/api/auctions/${ids.active}/bids`).send({ amount: 75 });
-    ids.upcoming = (await createAuction(alice, { name: 'Upcoming one', startTime: inMinutes(60), endTime: inMinutes(120) })).id;
+    ids.upcoming = (await createAuction(alice, { name: 'Upcoming one', startTime: inMinutes(60), duration: { value: 1, unit: 'hours' } })).id;
     ids.ended = (await createAuction(alice, { name: 'Ended one' })).id;
     await prisma.auction.update({ where: { id: BigInt(ids.ended) }, data: { endTime: new Date(Date.now() - 1000) } });
     ids.cancelled = (await createAuction(alice, { name: 'Cancelled one' })).id;

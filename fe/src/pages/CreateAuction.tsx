@@ -4,6 +4,17 @@ import { ApiError, CONDITION_LABELS, GOODS_STATUS_LABELS, api, type Auction, typ
 import { Field } from '../components/Field';
 import { useToast } from '../toast';
 
+type DurationUnit = 'hours' | 'days';
+const DURATION_MESSAGE = 'Duration must be between 1 hour and 30 days';
+
+/** sell-004: minutes for a number + unit, or null outside 1 hour - 30 days (the server checks the same). */
+export function durationMinutes(value: string, unit: DurationUnit) {
+  const n = Number(value);
+  if (value.trim() === '' || !Number.isInteger(n)) return null;
+  const minutes = n * (unit === 'hours' ? 60 : 24 * 60);
+  return minutes >= 60 && minutes <= 30 * 24 * 60 ? minutes : null;
+}
+
 /** yyyy-MM-ddTHH:mm in local time, as used by <input type="datetime-local"> */
 export function toLocalInput(d: Date) {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -39,7 +50,8 @@ export function CreateAuctionPage() {
     initialPrice: '',
     reservePrice: '',
     startTime: toLocalInput(new Date()),
-    endTime: toLocalInput(new Date(Date.now() + 24 * 3600 * 1000)),
+    durationValue: '1',
+    durationUnit: 'days' as DurationUnit,
   }));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -69,13 +81,27 @@ export function CreateAuctionPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [goods]);
 
+  const minutes = durationMinutes(values.durationValue, values.durationUnit);
+  const start = values.startTime ? new Date(values.startTime) : null;
+  const startValid = start && !Number.isNaN(start.getTime());
+  // Shown as the seller types; the server works out the stored end time the same way.
+  const endsAt = startValid && minutes !== null ? new Date(Math.max(start.getTime(), Date.now()) + minutes * 60_000) : null;
+
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (minutes === null) {
+      setErrors((er) => ({ ...er, duration: DURATION_MESSAGE }));
+      return;
+    }
     setBusy(true);
     try {
-      const toIso = (s: string) => (s ? new Date(s).toISOString() : '');
+      const { durationValue, durationUnit, ...rest } = values;
       const res = await api<{ auction: Auction }>('/auctions', {
-        body: { ...values, startTime: toIso(values.startTime), endTime: toIso(values.endTime) },
+        body: {
+          ...rest,
+          startTime: values.startTime ? new Date(values.startTime).toISOString() : '',
+          duration: { value: Number(durationValue), unit: durationUnit },
+        },
       });
       toast('Auction created', 'success');
       navigate(`/auctions/${res.auction.id}`);
@@ -137,7 +163,50 @@ export function CreateAuctionPage() {
         </div>
         <div className="grid stats">
           <Field label="Start time" type="datetime-local" {...bind('startTime')} />
-          <Field label="End time" type="datetime-local" {...bind('endTime')} />
+          <div className="field">
+            <span className="label" id="duration-label">
+              Duration
+            </span>
+            <div className="row" role="group" aria-labelledby="duration-label">
+              <input
+                id="durationValue"
+                aria-label="Duration amount"
+                type="number"
+                min={1}
+                step={1}
+                inputMode="numeric"
+                value={values.durationValue}
+                onChange={(e) => {
+                  set('durationValue')(e);
+                  setErrors(({ duration: _, ...r }) => r);
+                }}
+                aria-invalid={!!errors.duration || undefined}
+                aria-describedby="duration-hint"
+                style={{ width: '6rem' }}
+              />
+              <select
+                id="durationUnit"
+                aria-label="Duration unit"
+                value={values.durationUnit}
+                onChange={(e) => {
+                  set('durationUnit')(e);
+                  setErrors(({ duration: _, ...r }) => r);
+                }}
+              >
+                <option value="hours">Hours</option>
+                <option value="days">Days</option>
+              </select>
+            </div>
+            {errors.duration ? (
+              <span className="field-error" role="alert" id="duration-error">
+                {errors.duration}
+              </span>
+            ) : (
+              <span className="muted small" id="duration-hint" data-testid="ends-at">
+                {endsAt ? `Ends ${endsAt.toLocaleString()}` : '1 hour to 30 days'}
+              </span>
+            )}
+          </div>
         </div>
         <p className="muted small">Bids rise by the standard increment ladder ($0.50 from $1, $1 from $10, $2.50 from $50, $5 from $100, $10 from $500, $25 from $1,000, $100 from $5,000).</p>
         <button className="btn btn-primary" type="submit" disabled={busy}>

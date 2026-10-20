@@ -44,7 +44,7 @@ export async function createAuctionViaApi(request: APIRequestContext, overrides:
       description,
       initialPrice: 100,
       startTime: new Date().toISOString(),
-      endTime: new Date(Date.now() + 3600_000).toISOString(),
+      duration: { value: 1, unit: 'hours' },
       ...auctionFields,
       goodsId,
     },
