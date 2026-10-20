@@ -1,0 +1,163 @@
+{
+  "project": "Online Auction System",
+  "last_updated": "2026-10-20",
+  "scope": "Round 4. Only the requirements in SRS.txt: Seller - Manage Goods, Customer - Create Auction (image upload; start date + duration), Customer - Dashboard credit, Customer - System UI. Builds on rounds 1-3 (archived in progress-feature-list/).",
+  "conventions": {
+    "tests": "Playwright e2e specs go in e2e/ as <id>-<slug>.spec.ts. Unit and API/integration tests use the existing vitest setup in be/tests/ as <area>.<topic>.test.ts. Every feature needs both kinds unless its verification list says otherwise.",
+    "change_docs": "Each feature writes docs/changes/<id>.md listing the files it added or changed and why. Features with design decisions (image resize, credit model) also add a topic doc under docs/, as named in their verification list.",
+    "run_all": "./init.sh (npm install + npm run verify = vitest + fe build + Playwright) must exit 0 before a feature moves to passing.",
+    "existing_tests": "When a feature changes behaviour that an older spec checks (labels, test ids, the create-auction form), update that spec to check the new behaviour. Do not delete it or weaken it."
+  },
+  "rules": {
+    "single_active_feature": true,
+    "passing_requires_evidence": true,
+    "do_not_skip_verification": true
+  },
+  "status_legend": {
+    "not_started": "Work has not begun.",
+    "in_progress": "The feature is the current active task.",
+    "blocked": "Work cannot continue until a documented blocker is resolved.",
+    "passing": "Required verification has passed and evidence is recorded."
+  },
+  "roles": {
+    "customer": "A signed-in user who bids on auctions and manages their credit.",
+    "seller": "A customer acting as a seller: manages their own goods and creates auctions from them. Same users.role value 'customer'."
+  },
+  "features": [
+    {
+      "id": "crd-001",
+      "priority": 1,
+      "role": "customer",
+      "area": "credit",
+      "srs_ref": "Customer - Dashboard credit, Req-1, Req-2, Req-3 (High Priority)",
+      "title": "Only the leading bid locks credit; outbid credit returns at once; winner's credit stays locked until close",
+      "user_visible_behavior": "When a customer bids, the bid amount is locked from their credit. When someone else outbids them, their locked amount is unlocked straight away and they can use it again. The leading bidder's amount stays locked until the auction closes. At close the winner pays from the locked amount and the seller is credited the sale price minus commission. If no one wins (reserve not met, or the auction is cancelled), the lock is released. 'Held in active bids' keeps showing the total locked across all open auctions.",
+      "status": "not_started",
+      "verification": [
+        "Unit (be/tests/credit.lock.test.ts): after A bids 100 and B bids 120 on the same auction, A's held_balance is 0 and B's is 120. A ledger row of type 'release' for A's ticket exists with description 'Outbid on <auction>'.",
+        "Unit: a leader who raises their own bid from 100 to 150 has held_balance 150, not 250.",
+        "Unit: across two open auctions, held_balance equals the sum of the user's 'active' bid tickets only.",
+        "Integration (be/tests/credit.close.test.ts): running the close job on an auction with a winner moves the winner's held amount to a 'payment' (credit_balance and held_balance both drop by the price). The seller gets price minus the tiered commission. The settlement row stores the commission.",
+        "Integration: closing with reserve not met, and cancelling, both release the leader's hold. held_balance goes back to its value before the bid.",
+        "E2E (e2e/crd-001-credit-lock.spec.ts): bob bids, carol outbids. On bob's /credit page 'Held in active bids' goes back to $0.00 without the auction closing. carol's page shows her bid held. After /api/dev/auctions/:id/expire and the close job, carol's credit drops by the price and her held amount is $0.00.",
+        "Docs: docs/credit-model.md explains credit, locked (held) and available, and when each changes (bid, outbid, raise, close with winner, close without winner, cancel). docs/changes/crd-001.md lists changed files."
+      ],
+      "evidence": [],
+      "notes": "Most of this already exists: be/src/routes/bids.ts releases the previous leader's hold inside the bid transaction, and be/src/lib/settlement.ts pays from held credit at close. The work is mainly to verify it end to end, fix any gap the tests find, and document the model. Do not move the commission charge; it stays at close."
+    },
+    {
+      "id": "crd-002",
+      "priority": 2,
+      "role": "customer",
+      "area": "credit-ui",
+      "srs_ref": "Customer - System UI, Req-1, Req-2",
+      "title": "UI shows 'Credit' and 'Locked credit' instead of 'Available credit'",
+      "user_visible_behavior": "The header pill, the dashboard and the /credit page no longer show a figure labelled 'Available credit'. They show 'Credit' (the customer's balance) and 'Locked credit' (held in active bids). Credit changes only on deposit, withdrawal and when an auction closes (payment or seller proceeds), not when a bid is placed or outbid. Locked credit changes on bid and outbid. The bid panel still stops a bid larger than credit minus locked credit, with the message 'Bid exceeds your available credit'.",
+      "status": "not_started",
+      "verification": [
+        "Unit (fe or be/tests/credit.summary.test.ts): GET /api/credit returns balance and held. The UI's 'Credit' value is balance and does not change after a bid that is not yet closed.",
+        "E2E (e2e/crd-002-credit-ui.spec.ts): bob with $1000 bids $100. The header pill and the dashboard 'Credit' still show $1,000.00 and 'Locked credit' shows $100.00. No 'Available credit' label appears anywhere on the dashboard, header or /credit.",
+        "E2E: after the auction closes with bob as winner, 'Credit' shows $900.00 and 'Locked credit' $0.00.",
+        "E2E: existing specs e2e/cust-005-credit.spec.ts and e2e/bid-001-make-bid.spec.ts are updated to the new labels and test ids and still pass.",
+        "Docs: docs/changes/crd-002.md; docs/credit-model.md updated with the UI labels."
+      ],
+      "evidence": [],
+      "notes": "ASSUMPTION, to confirm with the product owner: the SRS line 'Change available credit to credit, update new - locked credit' and 'Only update credit after auction closed' are read as: show the balance as 'Credit' (changes only at close, deposit and withdraw) plus a separate 'Locked credit'. The spendable amount (credit - locked) is still enforced on the server but is not the headline number. Depends on crd-001."
+    },
+    {
+      "id": "upl-001",
+      "priority": 3,
+      "role": "seller",
+      "area": "uploads",
+      "srs_ref": "Customer - Create Auction (image), Req-1, Req-2",
+      "title": "Image upload endpoint with 5 MB limit and automatic resize",
+      "user_visible_behavior": "Sellers upload image files from their device instead of typing a URL. JPEG, PNG and WebP are accepted. A file of 5 MB or less is stored as is. A larger file is resized and recompressed by the server until it is under 5 MB, and the seller sees the stored image. Files that are not images, or are over a hard cap (e.g. 20 MB), are rejected with a clear message.",
+      "status": "not_started",
+      "verification": [
+        "Unit (be/tests/upload.resize.test.ts): the resize helper turns a generated image over 5 MB into one at or under 5 MB and keeps its aspect ratio. An image under 5 MB is returned unchanged.",
+        "Integration (be/tests/upload.api.test.ts): POST /api/uploads (multipart, signed in) returns 201 with a URL for a small PNG. A >5 MB image returns 201 and the stored file is <= 5 MB. A .txt file returns 400. A request that is not signed in returns 401.",
+        "Integration: GET on the returned URL serves the image with an image/* content type.",
+        "E2E (e2e/upl-001-image-upload.spec.ts): a seller picks a fixture image in a file input and sees a preview with the uploaded image.",
+        "Docs: docs/image-upload.md describes accepted types, the 5 MB limit, the hard cap, how the resize works (step down the long edge and the quality until it is under 5 MB) and where files are stored. docs/changes/upl-001.md lists changed files."
+      ],
+      "evidence": [],
+      "notes": "Suggested libraries: multer (multipart) and sharp (resize). Store files on local disk under be/uploads/ (gitignored) and serve them at /uploads/<random-name>. Never use the client's filename on disk. Generate e2e fixtures at test time or keep them small in e2e/fixtures/. Check that sharp installs on Windows and Node 20 before relying on it (see the tsx/exceljs issue in claude-progress.md)."
+    },
+    {
+      "id": "gds-001",
+      "priority": 4,
+      "role": "seller",
+      "area": "goods",
+      "srs_ref": "Seller - Manage Goods 3.11.3 REQ-1; Create Auction (image) Req-2",
+      "title": "My goods page: add goods with uploaded images and list them",
+      "user_visible_behavior": "A new 'My goods' page (/goods), separate from My auctions and the other management pages, lists the seller's goods with thumbnail, name, category and status (available, in auction, sold). An 'Add goods' form takes name, description, category, condition and one or more uploaded images. At least one image is required. The seller sees only their own goods.",
+      "status": "not_started",
+      "verification": [
+        "Integration (be/tests/goods.create.test.ts): POST /api/goods with name, categoryId and at least one uploaded image URL returns 201. A missing name, missing category or empty image list returns 400 with field errors. An image URL that is not one of this server's uploads returns 400.",
+        "Integration (be/tests/goods.list.test.ts): GET /api/me/goods returns only the caller's goods, each with images and a derived status (available | in_auction | sold).",
+        "E2E (e2e/gds-001-add-goods.spec.ts): alice opens My goods from the nav, adds goods with an uploaded image, and sees it in the list as 'available'. Submitting without an image shows 'Add at least one image'.",
+        "E2E: bob does not see alice's goods on his My goods page.",
+        "Docs: docs/changes/gds-001.md."
+      ],
+      "evidence": [],
+      "notes": "Reuses the existing goods and goods_images tables. Derived status: in_auction = has an upcoming or active auction that has not ended; sold = has an ended auction with a winner; otherwise available. Depends on upl-001."
+    },
+    {
+      "id": "gds-002",
+      "priority": 5,
+      "role": "seller",
+      "area": "goods",
+      "srs_ref": "Seller - Manage Goods 3.11.3 REQ-2",
+      "title": "Edit and delete goods, blocked while in an active auction or sold",
+      "user_visible_behavior": "On My goods the seller can edit a goods item (all fields and images) or delete it. Both actions are blocked if the item is in an upcoming or active auction, or has been sold. Blocked items show the reason and have Edit and Delete disabled. Delete asks for confirmation, and the item then disappears from the list.",
+      "status": "not_started",
+      "verification": [
+        "Integration (be/tests/goods.edit.test.ts): PATCH /api/goods/:id by its owner on available goods returns 200. On goods in an active or upcoming auction it returns 409 'Goods in an active auction cannot be changed'. On sold goods it returns 409 'Sold goods cannot be changed'. A non-owner gets 403 or 404.",
+        "Integration (be/tests/goods.delete.test.ts): DELETE follows the same rules. A deleted item is soft deleted (status 'deleted'), drops out of /api/me/goods, and past auctions that reference it still load.",
+        "Integration: goods whose only auction was cancelled, or ended with no winner, can be edited and deleted.",
+        "E2E (e2e/gds-002-edit-delete-goods.spec.ts): alice edits the name of an available item and sees the new name. She deletes it after confirming. For an item in an active auction, Edit and Delete are disabled and the reason is shown.",
+        "Docs: docs/changes/gds-002.md."
+      ],
+      "evidence": [],
+      "notes": "Soft delete because auctions.goods_id references goods. Depends on gds-001."
+    },
+    {
+      "id": "sell-003",
+      "priority": 6,
+      "role": "seller",
+      "area": "auction-create",
+      "srs_ref": "Seller - Manage Goods REQ-1; Create Auction (image) Req-1",
+      "title": "Create auction from existing goods (no image URL input)",
+      "user_visible_behavior": "The create-auction form no longer asks for goods details or an image URL. The seller picks one of their available goods; its images and details are shown. Goods that are in an auction or sold cannot be picked. If the seller has no available goods, the form links to 'Add goods'. Auction name, description, starting price and reserve price stay on the form.",
+      "status": "not_started",
+      "verification": [
+        "Integration (be/tests/auction.create.test.ts, updated): POST /api/auctions takes goodsId and no longer creates goods or accepts imageUrl. Goods owned by someone else returns 403/404. Goods already in an open auction or sold returns 409. Valid goods returns 201 linked to that goodsId.",
+        "E2E (e2e/sell-003-auction-from-goods.spec.ts): alice with one available item creates an auction from it. The auction page shows the uploaded image. On My goods the item now shows 'in auction'.",
+        "E2E: a seller with no available goods sees the 'Add goods' link instead of the form.",
+        "E2E: e2e/sell-001-create-auction.spec.ts and e2e/helpers.ts (createAuction/createSoldAuction) are updated to create goods first and still pass.",
+        "Docs: docs/changes/sell-003.md."
+      ],
+      "evidence": [],
+      "notes": "fe/src/pages/CreateAuction.tsx has an uncommitted change (as of 2026-10-20) that removes the 'Minimum increment' field. Ask the user whether to keep it before building on that file; if kept, minIncrement must also leave the server schema and tests. Depends on gds-001."
+    },
+    {
+      "id": "sell-004",
+      "priority": 7,
+      "role": "seller",
+      "area": "auction-create",
+      "srs_ref": "Customer - Create auction (duration), Req-1, Req-2, Req-3",
+      "title": "Start date plus duration picker; server works out the end date",
+      "user_visible_behavior": "Instead of an end date, the seller enters a start date/time and picks a duration with two option boxes: a number and a unit (hours or days). The smallest allowed duration is 1 hour and the largest is 30 days. The form shows the end date it works out ('Ends <date time>') as the seller changes the inputs. The server works out end_time = start_time + duration and saves both end_time and duration_minutes.",
+      "status": "not_started",
+      "verification": [
+        "Unit (be/tests/auction.duration.test.ts): the helper turns {value, unit} into minutes: 1 hour = 60 and 30 days = 43200. 59 minutes, 0 and 31 days are rejected with 'Duration must be between 1 hour and 30 days'.",
+        "Integration: POST /api/auctions with startTime and duration returns 201. The stored end_time is exactly start_time + duration and duration_minutes matches. A client-supplied endTime is ignored or rejected.",
+        "E2E (e2e/sell-004-duration.spec.ts): the unit box offers Hours and Days. Choosing 2 days shows the end date 48 h after the start. Choosing 31 days, or 0 hours, shows the validation message and does not submit.",
+        "E2E: the created auction's detail page shows the end time the server worked out.",
+        "Docs: docs/changes/sell-004.md."
+      ],
+      "evidence": [],
+      "notes": "The current schema allows a minimum of 1 minute; it becomes 1 hour. E2E specs that need an auction to end already use POST /api/dev/auctions/:id/expire, so the higher minimum should not slow tests. Update helpers that send endTime. Depends on sell-003 (same form and endpoint)."
+    }
+  ]
+}

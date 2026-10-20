@@ -159,3 +159,12 @@
 - All 11 round 3 features passing; feature list archived to progress-feature-list/feature_list_3.json
 - Still unconfirmed with product owner (recorded in feature notes): statistics range filters on start_time; soft delete keeps username/email reserved; admin-created accounts skip email verification; revenue counts by settlement date; admin does not hold report.* by default
 - Next best step: write a round 4 feature_list.json at the root (CLAUDE.md startup expects one)
+
+### Session 006 - round 4 planning
+
+- Completed: wrote root feature_list.json for round 4 from SRS.txt (7 features, all not_started): crd-001 credit lock/release, crd-002 'Credit'/'Locked credit' UI, upl-001 image upload + resize over 5 MB, gds-001 add/list goods, gds-002 edit/delete goods with active/sold guard, sell-003 auction from existing goods, sell-004 start date + duration (1 h - 30 d)
+- Found: outbid release and pay-from-held at close already exist (bids.ts, settlement.ts); crd-001 is mostly verification and docs
+- Unconfirmed with product owner: reading of the 'System UI' credit wording (crd-002 notes)
+- Open: fe/src/pages/CreateAuction.tsx has an uncommitted change removing the minimum increment field; not mine, left untouched (see sell-003 notes)
+- Not run this session: ./init.sh (planning only, no code changed)
+- Next best step: start crd-001
