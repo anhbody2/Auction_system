@@ -10,7 +10,7 @@ describe('sell-002 cancel auction', () => {
     const alice = await loginAs('alice');
     const bob = await loginAs('bob');
     const carol = await loginAs('carol');
-    const a = await createAuction(alice, { initialPrice: 100, minIncrement: 10 });
+    const a = await createAuction(alice, { initialPrice: 100 });
     await bob.post(`/api/auctions/${a.id}/bids`).send({ amount: 100 });
     await carol.post(`/api/auctions/${a.id}/bids`).send({ amount: 200 });
     expect((await carol.get('/api/credit')).body.held).toBe(200);

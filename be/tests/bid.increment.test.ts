@@ -26,18 +26,22 @@ describe('bid-003 price-tiered bid increment', () => {
   });
 
   it('next minimum bid is the initial price without bids, else current price plus the ladder step', async () => {
-    expect((await nextMinBid({ initialPrice: D(9.5), currentPrice: null, minIncrement: null })).toNumber()).toBe(9.5);
-    expect((await nextMinBid({ initialPrice: D(1), currentPrice: D(9.5), minIncrement: null })).toNumber()).toBe(10);
-    expect((await nextMinBid({ initialPrice: D(1), currentPrice: D(10), minIncrement: null })).toNumber()).toBe(11);
-  });
-
-  it('a per-auction min increment can raise the step but not lower it below the ladder', async () => {
-    expect((await nextMinBid({ initialPrice: D(1), currentPrice: D(100), minIncrement: D(10) })).toNumber()).toBe(110);
-    expect((await nextMinBid({ initialPrice: D(1), currentPrice: D(100), minIncrement: D(1) })).toNumber()).toBe(105);
+    expect((await nextMinBid({ initialPrice: D(9.5), currentPrice: null })).toNumber()).toBe(9.5);
+    expect((await nextMinBid({ initialPrice: D(1), currentPrice: D(9.5) })).toNumber()).toBe(10);
+    expect((await nextMinBid({ initialPrice: D(1), currentPrice: D(10) })).toNumber()).toBe(11);
   });
 
   describe('API', () => {
     beforeEach(resetDb);
+
+    it('there is no per-auction min increment: a sent value is ignored and bids step by the ladder', async () => {
+      const alice = await loginAs('alice');
+      const bob = await loginAs('bob');
+      const a = await createAuction(alice, { initialPrice: 100, minIncrement: 50 });
+      expect(a).not.toHaveProperty('minIncrement');
+      expect((await bob.post(`/api/auctions/${a.id}/bids`).send({ amount: 100 })).status).toBe(201);
+      expect((await request(app).get(`/api/auctions/${a.id}`)).body.auction.nextMinBid).toBe(105);
+    });
 
     it('seeds BID_INCREMENT_RULES with the ladder', async () => {
       const rules = await prisma.bidIncrementRule.findMany({ orderBy: { minBidAmount: 'asc' } });
@@ -50,7 +54,7 @@ describe('bid-003 price-tiered bid increment', () => {
       const alice = await loginAs('alice');
       const bob = await loginAs('bob');
       const carol = await loginAs('carol');
-      const a = await createAuction(alice, { initialPrice: 9.5, minIncrement: null });
+      const a = await createAuction(alice, { initialPrice: 9.5 });
       expect((await bob.post(`/api/auctions/${a.id}/bids`).send({ amount: 9.5 })).status).toBe(201);
 
       const low = await carol.post(`/api/auctions/${a.id}/bids`).send({ amount: 9.99 });
@@ -64,7 +68,7 @@ describe('bid-003 price-tiered bid increment', () => {
       const alice = await loginAs('alice');
       const bob = await loginAs('bob');
       const carol = await loginAs('carol');
-      const a = await createAuction(alice, { initialPrice: 10, minIncrement: null });
+      const a = await createAuction(alice, { initialPrice: 10 });
       await bob.post(`/api/auctions/${a.id}/bids`).send({ amount: 10 });
 
       const low = await carol.post(`/api/auctions/${a.id}/bids`).send({ amount: 10.5 });

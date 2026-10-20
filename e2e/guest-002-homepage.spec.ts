@@ -5,7 +5,7 @@ test('guest-002: guest sees live, upcoming and just-completed auctions with coun
   // Arrange as alice / bob
   await login(page, 'alice');
   const soon = (m: number) => new Date(Date.now() + m * 60_000).toISOString();
-  const live = await createAuctionViaApi(page.request, { name: 'Home Live Kettle', initialPrice: 30, minIncrement: 5 });
+  const live = await createAuctionViaApi(page.request, { name: 'Home Live Kettle', initialPrice: 30 });
   const upcoming = await createAuctionViaApi(page.request, { name: 'Home Soon Kettle', startTime: soon(60), endTime: soon(120) });
   const done = await createAuctionViaApi(page.request, { name: 'Home Done Kettle', initialPrice: 30 });
   await logout(page);

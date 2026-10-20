@@ -12,7 +12,7 @@ test('cust-007: bidder sees each auction with latest bid, highest bid and outcom
   await rival.request.post('/api/auth/login', { data: { identifier: 'bob', password: PASSWORD } });
 
   await login(page, 'alice');
-  const mk = (name: string, extra = {}) => createAuctionViaApi(page.request, { name, initialPrice: 100, minIncrement: 10, ...extra });
+  const mk = (name: string, extra = {}) => createAuctionViaApi(page.request, { name, initialPrice: 100, ...extra });
   const winning = await mk('Jack Winning');
   const outbid = await mk('Jack Outbid');
   const won = await mk('Jack Won');

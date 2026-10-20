@@ -12,7 +12,7 @@ describe('cust-007 manage your biddings (+ settlement)', () => {
     const alice = await loginAs('alice');
     const bob = await loginAs('bob');
     const carol = await loginAs('carol');
-    const mk = async (name: string, extra = {}) => (await createAuction(alice, { name, initialPrice: 100, minIncrement: 10, ...extra })).id;
+    const mk = async (name: string, extra = {}) => (await createAuction(alice, { name, initialPrice: 100, ...extra })).id;
 
     ids.winning = await mk('Winning');
     await bob.post(`/api/auctions/${ids.winning}/bids`).send({ amount: 100 });

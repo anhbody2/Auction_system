@@ -3,7 +3,7 @@ import { createAuctionViaApi, login, logout } from './helpers';
 
 test('bid-001: bidder places valid bids; low, over-credit, own and ended-auction bids are rejected', async ({ page }) => {
   await login(page, 'alice');
-  const auction = await createAuctionViaApi(page.request, { name: 'Bid Test Lamp', initialPrice: 100, minIncrement: 10 });
+  const auction = await createAuctionViaApi(page.request, { name: 'Bid Test Lamp', initialPrice: 100 });
   const ended = await createAuctionViaApi(page.request, { name: 'Ended Lamp' });
   await page.request.post(`/api/dev/auctions/${ended.id}/expire`);
 
@@ -20,16 +20,16 @@ test('bid-001: bidder places valid bids; low, over-credit, own and ended-auction
   await expect(page.getByLabel('Your bid')).toHaveValue('100');
   await page.getByRole('button', { name: 'Place bid' }).click();
   await expect(page.getByTestId('current-price')).toHaveText('$100.00');
-  await expect(page.getByTestId('next-min-bid')).toHaveText('$110.00');
+  await expect(page.getByTestId('next-min-bid')).toHaveText('$105.00');
   await expect(page.getByTestId('bid-history').getByRole('row').nth(1)).toContainText('bob');
 
   // Equal / below increment rejected
   await page.getByLabel('Your bid').fill('100');
   await page.getByRole('button', { name: 'Place bid' }).click();
-  await expect(page.getByRole('alert')).toHaveText('Bid must be at least $110.00');
-  await page.getByLabel('Your bid').fill('105');
+  await expect(page.getByRole('alert')).toHaveText('Bid must be at least $105.00');
+  await page.getByLabel('Your bid').fill('104.99');
   await page.getByRole('button', { name: 'Place bid' }).click();
-  await expect(page.getByRole('alert')).toHaveText('Bid must be at least $110.00');
+  await expect(page.getByRole('alert')).toHaveText('Bid must be at least $105.00');
 
   // Exceeding available credit rejected (bob has 1000, 100 already held -> raising to 5000 fails)
   await page.getByLabel('Your bid').fill('5000');

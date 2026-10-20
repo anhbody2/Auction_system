@@ -6,7 +6,7 @@ test('cust-006: seller sees own auctions by status with highest bid, and opens o
   await registerViaApi(page.request, 'ivy');
   await login(page, 'ivy');
   const soon = (m: number) => new Date(Date.now() + m * 60_000).toISOString();
-  const active = await createAuctionViaApi(page.request, { name: 'Ivy Active', initialPrice: 40, minIncrement: 5 });
+  const active = await createAuctionViaApi(page.request, { name: 'Ivy Active', initialPrice: 40 });
   const upcoming = await createAuctionViaApi(page.request, { name: 'Ivy Upcoming', startTime: soon(60), endTime: soon(120) });
   const ended = await createAuctionViaApi(page.request, { name: 'Ivy Ended' });
   await page.request.post(`/api/dev/auctions/${ended.id}/expire`);

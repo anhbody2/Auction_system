@@ -12,7 +12,7 @@ describe('sell-001 create auction', () => {
   it('creates an active auction visible to the seller and to other customers', async () => {
     const alice = await loginAs('alice');
     const created = await createAuction(alice, { reservePrice: 150 });
-    expect(created).toMatchObject({ status: 'active', initialPrice: 100, minIncrement: 10, nextMinBid: 100, isOwner: true, reservePrice: 150 });
+    expect(created).toMatchObject({ status: 'active', initialPrice: 100, nextMinBid: 100, isOwner: true, reservePrice: 150 });
 
     const mine = await alice.get('/api/me/auctions');
     expect(mine.body.auctions.map((a: { id: number }) => a.id)).toContain(created.id);

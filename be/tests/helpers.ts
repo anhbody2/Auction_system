@@ -41,7 +41,6 @@ export async function createAuction(agent: request.Agent, overrides: Record<stri
     categoryId: Number(category.id),
     condition: 'used',
     initialPrice: 100,
-    minIncrement: 10,
     startTime: inMinutes(0),
     endTime: inMinutes(60),
     ...overrides,

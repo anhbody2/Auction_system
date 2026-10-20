@@ -19,19 +19,10 @@ export function effectiveStatus(a: { status: string; startTime: Date; endTime: D
   return 'active';
 }
 
-/**
- * Increment to apply above `price`: the ladder increment for that price. An auction's own
- * min_increment can only raise it, never go below the ladder.
- */
-export function incrementFor(a: { minIncrement: Prisma.Decimal | null }, price: Prisma.Decimal) {
-  const ladder = ladderIncrement(price);
-  return a.minIncrement && a.minIncrement.greaterThan(ladder) ? a.minIncrement : ladder;
-}
-
-/** Smallest acceptable next bid. */
-export async function nextMinBid(a: { initialPrice: Prisma.Decimal; currentPrice: Prisma.Decimal | null; minIncrement: Prisma.Decimal | null }) {
+/** Smallest acceptable next bid: the starting price, then the current price plus the ladder increment. */
+export async function nextMinBid(a: { initialPrice: Prisma.Decimal; currentPrice: Prisma.Decimal | null }) {
   if (!a.currentPrice) return a.initialPrice;
-  return a.currentPrice.plus(incrementFor(a, a.currentPrice));
+  return a.currentPrice.plus(ladderIncrement(a.currentPrice));
 }
 
 /** Public JSON shape. The reserve price is only revealed to the seller. */
@@ -55,7 +46,6 @@ export async function auctionView(a: AuctionWithRelations, viewerId?: bigint) {
     reservePrice: isOwner ? a.reservePrice : undefined,
     hasReserve: !!a.reservePrice,
     reserveMet: !a.reservePrice || (!!a.currentPrice && a.currentPrice.greaterThanOrEqualTo(a.reservePrice)),
-    minIncrement: a.minIncrement,
     currentPrice: a.currentPrice,
     nextMinBid: status === 'active' || status === 'upcoming' ? await nextMinBid(a) : null,
     bidCount: a._count.bids,

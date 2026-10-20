@@ -27,7 +27,6 @@ export function CreateAuctionPage() {
     imageUrl: '',
     initialPrice: '',
     reservePrice: '',
-    minIncrement: '',
     startTime: toLocalInput(new Date()),
     endTime: toLocalInput(new Date(Date.now() + 24 * 3600 * 1000)),
   }));
@@ -106,14 +105,13 @@ export function CreateAuctionPage() {
         <Field label="Image URL (optional)" type="url" {...bind('imageUrl')} />
         <div className="grid stats">
           <Field label="Starting price" inputMode="decimal" {...bind('initialPrice')} />
-          <Field label="Minimum increment (optional)" inputMode="decimal" {...bind('minIncrement')} />
           <Field label="Reserve price (optional)" inputMode="decimal" {...bind('reservePrice')} />
         </div>
         <div className="grid stats">
           <Field label="Start time" type="datetime-local" {...bind('startTime')} />
           <Field label="End time" type="datetime-local" {...bind('endTime')} />
         </div>
-        <p className="muted small">Bids rise by the standard increment ladder ($0.50 from $1, $1 from $10, $2.50 from $50, $5 from $100, $10 from $500, $25 from $1,000, $100 from $5,000). A minimum increment can only make steps larger.</p>
+        <p className="muted small">Bids rise by the standard increment ladder ($0.50 from $1, $1 from $10, $2.50 from $50, $5 from $100, $10 from $500, $25 from $1,000, $100 from $5,000).</p>
         <button className="btn btn-primary" type="submit" disabled={busy}>
           {busy ? 'Creating...' : 'Create auction'}
         </button>

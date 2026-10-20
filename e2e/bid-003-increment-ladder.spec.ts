@@ -3,7 +3,7 @@ import { createAuctionViaApi, login, logout } from './helpers';
 
 test('bid-003: auction page shows the ladder minimum next bid and updates after each bid', async ({ page }) => {
   await login(page, 'alice');
-  const auction = await createAuctionViaApi(page.request, { name: 'Ladder Mug', initialPrice: 9.5, minIncrement: null });
+  const auction = await createAuctionViaApi(page.request, { name: 'Ladder Mug', initialPrice: 9.5 });
   await logout(page);
 
   await login(page, 'bob');

@@ -28,7 +28,7 @@ describe('sys-002 close auction job and settlement', () => {
     const alice = await loginAs('alice');
     const bob = await loginAs('bob');
     const carol = await loginAs('carol');
-    const a = await createAuction(alice, { initialPrice: 100, minIncrement: 10, reservePrice: 150 });
+    const a = await createAuction(alice, { initialPrice: 100, reservePrice: 150 });
     await carol.post(`/api/auctions/${a.id}/bids`).send({ amount: 100 });
     await bob.post(`/api/auctions/${a.id}/bids`).send({ amount: 200 });
     await expire(a.id);
@@ -65,7 +65,7 @@ describe('sys-002 close auction job and settlement', () => {
   it('reserve not met: no winner, every hold released, status ended', async () => {
     const alice = await loginAs('alice');
     const bob = await loginAs('bob');
-    const a = await createAuction(alice, { initialPrice: 100, minIncrement: 10, reservePrice: 900 });
+    const a = await createAuction(alice, { initialPrice: 100, reservePrice: 900 });
     await bob.post(`/api/auctions/${a.id}/bids`).send({ amount: 150 });
     expect(money(await user('bob'))).toEqual({ balance: 1000, held: 150 });
     await expire(a.id);

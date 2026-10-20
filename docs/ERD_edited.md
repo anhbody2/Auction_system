@@ -10,7 +10,7 @@
 | USERS: added `username` (UK) | cust-001 login by "username/email" |
 | USERS: added `credit_balance`, `held_balance` | cust-005 credit account; bid-001 check bids against available credit; sell-002 release held credit |
 | AUCTIONS: added `start_time`, `end_time` | sell-001 start/end time, guest-002 countdown (`duration_minutes` kept, = end - start) |
-| AUCTIONS: added `min_increment` | sell-001/bid-001 minimum increment (falls back to BID_INCREMENT_RULES when null) |
+| ~~AUCTIONS: added `min_increment`~~ | Removed 2026-10-20 (migration `20261020040000_drop_min_increment`): bids step by BID_INCREMENT_RULES only. See docs/changes/drop-min-increment.md |
 | AUCTIONS: added `current_price`, `winner_id` | cust-006/cust-007 current highest bid and outcome without re-aggregation |
 | new AUCTION_MESSAGES | bid-002 post a message on an auction (public thread) |
 | new PASSWORD_RESET_TOKENS | cust-004 forget password (single-use token) |
@@ -86,7 +86,6 @@ erDiagram
         text description
         decimal initial_price
         decimal reserve_price
-        decimal min_increment "added"
         decimal current_price "added"
         int duration_minutes
         timestamp start_time "added"

@@ -138,7 +138,7 @@
         "Docs: docs/changes/sell-003.md."
       ],
       "evidence": [],
-      "notes": "fe/src/pages/CreateAuction.tsx has an uncommitted change (as of 2026-10-20) that removes the 'Minimum increment' field. Ask the user whether to keep it before building on that file; if kept, minIncrement must also leave the server schema and tests. Depends on gds-001."
+      "notes": "The per-auction minimum increment was dropped on 2026-10-20 at the user's request (docs/changes/drop-min-increment.md); do not reintroduce it on the new form. Depends on gds-001."
     },
     {
       "id": "sell-004",

@@ -10,7 +10,7 @@ describe('cust-006 manage your auctions', () => {
     await resetDb();
     const alice = await loginAs('alice');
     const bob = await loginAs('bob');
-    ids.active = (await createAuction(alice, { name: 'Active one', initialPrice: 50, minIncrement: 5 })).id;
+    ids.active = (await createAuction(alice, { name: 'Active one', initialPrice: 50 })).id;
     await bob.post(`/api/auctions/${ids.active}/bids`).send({ amount: 75 });
     ids.upcoming = (await createAuction(alice, { name: 'Upcoming one', startTime: inMinutes(60), endTime: inMinutes(120) })).id;
     ids.ended = (await createAuction(alice, { name: 'Ended one' })).id;

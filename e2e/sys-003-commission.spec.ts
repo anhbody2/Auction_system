@@ -6,8 +6,8 @@ test('sys-003: seller proceeds are reduced by the tiered commission (5% at $150,
   await registerViaApi(page.request, 'tom_buyer');
 
   await login(page, 'tia_seller');
-  const mid = await createAuctionViaApi(page.request, { name: 'Commission Lamp', initialPrice: 150, minIncrement: null });
-  const low = await createAuctionViaApi(page.request, { name: 'Commission Cup', initialPrice: 60, minIncrement: null });
+  const mid = await createAuctionViaApi(page.request, { name: 'Commission Lamp', initialPrice: 150 });
+  const low = await createAuctionViaApi(page.request, { name: 'Commission Cup', initialPrice: 60 });
   await logout(page);
 
   await login(page, 'tom_buyer');

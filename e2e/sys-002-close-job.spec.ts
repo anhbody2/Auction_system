@@ -8,7 +8,7 @@ test('sys-002: after the close job runs, the auction is ended and winner and sel
   await registerViaApi(page.request, 'wendy_winner');
 
   await login(page, 'sam_seller');
-  const auction = await createAuctionViaApi(page.request, { name: 'Closing Teapot', initialPrice: 100, minIncrement: null, reservePrice: 150 });
+  const auction = await createAuctionViaApi(page.request, { name: 'Closing Teapot', initialPrice: 100, reservePrice: 150 });
   await logout(page);
 
   await login(page, 'wendy_winner');

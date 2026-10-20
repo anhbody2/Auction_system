@@ -26,7 +26,6 @@ test('sell-001: seller creates an auction that other customers can see; invalid 
 
   // Valid
   await page.getByLabel('Starting price').fill('200');
-  await page.getByLabel('Minimum increment (optional)').fill('10');
   await page.getByLabel('Start time').fill(local(0));
   await page.getByLabel('End time').fill(local(120));
   await page.getByRole('button', { name: 'Create auction' }).click();

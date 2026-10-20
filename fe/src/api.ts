@@ -44,7 +44,6 @@ export interface Auction {
   reservePrice?: number | null;
   hasReserve: boolean;
   reserveMet: boolean;
-  minIncrement: number | null;
   currentPrice: number | null;
   nextMinBid: number | null;
   bidCount: number;

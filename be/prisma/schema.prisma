@@ -96,7 +96,6 @@ model Auction {
   description     String?
   initialPrice    Decimal   @map("initial_price") @db.Decimal(14, 2)
   reservePrice    Decimal?  @map("reserve_price") @db.Decimal(14, 2)
-  minIncrement    Decimal?  @map("min_increment") @db.Decimal(14, 2)
   currentPrice    Decimal?  @map("current_price") @db.Decimal(14, 2)
   durationMinutes Int       @map("duration_minutes")
   startTime       DateTime  @map("start_time")

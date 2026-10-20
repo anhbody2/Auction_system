@@ -168,3 +168,10 @@
 - Open: fe/src/pages/CreateAuction.tsx has an uncommitted change removing the minimum increment field; not mine, left untouched (see sell-003 notes)
 - Not run this session: ./init.sh (planning only, no code changed)
 - Next best step: start crd-001
+
+### Session 006 (cont.) drop min-increment (user request, outside the feature list)
+
+- Baseline before the change: vitest 152/152, fe build ok, Playwright 28/29 - sell-001 failed because the user's uncommitted CreateAuction.tsx edit had removed the 'Minimum increment' field the spec fills
+- Completed: migration 20261020040000_drop_min_increment, ladder-only nextMinBid, field removed from API/UI/types/helpers; tests expecting a $10 step at $100 moved to the ladder's $5; details in docs/changes/drop-min-increment.md
+- Note: init.sh's npm install fails with EPERM on prisma generate while `npm run dev` is running (Windows locks the query engine DLL). Stop the dev server first
+- Verification: npm run verify exit 0 -> vitest 29 files / 152 tests, fe build ok, Playwright 29/29

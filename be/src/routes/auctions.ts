@@ -38,7 +38,6 @@ const termsSchema = z
   .object({
     initialPrice: price('Starting price'),
     reservePrice: optionalPrice('Reserve price'),
-    minIncrement: optionalPrice('Minimum increment'),
     startTime: dateField('Start time'),
     endTime: dateField('End time'),
   })
@@ -112,7 +111,6 @@ auctionsRouter.post(
           description: d.description,
           initialPrice: d.initialPrice,
           reservePrice: d.reservePrice ?? null,
-          minIncrement: d.minIncrement ?? null,
           startTime,
           endTime: d.endTime,
           durationMinutes: Math.round((d.endTime.getTime() - startTime.getTime()) / 60000),

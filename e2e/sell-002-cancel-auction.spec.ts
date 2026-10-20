@@ -3,7 +3,7 @@ import { createAuctionViaApi, login, logout } from './helpers';
 
 test('sell-002: seller cancels an auction; bids rejected, credit released, non-owner blocked', async ({ page }) => {
   await login(page, 'alice');
-  const auction = await createAuctionViaApi(page.request, { name: 'Cancel Me Vase', initialPrice: 100, minIncrement: 10 });
+  const auction = await createAuctionViaApi(page.request, { name: 'Cancel Me Vase', initialPrice: 100 });
   await logout(page);
 
   // carol bids so she has credit held

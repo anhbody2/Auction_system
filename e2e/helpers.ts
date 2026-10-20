@@ -35,7 +35,6 @@ export async function createAuctionViaApi(request: APIRequestContext, overrides:
       categoryId: categories[0].id,
       condition: 'used',
       initialPrice: 100,
-      minIncrement: 10,
       startTime: new Date().toISOString(),
       endTime: new Date(Date.now() + 3600_000).toISOString(),
       ...overrides,
@@ -53,7 +52,7 @@ export async function logout(page: Page) {
 /** alice sells, bob wins at $150 (5% commission = $7.50); the auction is expired and settled. */
 export async function createSoldAuction(request: APIRequestContext, name: string) {
   await request.post('/api/auth/login', { data: { identifier: 'alice', password: PASSWORD } });
-  const auction = await createAuctionViaApi(request, { name, initialPrice: 100, minIncrement: 10 });
+  const auction = await createAuctionViaApi(request, { name, initialPrice: 100 });
   await request.post('/api/auth/login', { data: { identifier: 'bob', password: PASSWORD } });
   // Other specs spend bob's credit; top up so this helper works at any point in the suite.
   expect((await request.post('/api/credit/topup', { data: { amount: 150 } })).ok()).toBe(true);

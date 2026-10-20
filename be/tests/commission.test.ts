@@ -24,7 +24,7 @@ describe('sys-003 tiered system commission', () => {
     const sell = async (price: number) => {
       const alice = await loginAs('alice');
       const bob = await loginAs('bob');
-      const a = await createAuction(alice, { initialPrice: price, minIncrement: null });
+      const a = await createAuction(alice, { initialPrice: price });
       expect((await bob.post(`/api/auctions/${a.id}/bids`).send({ amount: price })).status).toBe(201);
       await prisma.auction.update({ where: { id: BigInt(a.id) }, data: { endTime: new Date(Date.now() - 1000) } });
       expect(await settleAuction(BigInt(a.id))).toBe(true);
