@@ -78,6 +78,8 @@ export interface Goods {
   category: { id: number; name: string } | null;
   images: string[];
   status: GoodsStatus;
+  /** gds-002: why Edit and Delete are off, or null. */
+  lockedReason: string | null;
   auctionId: number | null;
   createdAt: string;
   updatedAt: string;

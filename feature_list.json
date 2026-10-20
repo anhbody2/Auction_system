@@ -135,7 +135,7 @@
       "srs_ref": "Seller - Manage Goods 3.11.3 REQ-2",
       "title": "Edit and delete goods, blocked while in an active auction or sold",
       "user_visible_behavior": "On My goods the seller can edit a goods item (all fields and images) or delete it. Both actions are blocked if the item is in an upcoming or active auction, or has been sold. Blocked items show the reason and have Edit and Delete disabled. Delete asks for confirmation, and the item then disappears from the list.",
-      "status": "in_progress",
+      "status": "passing",
       "verification": [
         "Integration (be/tests/goods.edit.test.ts): PATCH /api/goods/:id by its owner on available goods returns 200. On goods in an active or upcoming auction it returns 409 'Goods in an active auction cannot be changed'. On sold goods it returns 409 'Sold goods cannot be changed'. A non-owner gets 403 or 404.",
         "Integration (be/tests/goods.delete.test.ts): DELETE follows the same rules. A deleted item is soft deleted (status 'deleted'), drops out of /api/me/goods, and past auctions that reference it still load.",
@@ -143,7 +143,13 @@
         "E2E (e2e/gds-002-edit-delete-goods.spec.ts): alice edits the name of an available item and sees the new name. She deletes it after confirming. For an item in an active auction, Edit and Delete are disabled and the reason is shown.",
         "Docs: docs/changes/gds-002.md."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-20 Integration: be/tests/goods.edit.test.ts (6 tests) - owner PATCH on available goods 200 (fields + images replaced, 2 image rows), partial edit keeps the rest; empty/linked images, short name, unknown field 400; active and upcoming 409 \"Goods in an active auction cannot be changed\" and unchanged; sold 409 \"Sold goods cannot be changed\", GET shows lockedReason; cancelled-only and ended-unsold editable; non-owner, unknown and non-numeric ids 404",
+        "2026-10-20 Integration: be/tests/goods.delete.test.ts (4 tests) - DELETE soft deletes (status deleted), drops out of /api/me/goods, then GET/DELETE/PATCH 404; active/upcoming/sold 409 and kept; cancelled-only and ended-unsold deletable and GET /api/auctions/:id of that past auction still 200 with the goods name; non-owner 404, signed out 401",
+        "2026-10-20 E2E: e2e/gds-002-edit-delete-goods.spec.ts - alice renames Pewter Candlestick via Edit and sees the new name; Delete Spare Teapot: Keep leaves it, Yes, delete removes it (also after reload); Running Gramophone (active auction) shows in auction, Edit and Delete disabled, reason shown",
+        "2026-10-20 npm run verify exit 0: vitest 38 files / 191 tests, fe build ok, Playwright 35/35",
+        "2026-10-20 Docs: docs/changes/gds-002.md"
+      ],
       "notes": "Soft delete because auctions.goods_id references goods. Depends on gds-001."
     },
     {
@@ -154,7 +160,7 @@
       "srs_ref": "Seller - Manage Goods REQ-1; Create Auction (image) Req-1",
       "title": "Create auction from existing goods (no image URL input)",
       "user_visible_behavior": "The create-auction form no longer asks for goods details or an image URL. The seller picks one of their available goods; its images and details are shown. Goods that are in an auction or sold cannot be picked. If the seller has no available goods, the form links to 'Add goods'. Auction name, description, starting price and reserve price stay on the form.",
-      "status": "not_started",
+      "status": "in_progress",
       "verification": [
         "Integration (be/tests/auction.create.test.ts, updated): POST /api/auctions takes goodsId and no longer creates goods or accepts imageUrl. Goods owned by someone else returns 403/404. Goods already in an open auction or sold returns 409. Valid goods returns 201 linked to that goodsId.",
         "E2E (e2e/sell-003-auction-from-goods.spec.ts): alice with one available item creates an auction from it. The auction page shows the uploaded image. On My goods the item now shows 'in auction'.",

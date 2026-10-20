@@ -3,41 +3,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { prisma } from '../src/db';
 import { goodsState } from '../src/lib/goods';
 import { app, loginAs, resetDb } from './helpers';
-import { uploadTestImage, useTempUploadDir } from './upload.fixtures';
+import { addGoods, attachAuction } from './goods.fixtures';
+import { useTempUploadDir } from './upload.fixtures';
 
 useTempUploadDir();
-
-async function addGoods(agent: request.Agent, name: string) {
-  const category = await prisma.category.findFirstOrThrow();
-  const res = await agent.post('/api/goods').send({
-    name,
-    description: 'Goods created by the list tests.',
-    categoryId: Number(category.id),
-    condition: 'new',
-    images: [await uploadTestImage(agent)],
-  });
-  expect(res.status).toBe(201);
-  return BigInt(res.body.goods.id);
-}
-
-/** Attaches an auction in the given state directly, so the derived status can be checked on its own. */
-async function attachAuction(goodsId: bigint, status: string, winner?: string) {
-  const goods = await prisma.goods.findUniqueOrThrow({ where: { id: goodsId } });
-  const winnerId = winner ? (await prisma.user.findUniqueOrThrow({ where: { username: winner } })).id : null;
-  await prisma.auction.create({
-    data: {
-      sellerId: goods.sellerId,
-      goodsId,
-      winnerId,
-      name: goods.name,
-      initialPrice: 10,
-      durationMinutes: 60,
-      startTime: new Date(Date.now() - 3600_000),
-      endTime: new Date(Date.now() + (status === 'ended' || status === 'cancelled' ? -60_000 : 3600_000)),
-      status,
-    },
-  });
-}
 
 describe('gds-001 GET /api/me/goods', () => {
   beforeEach(resetDb);

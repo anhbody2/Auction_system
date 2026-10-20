@@ -209,3 +209,8 @@
 - Completed: be/src/lib/goods.ts (derived status, schema, refs check), POST /api/goods, GET /api/me/goods; fe My goods page (/goods), Add goods (/goods/new) with shared GoodsForm and ImageUpload (1-8 images); e2e helpers createGoodsViaApi/uploadImageViaApi
 - Verification: npm run verify exit 0 -> vitest 36 files / 181 tests, fe build ok, Playwright 34/34
 - Known: uploads are not tied to a user (a seller could reuse another user's upload URL if they knew it)
+
+### Session 007 (cont.) gds-002
+
+- Completed: GET/PATCH/DELETE /api/goods/:id (owner only, 404 otherwise; 409 in auction or sold; soft delete); goods row locked FOR UPDATE during the check (lockOwnGoods/lockChangeableGoods) so sell-003 can take the same lock; fe Edit/Delete actions with inline confirm and disabled + reason, /goods/:id/edit
+- Verification: npm run verify exit 0 -> vitest 38 files / 191 tests, fe build ok, Playwright 35/35

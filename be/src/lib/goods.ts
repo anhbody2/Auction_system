@@ -39,6 +39,7 @@ export function goodsView(g: GoodsRow) {
     category: g.category ? { id: g.category.id, name: g.category.name } : null,
     images: g.images.map((i) => i.imageUrl),
     status: state,
+    lockedReason: goodsLockReason(state),
     auctionId: open?.id ?? g.auctions[0]?.id ?? null,
     createdAt: g.createdAt,
     updatedAt: g.updatedAt,
@@ -64,4 +65,33 @@ export async function checkGoodsRefs(tx: Prisma.TransactionClient, d: z.infer<ty
     if (!(await isStoredUpload(url))) throw new HttpError(400, 'Validation failed', { images: 'Upload the images instead of linking to them' });
   }
   return category;
+}
+
+export const IN_AUCTION_MESSAGE = 'Goods in an active auction cannot be changed';
+export const SOLD_MESSAGE = 'Sold goods cannot be changed';
+
+/** Why goods cannot be edited or deleted (gds-002), or null when they can. */
+export function goodsLockReason(state: GoodsState) {
+  if (state === 'in_auction') return IN_AUCTION_MESSAGE;
+  if (state === 'sold') return SOLD_MESSAGE;
+  return null;
+}
+
+/**
+ * Locks the seller's goods row for the rest of the transaction (so an auction cannot be created for it
+ * meanwhile) and returns it with its derived state. Someone else's or deleted goods are 404.
+ */
+export async function lockOwnGoods(tx: Prisma.TransactionClient, goodsId: bigint, sellerId: bigint) {
+  await tx.$queryRaw`SELECT id FROM goods WHERE id = ${goodsId} FOR UPDATE`;
+  const goods = await tx.goods.findUnique({ where: { id: goodsId }, include: goodsInclude });
+  if (!goods || goods.sellerId !== sellerId || goods.status === 'deleted') throw new HttpError(404, 'Goods not found');
+  return { goods, state: goodsState(goods.auctions) };
+}
+
+/** Like lockOwnGoods, but 409 unless the goods are available. */
+export async function lockChangeableGoods(tx: Prisma.TransactionClient, goodsId: bigint, sellerId: bigint) {
+  const locked = await lockOwnGoods(tx, goodsId, sellerId);
+  const reason = goodsLockReason(locked.state);
+  if (reason) throw new HttpError(409, reason);
+  return locked.goods;
 }

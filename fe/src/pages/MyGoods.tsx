@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { CONDITION_LABELS, GOODS_STATUS_LABELS, api, type Goods } from '../api';
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ApiError, CONDITION_LABELS, GOODS_STATUS_LABELS, api, type Goods } from '../api';
 import { EMPTY_GOODS, GoodsForm, type GoodsValues } from '../components/GoodsForm';
 import { useToast } from '../toast';
 
@@ -16,9 +16,10 @@ export function GoodsStatusBadge({ status }: { status: Goods['status'] }) {
 export function MyGoodsPage() {
   const [goods, setGoods] = useState<Goods[] | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     api<{ goods: Goods[] }>('/me/goods').then((r) => setGoods(r.goods));
   }, []);
+  useEffect(load, [load]);
 
   return (
     <div>
@@ -43,6 +44,7 @@ export function MyGoodsPage() {
                 <th>Category</th>
                 <th>Condition</th>
                 <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -63,12 +65,77 @@ export function MyGoodsPage() {
                       </>
                     )}
                   </td>
+                  <td>
+                    <GoodsActions goods={g} onDeleted={load} />
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+/** gds-002: Edit and Delete; both off with the reason shown while the goods are in an auction or sold. */
+function GoodsActions({ goods, onDeleted }: { goods: Goods; onDeleted: () => void }) {
+  const toast = useToast();
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  if (goods.lockedReason) {
+    return (
+      <div className="row">
+        <button className="btn btn-ghost btn-small" disabled aria-label={`Edit ${goods.name}`}>
+          Edit
+        </button>
+        <button className="btn btn-ghost btn-small" disabled aria-label={`Delete ${goods.name}`}>
+          Delete
+        </button>
+        <span className="muted small" data-testid="locked-reason">
+          {goods.lockedReason}
+        </span>
+      </div>
+    );
+  }
+
+  const remove = async () => {
+    setBusy(true);
+    try {
+      const res = await api<{ message: string }>(`/goods/${goods.id}`, { method: 'DELETE' });
+      toast(res.message, 'success');
+      onDeleted();
+    } catch (err) {
+      toast(err instanceof ApiError ? err.message : 'Delete failed', 'error');
+      onDeleted();
+    } finally {
+      setBusy(false);
+      setConfirming(false);
+    }
+  };
+
+  if (confirming) {
+    return (
+      <span className="row" role="group" aria-label={`Confirm delete ${goods.name}`}>
+        <span className="small">Delete {goods.name}?</span>
+        <button className="btn btn-danger btn-small" onClick={remove} disabled={busy}>
+          Yes, delete
+        </button>
+        <button className="btn btn-ghost btn-small" onClick={() => setConfirming(false)}>
+          Keep
+        </button>
+      </span>
+    );
+  }
+  return (
+    <div className="row">
+      <Link className="btn btn-ghost btn-small" to={`/goods/${goods.id}/edit`} aria-label={`Edit ${goods.name}`}>
+        Edit
+      </Link>
+      <button className="btn btn-ghost btn-small" onClick={() => setConfirming(true)} aria-label={`Delete ${goods.name}`}>
+        Delete
+      </button>
     </div>
   );
 }
@@ -87,6 +154,54 @@ export function AddGoodsPage() {
     <div className="card" style={{ maxWidth: 720, margin: '0 auto' }}>
       <h1>Add goods</h1>
       <GoodsForm initial={EMPTY_GOODS} submitLabel="Add goods" onSubmit={submit} />
+    </div>
+  );
+}
+
+export function EditGoodsPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const toast = useToast();
+  const [goods, setGoods] = useState<Goods | null>(null);
+  const [problem, setProblem] = useState('');
+
+  useEffect(() => {
+    api<{ goods: Goods }>(`/goods/${id}`)
+      .then((r) => setGoods(r.goods))
+      .catch((err) => setProblem(err instanceof ApiError ? err.message : 'Could not load the goods'));
+  }, [id]);
+
+  const submit = async (values: GoodsValues) => {
+    try {
+      await api(`/goods/${id}`, { method: 'PATCH', body: toGoodsBody(values) });
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) toast(err.message, 'error');
+      throw err;
+    }
+    toast('Goods updated', 'success');
+    navigate('/goods');
+  };
+
+  if (problem) return <p className="muted">{problem}</p>;
+  if (!goods) return <p className="muted">Loading...</p>;
+  return (
+    <div className="card" style={{ maxWidth: 720, margin: '0 auto' }}>
+      <h1>Edit goods</h1>
+      {goods.lockedReason ? (
+        <p className="muted">{goods.lockedReason}.</p>
+      ) : (
+        <GoodsForm
+          initial={{
+            name: goods.name,
+            description: goods.description ?? '',
+            categoryId: goods.category ? String(goods.category.id) : '',
+            condition: goods.condition ?? '',
+            images: goods.images,
+          }}
+          submitLabel="Save changes"
+          onSubmit={submit}
+        />
+      )}
     </div>
   );
 }
