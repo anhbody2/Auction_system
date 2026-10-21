@@ -64,7 +64,7 @@
       "srs_ref": "System - Axios API call",
       "title": "Frontend calls the API through a shared Axios instance",
       "user_visible_behavior": "No visible change in behaviour: every page still loads and submits the same data and shows the same error messages. Under the hood all HTTP calls go through one Axios instance (baseURL /api, cookies included) with an interceptor that turns error responses into the existing ApiError (status, message, field errors). A 401 on a protected call clears the signed-in user and sends them to /login. Image upload shows progress through Axios upload progress.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "fe/package.json adds axios at an exact version; fe/src/api.ts exports the axios instance and keeps the api<T>(path, options) helper signature so callers do not change (or all callers are migrated).",
         "Unit (fe/src/api.test.ts, axios mock adapter or a stub adapter): a 400 with {error, fields} becomes ApiError with the same status/message/fields; a network error becomes ApiError with a readable message; withCredentials is true; GET without body sends no Content-Type.",
@@ -73,8 +73,15 @@
         "E2E (e2e/sys-004-axios-client.spec.ts): login, place a bid, submit a form with a validation error (field message shown), and upload an image, all through the new client. The full existing Playwright suite still passes.",
         "Docs: docs/changes/sys-004.md; docs/api-client.md (instance config, error mapping, 401 handling, why SSE stays on EventSource)."
       ],
-      "evidence": [],
-      "notes": "Current client: fe/src/api.ts api() uses fetch. Uploads are in fe/src/components/ImageUpload.tsx. SSE hooks in fe/src/store/use*Events.ts stay on EventSource. Done early so the staff pages in this round are built on it."
+      "evidence": [
+        "2026-10-21 ./init.sh exit 0: be vitest 45 files / 226 tests, fe vitest 3 files / 23 tests, fe build ok, Playwright 47/47",
+        "fe/package.json axios 1.7.7 exact; fe/src/api.ts exports http and keeps api<T>(path, options)",
+        "fe/src/api.test.ts (8 tests, stub adapter): 400 {error, fields} -> ApiError same status/message/fields; no body -> 'Request failed'; network error -> status 0 readable message; withCredentials true; GET without body has no Content-Type; 401 triggers handler once, not for /auth/*, not after unregister",
+        "grep: grep -rn \"fetch(\" fe/src (*.ts, *.tsx, non-test) -> no matches; only EventSource SSE streams remain",
+        "e2e/sys-004-axios-client.spec.ts passes: register 'Username is already taken' field error, login, image upload, bid + too-low bid message; every non-SSE /api request is resourceType xhr; cleared cookie -> /login with 'Your session has ended', login returns to /goods",
+        "Docs: docs/changes/sys-004.md, docs/api-client.md"
+      ],
+      "notes": "Current client: fe/src/api.ts api() uses fetch. Uploads are in fe/src/components/ImageUpload.tsx. SSE hooks in fe/src/store/use*Events.ts stay on EventSource. Done early so the staff pages in this round are built on it. Decision: 401 only signs out a signed-in user and never for /auth/* calls, so guests and wrong-password logins are unaffected."
     },
     {
       "id": "sell-007",

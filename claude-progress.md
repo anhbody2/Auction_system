@@ -302,3 +302,9 @@
 - Verification: ./init.sh exit 0 -> be vitest 45 files / 226 tests, fe vitest 15, fe build ok, Playwright 46/46
 - Known: after a resale the first seller no longer sees the goods in My goods (they are neither seller nor buyer); their auction stays in My auctions
 - Next best step: sys-004 (Axios client)
+
+### Session 010 (cont.) sys-004
+
+- Completed: axios 1.7.7; fe/src/api.ts shared `http` instance (baseURL /api, withCredentials), interceptor -> ApiError (network error -> status 0 message), api() signature unchanged; 401 handler in AuthProvider (signed-in users only, not /auth/*, once) -> /login with 'Your session has ended'; image upload on axios with progress. creditSlice test's network stub moved from fetch to the axios adapter (same assertions)
+- Verification: ./init.sh exit 0 -> be vitest 226, fe vitest 23, fe build ok, Playwright 47/47
+- Next best step: sell-007 ('New' tag)

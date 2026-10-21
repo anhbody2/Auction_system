@@ -1,11 +1,22 @@
+import type { AxiosAdapter } from 'axios';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { http } from '../api';
 import { makeStore } from './index';
 import { auctionFinished, bidPlaced, creditLoaded, creditReducer, initialCreditState, outbid } from './creditSlice';
 
 const loaded = creditReducer(initialCreditState, creditLoaded({ credit: 1000, locked: 0 }));
 
 describe('creditSlice', () => {
-  afterEach(() => vi.unstubAllGlobals());
+  // sys-004: requests go through the shared axios instance, so its adapter is the network stub.
+  const original = http.defaults.adapter;
+  afterEach(() => {
+    http.defaults.adapter = original;
+  });
+  const stubAdapter = (data: unknown = {}) => {
+    const mock = vi.fn<AxiosAdapter>(async (config) => ({ data, status: 200, statusText: 'OK', headers: {}, config }));
+    http.defaults.adapter = mock;
+    return mock;
+  };
 
   it('a bid raises locked only; credit stays', () => {
     const state = creditReducer(loaded, bidPlaced({ amount: 100, released: 0 }));
@@ -35,21 +46,20 @@ describe('creditSlice', () => {
   });
 
   it("'auction finished' fetches credit again and stores both figures", async () => {
-    const fetchMock = vi.fn(async (_url: string) => new Response(JSON.stringify({ balance: 890, held: 0, transactions: [] }), { status: 200 }));
-    vi.stubGlobal('fetch', fetchMock);
+    const fetchMock = stubAdapter({ balance: 890, held: 0, transactions: [] });
     const store = makeStore();
     store.dispatch(creditLoaded({ credit: 1000, locked: 110 }));
 
     await store.dispatch(auctionFinished({ auctionId: 7 }));
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/credit');
+    const config = fetchMock.mock.calls[0][0];
+    expect(`${config.baseURL}${config.url}`).toBe('/api/credit');
     expect(store.getState().credit).toEqual({ credit: 890, locked: 0 });
   });
 
   it('bids and outbids make no request', () => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal('fetch', fetchMock);
+    const fetchMock = stubAdapter();
     const store = makeStore();
     store.dispatch(creditLoaded({ credit: 1000, locked: 0 }));
     store.dispatch(bidPlaced({ amount: 100, released: 0 }));

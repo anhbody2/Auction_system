@@ -1,4 +1,5 @@
 import { useId, useState, type ChangeEvent } from 'react';
+import { http, toApiError } from '../api';
 
 const ACCEPT = 'image/jpeg,image/png,image/webp';
 const MAX_MB = 5;
@@ -13,14 +14,24 @@ interface UploadResult {
 
 const mb = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
-/** POST /api/uploads with one file; resolves to the stored image or throws its error message. */
-export async function uploadImage(file: File): Promise<UploadResult> {
+/**
+ * POST /api/uploads with one file; resolves to the stored image or throws its error message.
+ * sys-004: sent through the shared Axios client, which reports upload progress (0-100).
+ */
+export async function uploadImage(file: File, onProgress?: (percent: number) => void): Promise<UploadResult> {
   const body = new FormData();
   body.append('image', file);
-  const res = await fetch('/api/uploads', { method: 'POST', credentials: 'include', body });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.fields?.image ?? data.error ?? 'Upload failed');
-  return data as UploadResult;
+  try {
+    const res = await http.post<UploadResult>('/uploads', body, {
+      onUploadProgress: (e) => {
+        if (onProgress && e.total) onProgress(Math.round((e.loaded / e.total) * 100));
+      },
+    });
+    return res.data;
+  } catch (err) {
+    const apiError = toApiError(err);
+    throw new Error(apiError.fields.image ?? apiError.message ?? 'Upload failed');
+  }
 }
 
 interface Props {
@@ -40,6 +51,7 @@ interface Props {
 export function ImageUpload({ label, name, value, onChange, max = 1, error }: Props) {
   const hintId = useId();
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
   const [problem, setProblem] = useState('');
   const [notes, setNotes] = useState<Record<string, string>>({});
 
@@ -53,7 +65,8 @@ export function ImageUpload({ label, name, value, onChange, max = 1, error }: Pr
     try {
       for (const file of files.slice(0, max === 1 ? 1 : Math.max(0, max - urls.length))) {
         if (file.size > HARD_CAP_MB * 1024 * 1024) throw new Error(`${file.name} is over ${HARD_CAP_MB} MB`);
-        const up = await uploadImage(file);
+        setProgress(0);
+        const up = await uploadImage(file, setProgress);
         urls = [...urls, up.url];
         if (up.resized) setNotes((n) => ({ ...n, [up.url]: `Resized from ${mb(up.originalBytes)} to ${mb(up.bytes)} to fit the ${MAX_MB} MB limit` }));
         onChange(urls);
@@ -62,6 +75,7 @@ export function ImageUpload({ label, name, value, onChange, max = 1, error }: Pr
       setProblem(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   };
 
@@ -83,13 +97,16 @@ export function ImageUpload({ label, name, value, onChange, max = 1, error }: Pr
         aria-invalid={shown ? true : undefined}
         aria-describedby={hintId}
       />
-      <span className="muted small" id={hintId}>
-        {busy ? 'Uploading...' : `JPEG, PNG or WebP. Images over ${MAX_MB} MB are resized; up to ${HARD_CAP_MB} MB.`}
+      <span className="muted small" id={hintId} data-testid={`${name}-hint`}>
+        {busy ? `Uploading...${progress != null ? ` ${progress}%` : ''}` : `JPEG, PNG or WebP. Images over ${MAX_MB} MB are resized; up to ${HARD_CAP_MB} MB.`}
       </span>
       {shown && (
         <span className="field-error" role="alert" id={`${name}-error`}>
           {shown}
         </span>
+      )}
+      {busy && progress != null && (
+        <progress className="upload-progress" max={100} value={progress} aria-label={`Upload progress for ${label}`} />
       )}
       {value.length > 0 && (
         <ul className="thumbs" data-testid={`${name}-previews`}>

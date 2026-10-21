@@ -1,6 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { api, type User } from './api';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { api, setUnauthorizedHandler, type User } from './api';
 
 interface AuthState {
   user: User | null;
@@ -15,6 +15,25 @@ const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const signedIn = useRef(false);
+  signedIn.current = !!user;
+  const here = useRef(location.pathname);
+  here.current = location.pathname;
+
+  // sys-004: a protected call answered 401 (session expired, account locked or deleted) signs the user out.
+  // Guests are left alone, and concurrent 401s redirect only once.
+  useEffect(
+    () =>
+      setUnauthorizedHandler(() => {
+        if (!signedIn.current) return;
+        signedIn.current = false;
+        setUser(null);
+        navigate('/login', { replace: true, state: { from: here.current, expired: true } });
+      }),
+    [navigate],
+  );
 
   const refresh = useCallback(async () => {
     try {

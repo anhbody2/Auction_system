@@ -30,6 +30,11 @@ export function LoginPage() {
   return (
     <div className="card narrow">
       <h1>Log in</h1>
+      {(location.state as { expired?: boolean } | null)?.expired && (
+        <p className="notice" data-testid="session-expired">
+          Your session has ended. Please log in again.
+        </p>
+      )}
       <form onSubmit={onSubmit} noValidate>
         <label>
           Username or email
