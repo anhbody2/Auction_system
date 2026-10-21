@@ -176,3 +176,4 @@ th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: u
 
 /* sell-004: caption for a group of inputs (the Duration boxes) */
 .label { font-size: 0.9rem; font-weight: 500; }
+.notice { background: #eceef2; color: var(--muted); border-radius: 8px; padding: 0.5rem 0.75rem; font-weight: 600; }

@@ -43,7 +43,7 @@ export function AuctionDetailPage() {
         <p style={{ whiteSpace: 'pre-wrap' }}>{auction.description}</p>
         <h2>Bid history</h2>
         <BidHistory bids={bids} />
-        <Messages auctionId={auction.id} sellerId={auction.seller.id} />
+        <Messages auctionId={auction.id} sellerId={auction.seller.id} closed={auction.status === 'ended' || auction.status === 'cancelled'} onClosed={load} />
       </div>
       <aside className="card">
         <div className="row spread">

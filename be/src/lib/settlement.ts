@@ -1,7 +1,7 @@
 import { prisma } from '../db';
 import { commissionFor, commissionRate } from './commission';
 import { applyCredit } from './credit';
-import { publishAuctionFinished } from './events';
+import { publishAuctionEvent, publishAuctionFinished } from './events';
 
 /**
  * Closes one auction whose end time has passed. Idempotent: the auction row is locked and
@@ -55,6 +55,8 @@ export async function settleAuction(auctionId: bigint) {
   if (!finished) return false;
   // crd-003: after commit, so a client that refetches its credit sees the settled balances.
   publishAuctionFinished(finished.involved, { auctionId, auctionName: finished.name, reason: 'ended' });
+  // cmt-001: open auction pages reload and close their comment box.
+  publishAuctionEvent(auctionId, { type: 'closed', data: { auctionId, status: 'ended' } });
   return true;
 }
 

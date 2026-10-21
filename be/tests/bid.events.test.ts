@@ -76,6 +76,19 @@ describe('rt-001 auction event stream', () => {
     sub.close();
   });
 
+  it("cmt-001: a cancel sends 'closed' to the auction's viewers", async () => {
+    const alice = await loginAs('alice');
+    const admin = await loginAs('admin');
+    const a = await createAuction(alice);
+    const sub = subscribe(port, a.id);
+    await sub.ready;
+    await waitFor(() => auctionListenerCount(BigInt(a.id)) === 1);
+    expect((await admin.post(`/api/auctions/${a.id}/cancel`)).status).toBe(200);
+    await waitFor(() => sub.events.length === 1);
+    expect(sub.events[0]).toMatchObject({ event: 'closed', data: { auctionId: a.id, status: 'cancelled' } });
+    sub.close();
+  });
+
   it('unknown auction -> 404', async () => {
     const res = await new Promise<http.IncomingMessage>((resolve) =>
       http.get({ host: '127.0.0.1', port, path: '/api/auctions/999999/events' }, resolve),

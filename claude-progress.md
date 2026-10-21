@@ -8,7 +8,7 @@
 - Standard startup path: start Docker Desktop, then `./init.sh` (npm install + full verify). `npm run dev` runs API on :4000 and web on :5173 (Vite proxies /api)
 - Standard verification path: `npm run verify` = `npm test` (vitest on DB auction_test + fe build) and `npm run e2e` (Playwright on DB auction_e2e, servers on :4100/:5180)
 - Demo accounts: alice / bob / carol (customers), staff (staff), admin (admin); password `Password123!` for all (docs/accounts.md; `npm run db:seed -w be` reseeds the dev DB)
-- Feature list: round 1 (14 features) archived to progress-feature-list/feature_list_1.json; round 2 (bid-003, sys-001, sys-002, sys-003, all passing) archived to progress-feature-list/feature_list_2.json. round 3 (SRS 3.19-3.21: sec-001/002, adm-001..005, stf-001..004, all passing) archived to progress-feature-list/feature_list_3.json. round 4 (crd-001/002, upl-001, gds-001/002, sell-003/004, bid-004, all passing) archived to progress-feature-list/feature_list_4.json. Round 5 (from SRS.txt, 2026-10-20: sell-005 cancel rules, rt-001 Redux + real-time bids, crd-003 stable credit UI, sell-006 available goods only, cmt-001 comments close) is the active feature_list.json at the root: sell-005, rt-001, crd-003, sell-006 passing (2026-10-21), cmt-001 not_started (progress-feature-list/feature_list.json is the untouched bootstrap template)
+- Feature list: round 1 (14 features) archived to progress-feature-list/feature_list_1.json; round 2 (bid-003, sys-001, sys-002, sys-003, all passing) archived to progress-feature-list/feature_list_2.json. round 3 (SRS 3.19-3.21: sec-001/002, adm-001..005, stf-001..004, all passing) archived to progress-feature-list/feature_list_3.json. round 4 (crd-001/002, upl-001, gds-001/002, sell-003/004, bid-004, all passing) archived to progress-feature-list/feature_list_4.json. round 5 (sell-005, rt-001, crd-003, sell-006, cmt-001, all passing 2026-10-21) archived to progress-feature-list/feature_list_5.json. No active feature_list.json at the root until SRS.txt gets new requirements (progress-feature-list/feature_list.json is the untouched bootstrap template)
 - Uploads: images stored in UPLOAD_DIR (default be/uploads/, gitignored); see docs/image-upload.md
 - Current blocker: none
 
@@ -272,3 +272,13 @@
 - Discrepancy recorded: verification text says the server rejects busy/sold goods with 400; the existing sell-003 contract is 409 and was kept
 - Verification: npm run verify exit 0 -> be vitest 43 files / 216 tests, fe vitest 15, fe build ok, Playwright 43/43
 - Next best step: cmt-001 (comments close with the auction)
+
+### Session 008 (cont.) cmt-001 and round 5 wrap-up
+
+- Completed: POST /api/auctions/:id/messages refuses ended (computed) or cancelled auctions with 400 'Comments are closed for this auction'; 'closed' event on the auction stream after settlement and cancel; Messages shows 'Comments are closed', hides the box, 'Log in to comment' for guests while open
+- Verification: npm run verify exit 0 -> be vitest 43 files / 220 tests, fe vitest 2 files / 15 tests, fe build ok, Playwright 45/45
+- All 5 round 5 features passing; feature list archived to progress-feature-list/feature_list_5.json
+- Not verified this session: ./init.sh end to end (its npm install hits EPERM on prisma generate while the user's `npm run dev` holds the DLL). Stop the dev server and run ./init.sh to confirm. The running dev server also needs a restart for the new Redux packages and API routes (tsx watch reloads the API by itself)
+- Open points for the product owner: busy/sold goods on create stay 409 (verification text said 400); auction-finished also sent on cancel; comments heading still 'Messages'
+- Known limits: single-process SSE bus; no Last-Event-ID replay (reload on reconnect); a user's other tabs do not see their own bids' locked-credit change until a reload or auction-finished
+- Next best step: write a round 6 feature_list.json when SRS.txt gets new requirements

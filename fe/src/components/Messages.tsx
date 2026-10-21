@@ -10,7 +10,12 @@ interface Message {
   author: { id: number; username: string };
 }
 
-export function Messages({ auctionId, sellerId }: { auctionId: number; sellerId: number }) {
+/**
+ * cmt-001: open while the auction is upcoming or active. Once it has ended or been cancelled the box is
+ * gone and the comments stay readable. `closed` comes from the page's auction status, which follows the
+ * countdown and the pushed 'closed' event; `onClosed` asks the page to reload when the server says closed.
+ */
+export function Messages({ auctionId, sellerId, closed, onClosed }: { auctionId: number; sellerId: number; closed: boolean; onClosed: () => void }) {
   const { user } = useAuth();
   const location = useLocation();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -41,7 +46,10 @@ export function Messages({ auctionId, sellerId }: { auctionId: number; sellerId:
       setMessages((m) => [...m, message]);
       setContent('');
     } catch (err) {
-      if (err instanceof ApiError) setError(err.fields.content ?? err.message);
+      if (err instanceof ApiError) {
+        setError(err.fields.content ?? err.message);
+        if (err.message === 'Comments are closed for this auction') onClosed();
+      }
     } finally {
       setBusy(false);
     }
@@ -50,8 +58,13 @@ export function Messages({ auctionId, sellerId }: { auctionId: number; sellerId:
   return (
     <section>
       <h2>Messages</h2>
+      {closed && (
+        <p className="notice" data-testid="comments-closed">
+          Comments are closed
+        </p>
+      )}
       {messages.length === 0 ? (
-        <p className="muted">No messages yet. Ask the seller a question.</p>
+        <p className="muted">{closed ? 'No messages were posted.' : 'No messages yet. Ask the seller a question.'}</p>
       ) : (
         <ul className="messages" data-testid="messages">
           {messages.map((m) => (
@@ -66,7 +79,7 @@ export function Messages({ auctionId, sellerId }: { auctionId: number; sellerId:
           ))}
         </ul>
       )}
-      {user ? (
+      {closed ? null : user ? (
         <form onSubmit={submit} noValidate>
           <div className="field">
             <label htmlFor="message">Write a message</label>
@@ -86,9 +99,8 @@ export function Messages({ auctionId, sellerId }: { auctionId: number; sellerId:
       ) : (
         <p className="small">
           <Link to="/login" state={{ from: location.pathname }}>
-            Log in
-          </Link>{' '}
-          to post a message.
+            Log in to comment
+          </Link>
         </p>
       )}
     </section>

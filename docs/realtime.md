@@ -40,6 +40,14 @@ data: {"auctionId":7,"bid":{"id":42,"amount":110,"status":"active","createdAt":"
 - The `POST` response carries the same object as `event`, so the bidder's page applies its own bid
   without waiting for the stream.
 
+```
+event: closed
+data: {"auctionId":7,"status":"ended"}      (or "cancelled")
+```
+
+- cmt-001: sent after the close job settles the auction or after a cancel. Open pages reload the auction,
+  so the status, winner and the comment box follow.
+
 ## Concurrent bids
 
 Bids on one auction are serialised by `SELECT ... FOR UPDATE` on the auction row. Two bids of the same

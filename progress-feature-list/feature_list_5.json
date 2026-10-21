@@ -145,7 +145,7 @@
       "srs_ref": "System - Comment Section, Req-1",
       "title": "Comments are open until the auction closes; afterwards the section is read-only and comments are kept",
       "user_visible_behavior": "On an upcoming or active auction a signed-in user sees the comment box and can post. Guests see the comments and a 'Log in to comment' link. When the auction ends or is cancelled, the comment box disappears and the section shows 'Comments are closed' above the existing comments, which stay visible to everyone. The server refuses new comments on an ended or cancelled auction with 'Comments are closed for this auction'. If the auction ends while the page is open, the box closes without a reload (from the real-time end event or the countdown).",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Unit (be/tests/messages.test.ts, extended): POST /api/auctions/:id/messages on an upcoming and on an active auction by a signed-in user -> 201. Anonymous -> 401.",
         "Unit: POST on an ended or cancelled auction -> 400 'Comments are closed for this auction'. Check 'ended' both with status 'ended' and with status 'active' but end_time in the past (close job not run yet).",
@@ -155,8 +155,15 @@
         "E2E: e2e/bid-002-messages.spec.ts still passes. Update it only if it posts on a non-active auction.",
         "Docs: docs/changes/cmt-001.md lists changed files and the open/closed rule."
       ],
-      "evidence": [],
-      "notes": "Current code: be/src/routes/messages.ts allows posting on any existing auction. fe/src/components/Messages.tsx polls every 10 s and always shows the form to signed-in users. The section is titled 'Messages'; rename the heading to 'Comments' only if the existing specs are updated to match. Use the auction's computed status (be/src/lib/auctions.ts) so the time-based rule is applied even before the jobs run. Optional: push new comments over the rt-001 event stream instead of the 10 s poll. CONFIRMED by the user on 2026-10-20: comments are open before the start time and while active; they close only when the auction ends or is cancelled."
+      "evidence": [
+        "2026-10-21: npm run verify exit 0 -> be vitest 43 files / 220 tests, fe vitest 15 tests, fe build ok, Playwright 45/45",
+        "be/tests/messages.test.ts (cmt-001, 3 tests): POST 201 on upcoming and active (bidder and seller), anonymous 401; 400 'Comments are closed for this auction' for stored 'ended', for status 'active' with end_time passed, and for cancelled; comments posted before the close job / cancel are still returned and none deleted",
+        "be/tests/bid.events.test.ts: cancel sends 'closed' on the auction stream",
+        "e2e/cmt-001-comments-close.spec.ts (2 tests): bob comments on an active auction; after /api/dev/auctions/:id/expire his page shows 'Comments are closed', no textbox/button, comment still shown, 0 page loads; a guest page shows the same read-only list (no 'Log in to comment' link), also after reload; late POST 400. Upcoming auction: carol sees the box and posts",
+        "e2e/bid-002-messages.spec.ts passes unchanged (posts on an active auction)",
+        "Docs: docs/changes/cmt-001.md (open/closed rule), docs/realtime.md 'closed' event"
+      ],
+      "notes": "Current code: be/src/routes/messages.ts allows posting on any existing auction. fe/src/components/Messages.tsx polls every 10 s and always shows the form to signed-in users. The section is titled 'Messages'; rename the heading to 'Comments' only if the existing specs are updated to match. Use the auction's computed status (be/src/lib/auctions.ts) so the time-based rule is applied even before the jobs run. Optional: push new comments over the rt-001 event stream instead of the 10 s poll. CONFIRMED by the user on 2026-10-20: comments are open before the start time and while active; they close only when the auction ends or is cancelled. DONE: heading kept as 'Messages' (existing specs); closed notice and guest link use 'comment'. Closing is pushed via a 'closed' auction-stream event and also follows the countdown."
     }
   ]
 }

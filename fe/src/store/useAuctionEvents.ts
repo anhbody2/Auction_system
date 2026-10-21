@@ -20,6 +20,10 @@ export function useAuctionEvents(auctionId: number | null) {
         // A malformed frame: ignore it; the next reload brings the page back in step.
       }
     });
+    // cmt-001: the auction ended or was cancelled; reload so status, winner and the comment box follow.
+    source.addEventListener('closed', () => {
+      dispatch(loadAuction(auctionId));
+    });
     source.onerror = () => {
       dropped = true;
     };

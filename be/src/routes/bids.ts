@@ -142,6 +142,7 @@ bidsRouter.post(
       return { name: auction.name, involved: [auction.sellerId, ...bidders.map((b) => b.bidderId)] };
     });
     publishAuctionFinished(cancelled.involved, { auctionId, auctionName: cancelled.name, reason: 'cancelled' });
+    publishAuctionEvent(auctionId, { type: 'closed', data: { auctionId, status: 'cancelled' } });
     res.json({ message: 'Auction cancelled' });
   }),
 );
