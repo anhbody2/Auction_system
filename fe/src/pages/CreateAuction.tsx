@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ApiError, CONDITION_LABELS, GOODS_STATUS_LABELS, api, type Auction, type Goods } from '../api';
+import { ApiError, CONDITION_LABELS, api, type Auction, type Goods } from '../api';
 import { Field } from '../components/Field';
 import { useToast } from '../toast';
 
@@ -42,9 +42,13 @@ export function CreateAuctionPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const [params] = useSearchParams();
-  const [goods, setGoods] = useState<Goods[] | null>(null);
+  // sell-006: only goods that can go into a new auction; busy and sold goods are not listed at all.
+  const [available, setAvailable] = useState<Goods[] | null>(null);
+  // Whether the seller has any goods at all; only asked for when none are available, to word the message.
+  const [hasAnyGoods, setHasAnyGoods] = useState(false);
+  const [unavailableLink, setUnavailableLink] = useState(false);
   const [values, setValues] = useState(() => ({
-    goodsId: params.get('goodsId') ?? '',
+    goodsId: '',
     name: '',
     description: '',
     initialPrice: '',
@@ -57,8 +61,16 @@ export function CreateAuctionPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    api<{ goods: Goods[] }>('/me/goods').then((r) => setGoods(r.goods));
-  }, []);
+    api<{ goods: Goods[] }>('/me/goods?status=available').then(async (r) => {
+      if (r.goods.length === 0) setHasAnyGoods((await api<{ goods: Goods[] }>('/me/goods')).goods.length > 0);
+      const linked = params.get('goodsId');
+      const g = linked ? r.goods.find((x) => String(x.id) === linked) : undefined;
+      // A ?goodsId= link to goods that are busy, sold or not the seller's preselects nothing.
+      if (g) setValues((v) => ({ ...v, goodsId: String(g.id), name: g.name, description: g.description ?? '' }));
+      else if (linked) setUnavailableLink(true);
+      setAvailable(r.goods);
+    });
+  }, [params]);
 
   const set = (name: keyof typeof values) => (e: { target: { value: string } }) => {
     setValues((v) => ({ ...v, [name]: e.target.value }));
@@ -66,20 +78,15 @@ export function CreateAuctionPage() {
   };
   const bind = (name: keyof typeof values) => ({ name, value: values[name], error: errors[name], onChange: set(name) });
 
-  const available = goods?.filter((g) => g.status === 'available') ?? [];
-  const chosen = available.find((g) => String(g.id) === values.goodsId);
+  const chosen = available?.find((g) => String(g.id) === values.goodsId);
 
   // Picking goods fills in the auction name and description; the seller can still change them.
   const pick = (e: { target: { value: string } }) => {
-    const g = available.find((x) => String(x.id) === e.target.value);
+    const g = available?.find((x) => String(x.id) === e.target.value);
     setValues((v) => ({ ...v, goodsId: e.target.value, name: g?.name ?? v.name, description: g?.description ?? v.description }));
     setErrors(({ goodsId: _, name: _n, description: _d, ...rest }) => rest);
+    setUnavailableLink(false);
   };
-  useEffect(() => {
-    if (chosen && !values.name) pick({ target: { value: String(chosen.id) } });
-    // Only when the goods list first arrives (a goodsId from the URL).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [goods]);
 
   const minutes = durationMinutes(values.durationValue, values.durationUnit);
   const start = values.startTime ? new Date(values.startTime) : null;
@@ -115,13 +122,20 @@ export function CreateAuctionPage() {
     }
   };
 
-  if (!goods) return <p className="muted">Loading...</p>;
+  const notAvailable = unavailableLink && (
+    <p className="error" role="alert" data-testid="goods-not-available">
+      That goods item is not available for a new auction
+    </p>
+  );
+
+  if (!available) return <p className="muted">Loading...</p>;
   if (available.length === 0) {
     return (
       <div className="card" style={{ maxWidth: 720, margin: '0 auto' }}>
         <h1>Create auction</h1>
+        {notAvailable}
         <p data-testid="no-goods">
-          {goods.length === 0 ? "You haven't added any goods yet." : 'All your goods are in an auction or sold.'} Add the goods you want to sell
+          {!hasAnyGoods ? "You haven't added any goods yet." : 'All your goods are in an auction or sold.'} Add the goods you want to sell
           first.
         </p>
         <Link to="/goods/new" className="btn btn-primary">
@@ -139,19 +153,20 @@ export function CreateAuctionPage() {
           <label htmlFor="goodsId">Goods</label>
           <select id="goodsId" value={values.goodsId} onChange={pick} aria-invalid={!!errors.goodsId || undefined}>
             <option value="">Choose goods...</option>
-            {goods.map((g) => (
-              <option key={g.id} value={g.id} disabled={g.status !== 'available'}>
-                {g.status === 'available' ? g.name : `${g.name} (${GOODS_STATUS_LABELS[g.status]})`}
+            {available.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
               </option>
             ))}
           </select>
+          {notAvailable}
           {errors.goodsId && (
             <span className="field-error" id="goodsId-error">
               {errors.goodsId}
             </span>
           )}
           <span className="muted small">
-            Images and details come from <Link to="/goods">My goods</Link>. Goods in an auction or sold cannot be picked.
+            Images and details come from <Link to="/goods">My goods</Link>. Only goods that are not in an auction or sold are listed.
           </span>
         </div>
         {chosen && <GoodsPreview goods={chosen} />}

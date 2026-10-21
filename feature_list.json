@@ -118,7 +118,7 @@
       "srs_ref": "System - UI update - Auction Create Section, Req-1",
       "title": "Create-auction goods dropdown lists only available goods",
       "user_visible_behavior": "On /auctions/new the Goods dropdown lists only goods with status 'available'. Goods that are in an auction or sold are left out entirely, not shown as disabled options. If none are available the existing 'All your goods are in an auction or sold.' message and the 'Add goods' link appear. A ?goodsId= link to goods that are not available does not preselect anything, and the seller sees 'That goods item is not available for a new auction'.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Unit (be/tests/goods.list.test.ts, extended): GET /api/me/goods?status=available returns only the caller's available goods. Without the filter it still returns all of them for My goods.",
         "Integration (be/tests/auction.create.test.ts, extended): creating an auction from goods that are in an auction or sold is still rejected on the server with 400.",
@@ -127,8 +127,15 @@
         "E2E: e2e/sell-003-auction-from-goods.spec.ts is updated: the check that 'Busy Mirror (in auction)' is disabled becomes a check that it is absent. It still passes.",
         "Docs: docs/changes/sell-006.md lists changed files."
       ],
-      "evidence": [],
-      "notes": "Current code: fe/src/pages/CreateAuction.tsx already computes `available` but renders goods.map(...) with disabled options for the rest (line ~142). The fix is mainly to render `available` instead. A server-side ?status=available filter on /api/me/goods is optional but keeps the payload honest. The server-side rejection already exists from sell-003; just keep it covered by a test."
+      "evidence": [
+        "2026-10-21: npm run verify exit 0 -> be vitest 43 files / 216 tests, fe vitest 15 tests, fe build ok, Playwright 43/43",
+        "be/tests/goods.list.test.ts: ?status=available returns only the caller's available goods (unsold-ended and free; not active, upcoming or sold); no filter returns all 5; invalid status 400",
+        "Server rejection of busy/sold goods stays covered by be/tests/auction.create.test.ts (409, not 400 as written in verification: the sell-003 contract was kept)",
+        "e2e/sell-006-available-goods.spec.ts: select has exactly 'Choose goods...' + 'Free Teapot', busy/sold names absent; ?goodsId=<in-auction id> leaves select empty and shows 'That goods item is not available for a new auction'; with no available goods the 'All your goods are in an auction or sold.' message and Add goods link show",
+        "e2e/sell-003-auction-from-goods.spec.ts updated (disabled -> absent) and passes",
+        "Docs: docs/changes/sell-006.md"
+      ],
+      "notes": "Current code: fe/src/pages/CreateAuction.tsx already computes `available` but renders goods.map(...) with disabled options for the rest (line ~142). The fix is mainly to render `available` instead. A server-side ?status=available filter on /api/me/goods is optional but keeps the payload honest. The server-side rejection already exists from sell-003; just keep it covered by a test. DONE: kept 409 for busy/sold goods on POST /api/auctions (sell-003 contract) instead of the 400 in the verification text."
     },
     {
       "id": "cmt-001",

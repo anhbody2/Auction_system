@@ -58,4 +58,28 @@ describe('gds-001 GET /api/me/goods', () => {
     expect(goodsState([{ status: 'active', winnerId: null }])).toBe('in_auction');
     expect(goodsState([{ status: 'ended', winnerId: 1n }])).toBe('sold');
   });
+
+  it('sell-006: ?status=available returns only the caller available goods; no filter still returns all', async () => {
+    const alice = await loginAs('alice');
+    const bob = await loginAs('bob');
+    await addGoods(alice, 'Free lamp');
+    const running = await addGoods(alice, 'Running lamp');
+    const upcoming = await addGoods(alice, 'Upcoming lamp');
+    const sold = await addGoods(alice, 'Sold lamp');
+    const unsold = await addGoods(alice, 'Unsold lamp');
+    await addGoods(bob, 'Bob chair');
+    await attachAuction(running, 'active');
+    await attachAuction(upcoming, 'upcoming');
+    await attachAuction(sold, 'ended', 'bob');
+    await attachAuction(unsold, 'ended');
+
+    const res = await alice.get('/api/me/goods?status=available');
+    expect(res.status).toBe(200);
+    expect(res.body.goods.map((g: { name: string }) => g.name)).toEqual(['Unsold lamp', 'Free lamp']);
+    expect(res.body.goods.every((g: { status: string }) => g.status === 'available')).toBe(true);
+
+    expect((await alice.get('/api/me/goods')).body.goods).toHaveLength(5);
+    expect((await alice.get('/api/me/goods?status=sold')).body.goods.map((g: { name: string }) => g.name)).toEqual(['Sold lamp']);
+    expect((await alice.get('/api/me/goods?status=nonsense')).status).toBe(400);
+  });
 });

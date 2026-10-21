@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { createAuctionViaApi, createGoodsViaApi, login, logout, registerViaApi } from './helpers';
 
-test('sell-003: seller creates an auction from available goods; busy goods cannot be picked; the goods show in auction', async ({ page }) => {
+test('sell-003: seller creates an auction from available goods; busy goods are not listed; the goods show in auction', async ({ page }) => {
   await registerViaApi(page.request, 'goods_seller');
   await login(page, 'goods_seller');
   const goods = await createGoodsViaApi(page.request, { name: 'Copper Kettle', description: 'A hammered copper kettle, polished.' });
@@ -12,7 +12,9 @@ test('sell-003: seller creates an auction from available goods; busy goods canno
   await expect(page.getByLabel('Image URL (optional)')).toHaveCount(0);
   await expect(page.getByLabel('Category')).toHaveCount(0);
   await expect(page.getByLabel('Condition')).toHaveCount(0);
-  await expect(page.getByLabel('Goods').locator('option', { hasText: 'Busy Mirror (in auction)' })).toBeDisabled();
+  // sell-006: goods in an auction are not listed at all (they used to be disabled options).
+  await expect(page.getByLabel('Goods').locator('option', { hasText: 'Busy Mirror' })).toHaveCount(0);
+  await expect(page.getByLabel('Goods').locator('option', { hasText: 'Copper Kettle' })).toHaveCount(1);
 
   await page.getByLabel('Goods').selectOption({ label: 'Copper Kettle' });
   const preview = page.getByTestId('goods-preview');

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { prisma } from '../db';
 import { HttpError, asyncHandler } from '../lib/http';
 import { checkGoodsRefs, goodsInclude, goodsSchema, goodsView, lockChangeableGoods, lockOwnGoods } from '../lib/goods';
@@ -11,12 +12,15 @@ goodsRouter.get(
   '/me/goods',
   requireAuth,
   asyncHandler(async (req, res) => {
+    // sell-006: ?status=available lists only goods that can go into a new auction (the create-auction picker).
+    const { status } = z.object({ status: z.enum(['available', 'in_auction', 'sold']).optional() }).parse(req.query);
     const goods = await prisma.goods.findMany({
       where: { sellerId: req.user!.id, status: { not: 'deleted' } },
       include: goodsInclude,
       orderBy: { id: 'desc' },
     });
-    res.json({ goods: goods.map(goodsView) });
+    const views = goods.map(goodsView);
+    res.json({ goods: status ? views.filter((g) => g.status === status) : views });
   }),
 );
 
