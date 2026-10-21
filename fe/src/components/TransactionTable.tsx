@@ -82,12 +82,27 @@ export function TransactionTable<T extends Tx>({
   );
 }
 
-export function Pager({ page, pageSize, total, onPage }: { page: number; pageSize: number; total: number; onPage: (p: number) => void }) {
+export function Pager({
+  page,
+  pageSize,
+  total,
+  onPage,
+  noun = ['transaction', 'transactions'],
+  testId = 'tx-total',
+}: {
+  page: number;
+  pageSize: number;
+  total: number;
+  onPage: (p: number) => void;
+  /** Singular and plural for the total, e.g. ['item', 'items']. */
+  noun?: [string, string];
+  testId?: string;
+}) {
   const pages = Math.max(1, Math.ceil(total / pageSize));
   return (
     <div className="row spread pager">
-      <span className="muted small" data-testid="tx-total">
-        {total} transaction{total === 1 ? '' : 's'} · page {page} of {pages}
+      <span className="muted small" data-testid={testId}>
+        {total} {total === 1 ? noun[0] : noun[1]} · page {page} of {pages}
       </span>
       <span className="row">
         <button className="btn btn-ghost" disabled={page <= 1} onClick={() => onPage(page - 1)}>

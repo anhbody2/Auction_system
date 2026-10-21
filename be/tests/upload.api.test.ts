@@ -7,6 +7,7 @@ import { HARD_CAP_BYTES, MAX_IMAGE_BYTES, isStoredUpload } from '../src/lib/imag
 import { prisma } from '../src/db';
 import { app, createAuction, loginAs, resetDb } from './helpers';
 import { noiseImage, solidPng } from './upload.fixtures';
+import { approveGoods } from './goods.fixtures';
 
 let dir: string;
 beforeAll(async () => {
@@ -99,6 +100,7 @@ describe('upl-001 POST /api/uploads', () => {
       images: [up.body.url],
     });
     expect(goods.status).toBe(201);
+    await approveGoods(BigInt(goods.body.goods.id)); // stf-005: customer goods need approval before auction
     const auction = await createAuction(alice, { goodsId: goods.body.goods.id, imageUrl: 'https://example.com/cat.png' });
     expect(auction.goods).toMatchObject({ images: [up.body.url] });
   });

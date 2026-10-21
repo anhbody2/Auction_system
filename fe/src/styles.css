@@ -174,7 +174,9 @@ th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: u
 .badge-available { background: #e3f6ea; color: var(--success); }
 .badge-in_auction { background: #eef2ff; color: var(--primary); }
 .badge-sold { background: #eceef2; color: var(--muted); }
-.badge-bought { background: #fff4e0; color: #8a5300; }
+.badge-pending { background: #fff4e0; color: #8a5300; }
+.badge-rejected { background: #fdecea; color: var(--danger); }
+.badge-bought { background: #e0f4f4; color: #0b6b6b; }
 .goods-thumb { width: 64px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); display: block; }
 
 /* sell-004: caption for a group of inputs (the Duration boxes) */
@@ -187,3 +189,9 @@ th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: u
 .trx-search .field { min-width: 140px; flex: 1 1 140px; }
 .trx-actions { flex: 0 0 auto; }
 .pager { margin-top: 0.75rem; }
+
+/* stf-005 staff goods details */
+.details { display: grid; grid-template-columns: max-content 1fr; gap: 0.35rem 1rem; margin: 1rem 0; }
+.details dt { font-weight: 600; color: var(--muted); }
+.details dd { margin: 0; }
+@media (max-width: 520px) { .details { grid-template-columns: 1fr; } .details dd { margin-bottom: 0.5rem; } }

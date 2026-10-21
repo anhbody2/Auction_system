@@ -13,7 +13,7 @@ goodsRouter.get(
   requireAuth,
   asyncHandler(async (req, res) => {
     // sell-006: ?status=available lists only goods that can go into a new auction (the create-auction picker).
-    const { status } = z.object({ status: z.enum(['available', 'in_auction', 'sold']).optional() }).parse(req.query);
+    const { status } = z.object({ status: z.enum(['pending', 'rejected', 'available', 'in_auction', 'sold']).optional() }).parse(req.query);
     const goods = await prisma.goods.findMany({
       where: visibleGoodsWhere(req.user!.id),
       include: goodsInclude,
@@ -34,6 +34,8 @@ goodsRouter.post(
       return tx.goods.create({
         data: {
           sellerId: req.user!.id,
+          // stf-005: customer goods wait for staff approval before they can be auctioned.
+          status: 'pending',
           categoryId: category.id,
           name: d.name,
           description: d.description,
@@ -87,6 +89,8 @@ goodsRouter.patch(
           categoryId: category.id,
           condition: merged.condition,
           images: d.images ? { create: d.images.map((imageUrl, sortOrder) => ({ imageUrl, sortOrder })) } : undefined,
+          // stf-005: fixing rejected goods sends them back for approval.
+          ...(current.status === 'rejected' ? { status: 'pending', rejectionReason: null } : {}),
         },
         include: goodsInclude,
       });

@@ -31,7 +31,7 @@ export function MyGoodsPage() {
           + Add goods
         </Link>
       </div>
-      <p className="muted small">Add goods here first; then create an auction for them. Goods you won show as bought and can be auctioned again. Goods in an auction or sold cannot be changed.</p>
+      <p className="muted small">Add goods here first; staff approve new goods before they can be auctioned. Goods you won show as bought and can be auctioned again. Goods in an auction or sold cannot be changed.</p>
       {!goods ? (
         <p className="muted">Loading...</p>
       ) : goods.length === 0 ? (
@@ -58,6 +58,11 @@ export function MyGoodsPage() {
                   <td>{g.condition ? CONDITION_LABELS[g.condition] ?? g.condition : '-'}</td>
                   <td>
                     <GoodsStatusBadge status={g.status} bought={g.bought} />
+                    {g.status === 'rejected' && (
+                      <div className="small error" data-testid="rejection-reason">
+                        {g.rejectionReason ? `Reason: ${g.rejectionReason}` : 'Rejected by staff'}. Edit to send again.
+                      </div>
+                    )}
                     {g.auctionId && g.status !== 'available' && (
                       <>
                         {' '}
@@ -132,9 +137,11 @@ function GoodsActions({ goods, onDeleted }: { goods: Goods; onDeleted: () => voi
   }
   return (
     <div className="row">
-      <Link className="btn btn-primary btn-small" to={`/auctions/new?goodsId=${goods.id}`} aria-label={`Auction ${goods.name}`}>
-        Auction it
-      </Link>
+      {goods.status === 'available' && (
+        <Link className="btn btn-primary btn-small" to={`/auctions/new?goodsId=${goods.id}`} aria-label={`Auction ${goods.name}`}>
+          Auction it
+        </Link>
+      )}
       <Link className="btn btn-ghost btn-small" to={`/goods/${goods.id}/edit`} aria-label={`Edit ${goods.name}`}>
         Edit
       </Link>
@@ -152,7 +159,7 @@ export function AddGoodsPage() {
   const toast = useToast();
   const submit = async (values: GoodsValues) => {
     await api('/goods', { body: toGoodsBody(values) });
-    toast('Goods added', 'success');
+    toast('Goods added. Staff will review them before you can auction them.', 'success');
     navigate('/goods');
   };
   return (

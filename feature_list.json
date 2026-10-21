@@ -143,7 +143,7 @@
       "srs_ref": "Staff - Goods Management, REQ-1, REQ-2, Req-3",
       "title": "Staff manage goods: list, search, page, view, add, edit, soft delete, and approve new goods",
       "user_visible_behavior": "Goods a customer adds now start as 'Pending approval' and cannot be chosen for an auction until approved. Staff open /staff/goods: a paged list (20 per page) searchable by name, seller, category and status, with a 'Pending' filter. Staff can view a goods item (images, seller, buyer, auctions), add goods for a chosen seller (approved at once), edit name/description/category/condition/images, soft-delete it (blocked while it is in an upcoming or active auction), and approve or reject pending goods with an optional reason. The seller sees the new status in My Goods and gets an email on approval/rejection.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Permissions: new code 'goods.manage' seeded for staff and admin; customers get 403 on every /api/staff/goods route.",
         "Unit (be/tests/staff.goods.list.test.ts): search by each field and combined, paging totals, status filter, soft-deleted rows only with status=deleted.",
@@ -153,7 +153,16 @@
         "E2E (e2e/stf-005-staff-goods.spec.ts): alice adds goods and sees 'Pending approval' and no option in Create Auction; staff finds it with the Pending filter, approves it; alice can now auction it. Staff searches, pages, edits and deletes another item.",
         "Docs: docs/changes/stf-005.md; docs/goods-approval.md (status values pending/active/rejected/deleted and who changes them)."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-21 ./init.sh exit 0: be vitest 50 files / 246 tests, fe vitest 5 files / 32 tests, fe build ok, Playwright 50/50",
+        "Migration 20261021120000_goods_approval: review columns + goods.manage granted to staff and admin; customers 403 on all 7 staff goods routes (be/tests/staff.goods.list.test.ts)",
+        "be/tests/staff.goods.list.test.ts: search by name, seller, category, status, combined; 20 per page with total; deleted only with status=deleted",
+        "be/tests/staff.goods.crud.test.ts: add for a seller -> active and auctionable; unknown/non-customer seller 400; edit validation, 409 in open auction; delete soft (row kept, status deleted), 400 in upcoming or active auction",
+        "be/tests/goods.approval.test.ts: customer POST -> pending; auction with pending/rejected -> 400 'Goods must be approved before auction'; approve -> auction allowed + mail; reject stores reason + mail; editing rejected -> pending; bought goods stay approved",
+        "Fixtures approve via helper (be addGoods/approveGoods, e2e createGoodsViaApi through the staff route); gds-001, upl-001, goods.create, upload.api, sec.permissions updated to the approval flow",
+        "e2e/stf-005-staff-goods.spec.ts passes: seller sees 'pending approval' and no goods in Create Auction; staff pages 21 goods (2 pages), Pending filter, approves; searches, edits and deletes (Deleted filter shows it); seller then auctions the goods",
+        "Docs: docs/changes/stf-005.md, docs/goods-approval.md, docs/ERD_edited.md"
+      ],
       "notes": "Goods routes: be/src/routes/goods.ts, state helper be/src/lib/goods.ts; goods.status today is 'active' or 'deleted'. Staff routes and nav: be/src/routes/staff.ts, fe/src/App.tsx RequireAuth permission. Goods re-auctioned by a buyer (gds-003) are already approved and do not go back to pending."
     },
     {

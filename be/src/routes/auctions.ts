@@ -5,7 +5,7 @@ import { prisma } from '../db';
 import { auctionInclude, auctionView } from '../lib/auctions';
 import { HttpError, asyncHandler } from '../lib/http';
 import { durationField } from '../lib/duration';
-import { CONDITIONS, lockOwnGoods } from '../lib/goods';
+import { CONDITIONS, NOT_APPROVED_MESSAGE, lockOwnGoods } from '../lib/goods';
 import { optionalAuth, requireAuth } from '../middleware/auth';
 
 export const auctionsRouter = Router();
@@ -83,6 +83,7 @@ auctionsRouter.post(
     const auction = await prisma.$transaction(async (tx) => {
       // Same row lock as goods edit/delete (gds-002), so the goods cannot change while the auction is created.
       const { goods, state } = await lockOwnGoods(tx, BigInt(d.goodsId), sellerId);
+      if (state === 'pending' || state === 'rejected') throw new HttpError(400, NOT_APPROVED_MESSAGE, { goodsId: NOT_APPROVED_MESSAGE });
       if (state === 'in_auction') throw new HttpError(409, GOODS_IN_AUCTION, { goodsId: GOODS_IN_AUCTION });
       // gds-003: once sold the goods belong to the buyer; only they can auction them again.
       if (state === 'sold') throw new HttpError(403, GOODS_SOLD, { goodsId: GOODS_SOLD });

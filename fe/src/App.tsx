@@ -20,6 +20,7 @@ import { MyBiddingsPage } from './pages/MyBiddings';
 import { ProfilePage } from './pages/Profile';
 import { RegisterPage } from './pages/Register';
 import { ResetPasswordPage } from './pages/ResetPassword';
+import { StaffGoodsDetailPage, StaffGoodsNewPage, StaffGoodsPage } from './pages/StaffGoods';
 import { StaffStatisticsPage } from './pages/StaffStatistics';
 import { VerifyEmailPage } from './pages/VerifyEmail';
 
@@ -47,6 +48,9 @@ export function App() {
         <Route path="/change-password" element={authed(<ChangePasswordPage />)} />
         <Route path="/credit" element={authed(<CreditPage />)} />
         <Route path="/staff/statistics" element={<RequireAuth permission="report.view"><StaffStatisticsPage /></RequireAuth>} />
+        <Route path="/staff/goods" element={<RequireAuth permission="goods.manage"><StaffGoodsPage /></RequireAuth>} />
+        <Route path="/staff/goods/new" element={<RequireAuth permission="goods.manage"><StaffGoodsNewPage /></RequireAuth>} />
+        <Route path="/staff/goods/:id" element={<RequireAuth permission="goods.manage"><StaffGoodsDetailPage /></RequireAuth>} />
         <Route path="/admin/users" element={<RequireAuth permission="user.manage"><AdminUsersPage /></RequireAuth>} />
         <Route path="/admin/users/new" element={<RequireAuth permission="user.manage"><AdminUserNewPage /></RequireAuth>} />
         <Route path="/admin/users/:id" element={<RequireAuth permission="user.manage"><AdminUserDetailPage /></RequireAuth>} />

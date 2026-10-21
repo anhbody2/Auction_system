@@ -17,6 +17,8 @@
 | new EMAIL_VERIFICATION_TOKENS | guest-002 register: confirmation email |
 | GOODS: added `buyer_id` (FK USERS, nullable) | gds-003 goods remember who bought them so the buyer can re-auction them (migration `20261021090000_goods_buyer`, backfilled from the last auction that ended with a winner) |
 
+| GOODS: added `rejection_reason`, `reviewed_at`, `reviewed_by` (FK USERS); status `pending`/`rejected` | stf-005 staff approval of new goods (see docs/goods-approval.md) |
+
 Goods ownership (gds-003): the current owner is `buyer_id` when set, otherwise `seller_id`. When an auction ends
 with a winner, settlement sets `goods.seller_id` = that auction's seller and `goods.buyer_id` = the winner, in the
 same transaction. On a first sale the seller is unchanged; on a resale the previous buyer (the reseller) becomes the
@@ -73,6 +75,9 @@ erDiagram
         text description
         varchar condition
         varchar status
+        text rejection_reason "added"
+        timestamp reviewed_at "added"
+        bigint reviewed_by FK "added"
         timestamp created_at
         timestamp updated_at
     }
@@ -177,6 +182,7 @@ erDiagram
     USERS ||--|| USER_INFO : has
     USERS ||--o{ GOODS : sells
     USERS ||--o{ GOODS : buys
+    USERS ||--o{ GOODS : reviews
     USERS ||--o{ AUCTIONS : creates
     USERS ||--o{ AUCTIONS : wins
     USERS ||--o{ BID_TICKETS : places

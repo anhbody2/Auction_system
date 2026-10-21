@@ -129,8 +129,8 @@ export const CONDITION_LABELS: Record<string, string> = {
 export const money =(n: number | null | undefined) =>
   n == null ? '-' : `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-/** gds-001: status is derived from the goods' auctions. */
-export type GoodsStatus = 'available' | 'in_auction' | 'sold';
+/** gds-001: status is derived from the goods' auctions; stf-005 adds the approval states. */
+export type GoodsStatus = 'pending' | 'rejected' | 'available' | 'in_auction' | 'sold';
 
 export interface Goods {
   id: number;
@@ -142,6 +142,8 @@ export interface Goods {
   status: GoodsStatus;
   /** gds-003: the signed-in user won these goods in an auction (shown as 'Bought'; they can auction them again). */
   bought: boolean;
+  /** stf-005: staff's reason when rejected. */
+  rejectionReason: string | null;
   /** gds-002: why Edit and Delete are off, or null. */
   lockedReason: string | null;
   auctionId: number | null;
@@ -150,6 +152,8 @@ export interface Goods {
 }
 
 export const GOODS_STATUS_LABELS: Record<GoodsStatus, string> = {
+  pending: 'pending approval',
+  rejected: 'rejected',
   available: 'available',
   in_auction: 'in auction',
   sold: 'sold',

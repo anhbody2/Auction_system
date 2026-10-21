@@ -22,10 +22,11 @@ model User {
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
   info               UserInfo?
-  goods              Goods[]                   @relation("SellerGoods")
-  boughtGoods        Goods[]                   @relation("BuyerGoods")
-  auctions           Auction[]                 @relation("SellerAuctions")
-  wonAuctions        Auction[]                 @relation("WinnerAuctions")
+  goods              Goods[]                  @relation("SellerGoods")
+  boughtGoods        Goods[]                  @relation("BuyerGoods")
+  reviewedGoods      Goods[]                  @relation("ReviewedGoods")
+  auctions           Auction[]                @relation("SellerAuctions")
+  wonAuctions        Auction[]                @relation("WinnerAuctions")
   bids               BidTicket[]
   transactions       CreditTransaction[]
   messages           AuctionMessage[]
@@ -60,23 +61,29 @@ model Category {
 }
 
 model Goods {
-  id          BigInt        @id @default(autoincrement())
-  sellerId    BigInt        @map("seller_id")
+  id              BigInt       @id @default(autoincrement())
+  sellerId        BigInt       @map("seller_id")
   /// gds-003: winner of the goods' last sale; the current owner is buyer when set, otherwise seller.
-  buyerId     BigInt?       @map("buyer_id")
-  categoryId  BigInt?       @map("category_id")
-  name        String        @db.VarChar(255)
-  description String?
-  condition   String?       @db.VarChar(30)
-  status      String        @default("active") @db.VarChar(20)
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
-  seller      User          @relation("SellerGoods", fields: [sellerId], references: [id])
-  buyer       User?         @relation("BuyerGoods", fields: [buyerId], references: [id])
-  category    Category?     @relation(fields: [categoryId], references: [id])
-  images      GoodsImage[]
-  auctions    Auction[]
+  buyerId         BigInt?      @map("buyer_id")
+  categoryId      BigInt?      @map("category_id")
+  name            String       @db.VarChar(255)
+  description     String?
+  condition       String?      @db.VarChar(30)
+  /// stf-005: pending (waiting for staff) | active (approved) | rejected | deleted
+  status          String       @default("active") @db.VarChar(20)
+  rejectionReason String?      @map("rejection_reason")
+  reviewedAt      DateTime?    @map("reviewed_at")
+  reviewedById    BigInt?      @map("reviewed_by")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+  seller          User         @relation("SellerGoods", fields: [sellerId], references: [id])
+  reviewedBy      User?        @relation("ReviewedGoods", fields: [reviewedById], references: [id])
+  buyer           User?        @relation("BuyerGoods", fields: [buyerId], references: [id])
+  category        Category?    @relation(fields: [categoryId], references: [id])
+  images          GoodsImage[]
+  auctions        Auction[]
 
+  @@index([status])
   @@map("goods")
 }
 
@@ -158,14 +165,14 @@ model CreditTransaction {
 }
 
 model AuctionSettlement {
-  id               BigInt    @id @default(autoincrement())
-  auctionId        BigInt    @unique @map("auction_id")
-  winningBidId     BigInt?   @unique @map("winning_bid_id")
-  commissionAmount Decimal   @default(0) @map("commission_amount") @db.Decimal(14, 2)
-  settlementStatus String    @default("pending") @map("settlement_status") @db.VarChar(20)
-  settledAt        DateTime? @map("settled_at")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  auction          Auction   @relation(fields: [auctionId], references: [id])
+  id               BigInt     @id @default(autoincrement())
+  auctionId        BigInt     @unique @map("auction_id")
+  winningBidId     BigInt?    @unique @map("winning_bid_id")
+  commissionAmount Decimal    @default(0) @map("commission_amount") @db.Decimal(14, 2)
+  settlementStatus String     @default("pending") @map("settlement_status") @db.VarChar(20)
+  settledAt        DateTime?  @map("settled_at")
+  createdAt        DateTime   @default(now()) @map("created_at")
+  auction          Auction    @relation(fields: [auctionId], references: [id])
   winningBid       BidTicket? @relation(fields: [winningBidId], references: [id])
 
   @@map("auction_settlements")

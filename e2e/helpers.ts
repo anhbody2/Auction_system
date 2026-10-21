@@ -1,4 +1,4 @@
-import { expect, type APIRequestContext, type Page } from '@playwright/test';
+import { expect, request as playwrightRequest, type APIRequestContext, type Page } from '@playwright/test';
 import sharp from 'sharp';
 
 export const PASSWORD = 'Password123!';
@@ -85,8 +85,29 @@ export async function uploadImageViaApi(request: APIRequestContext) {
   return (await res.json()).url as string;
 }
 
-/** Adds goods with one uploaded image as the signed-in user (gds-001). */
-export async function createGoodsViaApi(request: APIRequestContext, overrides: Record<string, unknown> = {}) {
+let staffContext: Promise<APIRequestContext> | null = null;
+/** A separate API session signed in as the seeded staff user (stf-005 approvals). */
+export function staffApi() {
+  staffContext ??= (async () => {
+    const ctx = await playwrightRequest.newContext({ baseURL: 'http://localhost:5180' });
+    const res = await ctx.post('/api/auth/login', { data: { identifier: 'staff', password: PASSWORD } });
+    expect(res.status()).toBe(200);
+    return ctx;
+  })();
+  return staffContext;
+}
+
+/** Staff approves pending goods through the real staff route (stf-005). */
+export async function approveGoodsViaApi(goodsId: number) {
+  const res = await (await staffApi()).post(`/api/staff/goods/${goodsId}/approve`);
+  expect(res.status(), await res.text()).toBe(200);
+}
+
+/**
+ * Adds goods with one uploaded image as the signed-in user (gds-001). Customer goods start pending (stf-005);
+ * staff approves them unless `approve: false`.
+ */
+export async function createGoodsViaApi(request: APIRequestContext, overrides: Record<string, unknown> = {}, { approve = true } = {}) {
   const categories = (await (await request.get('/api/categories')).json()).categories;
   const res = await request.post('/api/goods', {
     data: {
@@ -99,5 +120,10 @@ export async function createGoodsViaApi(request: APIRequestContext, overrides: R
     },
   });
   expect(res.status()).toBe(201);
-  return (await res.json()).goods as { id: number; name: string; images: string[]; status: string };
+  const goods = (await res.json()).goods as { id: number; name: string; images: string[]; status: string };
+  if (approve) {
+    await approveGoodsViaApi(goods.id);
+    goods.status = 'available';
+  }
+  return goods;
 }

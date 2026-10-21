@@ -21,7 +21,7 @@ async function body(agent: request.Agent, overrides: Record<string, unknown> = {
 describe('gds-001 POST /api/goods', () => {
   beforeEach(resetDb);
 
-  it('creates goods with uploaded images in order and returns it as available', async () => {
+  it('creates goods with uploaded images in order and returns it pending approval (stf-005)', async () => {
     const alice = await loginAs('alice');
     const second = await uploadTestImage(alice, 50, 50);
     const data = await body(alice);
@@ -31,12 +31,13 @@ describe('gds-001 POST /api/goods', () => {
     expect(res.body.goods).toMatchObject({
       name: 'Brass telescope',
       condition: 'used',
-      status: 'available',
+      status: 'pending',
       images: data.images,
       auctionId: null,
     });
     const row = await prisma.goods.findUniqueOrThrow({ where: { id: BigInt(res.body.goods.id) }, include: { seller: true } });
     expect(row.seller.username).toBe('alice');
+    expect(row.status).toBe('pending');
   });
 
   it('missing name, missing category and an empty image list are 400 with field errors', async () => {

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import sharp from 'sharp';
-import { login, testPng } from './helpers';
+import { approveGoodsViaApi, login, testPng } from './helpers';
 
 /** Noise barely compresses: 2600x1600 PNG is about 12 MB. */
 const bigPng = () =>
@@ -35,6 +35,10 @@ test('upl-001: seller uploads an image from the device, sees the preview, and th
   await page.getByLabel('Condition').selectOption({ label: 'Used' });
   await page.getByRole('button', { name: 'Add goods' }).click();
   await expect(page).toHaveURL(/\/goods$/);
+  // stf-005: staff approves the new goods first.
+  const mine = (await (await page.request.get('/api/me/goods')).json()).goods as { id: number; name: string }[];
+  await approveGoodsViaApi(mine.find((g) => g.name === 'Uploaded Lamp')!.id);
+  await page.reload();
 
   // Auction the goods: its page shows the uploaded image.
   await page.getByRole('link', { name: 'Auction Uploaded Lamp' }).click();

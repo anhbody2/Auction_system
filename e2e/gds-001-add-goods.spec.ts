@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { login, logout, testPng } from './helpers';
+import { approveGoodsViaApi, login, logout, testPng } from './helpers';
 
 test('gds-001: seller adds goods with an uploaded image on My goods; an image is required; others cannot see it', async ({ page }) => {
   await login(page, 'alice');
@@ -26,6 +26,12 @@ test('gds-001: seller adds goods with an uploaded image on My goods; an image is
   await expect(page).toHaveURL(/\/goods$/);
   const row = page.getByTestId('my-goods').getByRole('row', { name: /Walnut Jewellery Box/ });
   await expect(row).toBeVisible();
+  // stf-005: new goods wait for staff approval, then become available.
+  await expect(row.getByTestId('goods-status')).toHaveText('pending approval');
+  await expect(row.getByRole('link', { name: 'Auction Walnut Jewellery Box' })).toHaveCount(0);
+  const mine = (await (await page.request.get('/api/me/goods')).json()).goods as { id: number; name: string }[];
+  await approveGoodsViaApi(mine.find((g) => g.name === 'Walnut Jewellery Box')!.id);
+  await page.reload();
   await expect(row.getByTestId('goods-status')).toHaveText('available');
   await expect(row).toContainText('Collectibles');
   await expect(row.getByRole('img', { name: 'Walnut Jewellery Box' })).toHaveAttribute('src', /^\/uploads\/[0-9a-f]{32}\.png$/);

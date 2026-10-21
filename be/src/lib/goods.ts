@@ -7,7 +7,12 @@ export const CONDITIONS = ['new', 'like_new', 'used', 'for_parts'] as const;
 export const MAX_GOODS_IMAGES = 8;
 
 /** Derived from the goods' auctions and owner (gds-001, gds-003); 'deleted' goods are hidden everywhere (gds-002). */
-export type GoodsState = 'available' | 'in_auction' | 'sold';
+export type GoodsState = 'pending' | 'rejected' | 'available' | 'in_auction' | 'sold';
+
+/** stf-005: stored goods.status values. 'active' means approved by staff. */
+export const GOODS_STATUSES = ['pending', 'active', 'rejected', 'deleted'] as const;
+export type GoodsStatus = (typeof GOODS_STATUSES)[number];
+export const NOT_APPROVED_MESSAGE = 'Goods must be approved before auction';
 
 export const goodsInclude = {
   category: true,
@@ -23,15 +28,18 @@ export const goodsOwnerId = (g: { sellerId: bigint; buyerId: bigint | null }) =>
 /**
  * State of the goods as seen by `viewerId` (their seller or buyer):
  * sold: the viewer no longer owns them (they sold them; gds-003 hands goods over to the winner).
+ * pending / rejected: waiting for, or refused by, staff approval (stf-005); they cannot be auctioned.
  * in_auction: an upcoming or active auction (an active one stays so until the close job ends it).
  * Otherwise available, including after a cancelled auction, one that ended without a winner, and
  * for a buyer who won them (they can auction them again).
  */
 export function goodsState(
-  g: { sellerId: bigint; buyerId: bigint | null; auctions: { status: string }[] },
+  g: { sellerId: bigint; buyerId: bigint | null; status?: string; auctions: { status: string }[] },
   viewerId: bigint,
 ): GoodsState {
   if (goodsOwnerId(g) !== viewerId) return 'sold';
+  if (g.status === 'pending') return 'pending';
+  if (g.status === 'rejected') return 'rejected';
   if (g.auctions.some((a) => a.status === 'upcoming' || a.status === 'active')) return 'in_auction';
   return 'available';
 }
@@ -49,6 +57,8 @@ export function goodsView(g: GoodsRow, viewerId: bigint) {
     status: state,
     /** gds-003: the viewer won these goods in an auction (they show as 'Bought'). */
     bought: g.buyerId === viewerId,
+    /** stf-005: staff's reason when the goods were rejected. */
+    rejectionReason: g.status === 'rejected' ? g.rejectionReason : null,
     lockedReason: goodsLockReason(state),
     auctionId: open?.id ?? g.auctions[0]?.id ?? null,
     createdAt: g.createdAt,

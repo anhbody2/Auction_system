@@ -16,6 +16,7 @@ import { goodsRouter } from './routes/goods';
 import { meRouter } from './routes/me';
 import { messagesRouter } from './routes/messages';
 import { staffRouter } from './routes/staff';
+import { staffGoodsRouter } from './routes/staffGoods';
 import { uploadsRouter } from './routes/uploads';
 
 /** Serves config.uploadDir, looked up per request so tests can point UPLOAD_DIR at a temp folder. */
@@ -59,6 +60,7 @@ export function createApp() {
   app.use('/api/me', meRouter);
   app.use('/api/admin/users', adminUsersRouter);
   app.use('/api/admin', adminRouter);
+  app.use('/api/staff/goods', staffGoodsRouter);
   app.use('/api/staff', staffRouter);
   app.use('/api/credit', creditRouter);
   app.use('/api/uploads', uploadsRouter);

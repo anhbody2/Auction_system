@@ -2,8 +2,16 @@ import type request from 'supertest';
 import { prisma } from '../src/db';
 import { uploadTestImage } from './upload.fixtures';
 
-/** Adds goods with one uploaded image as the agent and returns its id. Needs useTempUploadDir(). */
-export async function addGoods(agent: request.Agent, name: string, overrides: Record<string, unknown> = {}) {
+/** stf-005: approves goods the way staff would (status active), for tests about what happens after approval. */
+export async function approveGoods(goodsId: bigint) {
+  await prisma.goods.update({ where: { id: goodsId }, data: { status: 'active', reviewedAt: new Date() } });
+}
+
+/**
+ * Adds goods with one uploaded image as the agent and returns its id. Needs useTempUploadDir().
+ * Customer goods start pending (stf-005); they are approved unless `approve: false`.
+ */
+export async function addGoods(agent: request.Agent, name: string, overrides: Record<string, unknown> = {}, { approve = true } = {}) {
   const category = await prisma.category.findFirstOrThrow({ orderBy: { id: 'asc' } });
   const res = await agent.post('/api/goods').send({
     name,
@@ -14,7 +22,9 @@ export async function addGoods(agent: request.Agent, name: string, overrides: Re
     ...overrides,
   });
   if (res.status !== 201) throw new Error(`add goods failed: ${JSON.stringify(res.body)}`);
-  return BigInt(res.body.goods.id);
+  const id = BigInt(res.body.goods.id);
+  if (approve) await approveGoods(id);
+  return id;
 }
 
 /**

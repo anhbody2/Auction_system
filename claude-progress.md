@@ -321,3 +321,10 @@
 - Completed: GET /api/credit/transactions (be/src/lib/transactions.ts, reusable for stf-008); fe TransactionSearch + TransactionTable + Pager; /credit history is the paged search (last 30 days by default)
 - Verification: ./init.sh exit 0 -> be vitest 235, fe vitest 32, fe build ok, Playwright 49/49
 - Next best step: stf-005 (staff goods + approval; ripple: every goods fixture must approve)
+
+### Session 010 (cont.) stf-005
+
+- Completed: goods approval (pending/active/rejected/deleted, review columns, goods.manage permission); staff goods routes /api/staff/goods (list/search/page, view, add for seller, edit, soft delete, approve/reject with mail); staff UI /staff/goods; My goods shows pending/rejected; auction create 400 on unapproved goods
+- Fixture ripple handled: be addGoods and e2e createGoodsViaApi approve (e2e through a real staff session); 6 older tests/specs updated to the approval flow
+- Verification: ./init.sh exit 0 -> be vitest 246, fe vitest 32, fe build ok, Playwright 50/50
+- Next best step: stf-006 (staff auctions; needs auctions.deleted_at)
