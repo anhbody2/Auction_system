@@ -8,6 +8,7 @@ export const PERMISSIONS = [
   { code: 'permission.manage', description: 'Grant and revoke role permissions' },
   { code: 'goods.manage', description: 'Manage and approve goods' },
   { code: 'auction.manage', description: 'Manage auctions (add, edit, delete)' },
+  { code: 'credit.manage', description: 'Approve credit requests and manage transactions' },
 ] as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[number]['code'];
@@ -15,8 +16,8 @@ export type PermissionCode = (typeof PERMISSIONS)[number]['code'];
 /** Grants the migration installs; the seed restores any that are missing. */
 export const DEFAULT_GRANTS: Record<Role, PermissionCode[]> = {
   customer: [],
-  staff: ['report.view', 'report.export', 'goods.manage', 'auction.manage'],
-  admin: ['user.manage', 'permission.manage', 'goods.manage', 'auction.manage'],
+  staff: ['report.view', 'report.export', 'goods.manage', 'auction.manage', 'credit.manage'],
+  admin: ['user.manage', 'permission.manage', 'goods.manage', 'auction.manage', 'credit.manage'],
 };
 
 /** Admin keeps these so nobody can lock themselves out of administration. */

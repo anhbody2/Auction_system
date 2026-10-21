@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { auctionFinished, outbid, refreshCredit } from './creditSlice';
+import { auctionFinished, creditLoaded, outbid, refreshCredit } from './creditSlice';
 import { useAppDispatch } from './index';
 
 /**
@@ -19,6 +19,12 @@ export function useUserEvents(enabled: boolean, userId: number | undefined) {
     });
     source.addEventListener('auction-finished', (e) => {
       dispatch(auctionFinished(JSON.parse((e as MessageEvent<string>).data) as { auctionId: number }));
+    });
+    // stf-007: staff reviewed a top-up/withdrawal request; the event carries the new figures.
+    source.addEventListener('credit-request', (e) => {
+      const data = JSON.parse((e as MessageEvent<string>).data) as { balance: number; held: number };
+      dispatch(creditLoaded({ credit: Number(data.balance), locked: Number(data.held) }));
+      window.dispatchEvent(new CustomEvent('credit-request-reviewed', { detail: data }));
     });
     source.onerror = () => {
       dropped = true;

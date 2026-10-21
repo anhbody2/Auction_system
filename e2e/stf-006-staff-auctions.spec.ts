@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { createAuctionViaApi, createGoodsViaApi, login, logout, registerViaApi } from './helpers';
+import { createAuctionViaApi, createGoodsViaApi, login, logout, registerViaApi, topUpViaApi } from './helpers';
 
 const TAG = Date.now().toString(36);
 
@@ -19,7 +19,7 @@ test('stf-006: staff search and page auctions, add one for a seller, edit it, an
   // The bidder bids on one of them.
   const doomed = created[5];
   await login(page, bidder);
-  expect((await page.request.post('/api/credit/topup', { data: { amount: 100 } })).status()).toBe(201);
+  await topUpViaApi(page.request, 100);
   expect((await page.request.post(`/api/auctions/${doomed.id}/bids`, { data: { amount: 30 } })).status()).toBe(201);
   await page.goto('/credit');
   await expect(page.getByTestId('credit-held')).toHaveText('$30.00');

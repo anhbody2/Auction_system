@@ -334,3 +334,10 @@
 - Completed: auctions.deleted_at + auction.manage; /api/staff/manage/auctions (list/search/page, seller-goods, view, add for seller, edit upcoming / description-only when started, soft delete); release logic shared in be/src/lib/auctionVoid.ts (cancel route uses it too); deleted auctions hidden from all customer pages; UI /staff/auctions
 - Verification: ./init.sh exit 0 -> be vitest 258, fe vitest 32, fe build ok, Playwright 51/51
 - Next best step: stf-007 (credit requests need staff approval; ripple: every top-up in tests)
+
+### Session 010 (cont.) stf-007
+
+- Completed: credit requests (credit_transactions.status pending/posted/rejected), staff approve/reject at /api/staff/credit/requests (row lock, re-check withdrawals at approval, SSE credit-request event + mail), /credit pending list with live update, /staff/credit page
+- Ripple: be topUp helper and e2e topUpViaApi approve through the staff route; 3 be tests and 15 e2e specs switched
+- Verification: ./init.sh exit 0 -> be vitest 264, fe vitest 32, fe build ok, Playwright 52/52
+- Next best step: stf-008 (staff transaction list/CRUD on top of trx-001 + stf-007)

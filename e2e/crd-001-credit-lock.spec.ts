@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { createAuctionViaApi, login, logout, registerViaApi } from './helpers';
+import { createAuctionViaApi, login, logout, registerViaApi, topUpViaApi } from './helpers';
 
 async function expectCredit(page: Page, balance: string, held: string) {
   await page.goto('/credit');
@@ -17,13 +17,13 @@ test('crd-001: outbid credit is unlocked at once; the winner stays locked until 
   await logout(page);
 
   await login(page, 'crd_first');
-  expect((await page.request.post('/api/credit/topup', { data: { amount: 500 } })).status()).toBe(201);
+  await topUpViaApi(page.request, 500);
   expect((await page.request.post(`/api/auctions/${auction.id}/bids`, { data: { amount: 100 } })).status()).toBe(201);
   await expectCredit(page, '$500.00', '$100.00');
   await logout(page);
 
   await login(page, 'crd_second');
-  expect((await page.request.post('/api/credit/topup', { data: { amount: 500 } })).status()).toBe(201);
+  await topUpViaApi(page.request, 500);
   expect((await page.request.post(`/api/auctions/${auction.id}/bids`, { data: { amount: 150 } })).status()).toBe(201);
   await expectCredit(page, '$500.00', '$150.00');
   await logout(page);

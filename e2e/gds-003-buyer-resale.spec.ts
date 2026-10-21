@@ -1,11 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
-import { createGoodsViaApi, login, logout, registerViaApi } from './helpers';
+import { createGoodsViaApi, login, logout, registerViaApi, topUpViaApi } from './helpers';
 
 const TAG = Date.now().toString(36);
 
 /** Bids as the logged-in user (topping up first), expires the auction and waits for the close job. */
 async function winAuction(page: Page, auctionId: number, amount: number) {
-  expect((await page.request.post('/api/credit/topup', { data: { amount } })).status()).toBe(201);
+  await topUpViaApi(page.request, amount);
   expect((await page.request.post(`/api/auctions/${auctionId}/bids`, { data: { amount } })).status()).toBe(201);
   await page.request.post(`/api/dev/auctions/${auctionId}/expire`);
   const raw = async () => (await (await page.request.get(`/api/dev/auctions/${auctionId}/raw`)).json()).status;

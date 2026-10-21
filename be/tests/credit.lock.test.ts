@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { prisma } from '../src/db';
-import { createAuction, loginAs, resetDb } from './helpers';
+import { createAuction, loginAs, resetDb, topUp } from './helpers';
 
 const credit = async (agent: request.Agent) => {
   const { balance, held, available } = (await agent.get('/api/credit')).body;
@@ -54,7 +54,7 @@ describe('crd-001 only the leading bid locks credit', () => {
     expect(tooMuch.status).toBe(400);
     expect(tooMuch.body.fields.amount).toBe('Bid exceeds your available credit');
 
-    await carol.post('/api/credit/topup').send({ amount: 500 });
+    await topUp(carol, 500);
     expect((await bid(carol, a.id, 950)).status).toBe(201);
 
     expect((await bid(bob, b.id, 200)).status).toBe(201);

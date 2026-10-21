@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { prisma } from '../src/db';
 import { nextMinBid } from '../src/lib/auctions';
 import { ladderIncrement } from '../src/lib/increments';
-import { app, createAuction, loginAs, resetDb } from './helpers';
+import { app, createAuction, loginAs, resetDb, topUp } from './helpers';
 
 const D = (v: number) => new Prisma.Decimal(v);
 
@@ -47,7 +47,7 @@ describe('bid-003 price-tiered bid increment', () => {
     it('bid-004: from $100 the step is $10, from $1000 it is $100', async () => {
       const alice = await loginAs('alice');
       const bob = await loginAs('bob');
-      await bob.post('/api/credit/topup').send({ amount: 5000 });
+      await topUp(bob, 5000);
       const a = await createAuction(alice, { initialPrice: 100 });
       const next = async () => (await request(app).get(`/api/auctions/${a.id}`)).body.auction.nextMinBid;
       expect((await bob.post(`/api/auctions/${a.id}/bids`).send({ amount: 100 })).status).toBe(201);

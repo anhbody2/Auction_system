@@ -64,7 +64,7 @@ export async function createSoldAuction(request: APIRequestContext, name: string
   const auction = await createAuctionViaApi(request, { name, initialPrice: 100 });
   await request.post('/api/auth/login', { data: { identifier: 'bob', password: PASSWORD } });
   // Other specs spend bob's credit; top up so this helper works at any point in the suite.
-  expect((await request.post('/api/credit/topup', { data: { amount: 150 } })).ok()).toBe(true);
+  await topUpViaApi(request, 150);
   expect((await request.post(`/api/auctions/${auction.id}/bids`, { data: { amount: 150 } })).status()).toBe(201);
   await request.post(`/api/dev/auctions/${auction.id}/expire`);
   await expect
@@ -95,6 +95,19 @@ export function staffApi() {
     return ctx;
   })();
   return staffContext;
+}
+
+/**
+ * stf-007: top-ups are requests. Asks for one as the signed-in user of `request`, then the seeded staff user
+ * approves it through the real staff route. Returns the approved (posted) ledger row.
+ */
+export async function topUpViaApi(request: APIRequestContext, amount: number) {
+  const res = await request.post('/api/credit/topup', { data: { amount } });
+  expect(res.status(), await res.text()).toBe(201);
+  const { request: pending } = (await res.json()) as { request: { id: number } };
+  const approved = await (await staffApi()).post(`/api/staff/credit/requests/${pending.id}/approve`);
+  expect(approved.status(), await approved.text()).toBe(200);
+  return (await approved.json()).transaction as { id: number; amount: number; status: string };
 }
 
 /** Staff approves pending goods through the real staff route (stf-005). */

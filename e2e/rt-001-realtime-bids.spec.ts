@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { createAuctionViaApi, login } from './helpers';
+import { createAuctionViaApi, login, topUpViaApi } from './helpers';
 
 test('rt-001: two viewers see each other\'s bids without reloading', async ({ page, browser }) => {
   await login(page, 'alice');
@@ -12,7 +12,7 @@ test('rt-001: two viewers see each other\'s bids without reloading', async ({ pa
   for (const [p, name] of [[bob, 'bob'], [carol, 'carol']] as const) {
     await login(p, name);
     // Other specs spend these seeded users' credit; make sure there is enough here.
-    expect((await p.request.post('/api/credit/topup', { data: { amount: 1000 } })).status()).toBe(201);
+    await topUpViaApi(p.request, 1000);
     await p.goto(`/auctions/${auction.id}`);
     await expect(p.getByTestId('current-price')).toHaveText('$100.00');
   }

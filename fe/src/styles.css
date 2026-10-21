@@ -195,3 +195,8 @@ th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: u
 .details dt { font-weight: 600; color: var(--muted); }
 .details dd { margin: 0; }
 @media (max-width: 520px) { .details { grid-template-columns: 1fr; } .details dd { margin-bottom: 0.5rem; } }
+
+/* stf-007 credit requests */
+.pending-list { list-style: none; padding: 0; margin: 0 0 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+.badge-posted { background: #e3f6ea; color: var(--success); }
+.badge-deleted { background: #eceef2; color: var(--muted); }

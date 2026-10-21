@@ -11,6 +11,9 @@ export interface Tx {
   description: string | null;
   createdAt: string;
   auction: { id: number; name: string } | null;
+  /** stf-007: pending | posted | rejected | deleted */
+  status?: string;
+  rejectionReason?: string | null;
 }
 
 /** trx-001: one page of search results. */
@@ -56,9 +59,18 @@ export function TransactionTable<T extends Tx>({
               <td>{new Date(t.createdAt).toLocaleString()}</td>
               <td>
                 <span className="badge">{t.transactionType}</span>
+                {t.status && t.status !== 'posted' && (
+                  <>
+                    {' '}
+                    <span className={`badge badge-${t.status}`} data-testid="tx-status">
+                      {t.status}
+                    </span>
+                  </>
+                )}
               </td>
               <td>
                 {t.description}
+                {t.status === 'rejected' && t.rejectionReason && <span className="muted small"> (rejected: {t.rejectionReason})</span>}
                 {t.auction && (
                   <>
                     {' · '}
@@ -70,7 +82,7 @@ export function TransactionTable<T extends Tx>({
                 {SIGN[t.transactionType] ?? ''}
                 {money(t.amount)}
               </td>
-              <td>{money(t.balanceAfter)}</td>
+              <td>{t.status && t.status !== 'posted' ? '-' : money(t.balanceAfter)}</td>
               {extraColumns.map((c) => (
                 <td key={c.header}>{c.cell(t)}</td>
               ))}

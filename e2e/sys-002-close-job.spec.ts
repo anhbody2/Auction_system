@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { createAuctionViaApi, login, logout, registerViaApi } from './helpers';
+import { createAuctionViaApi, login, logout, registerViaApi, topUpViaApi } from './helpers';
 
 // The e2e API server runs the scheduler every second with the production per-request safety net on.
 // be/tests/job.close.test.ts covers the job closing auctions on its own (SETTLE_ON_REQUEST=0).
@@ -12,7 +12,7 @@ test('sys-002: after the close job runs, the auction is ended and winner and sel
   await logout(page);
 
   await login(page, 'wendy_winner');
-  expect((await page.request.post('/api/credit/topup', { data: { amount: 400 } })).status()).toBe(201);
+  await topUpViaApi(page.request, 400);
   expect((await page.request.post(`/api/auctions/${auction.id}/bids`, { data: { amount: 150 } })).status()).toBe(201);
 
   const raw = async () => (await (await page.request.get(`/api/dev/auctions/${auction.id}/raw`)).json()).status;

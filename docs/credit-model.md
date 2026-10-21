@@ -99,3 +99,25 @@ are queried in parallel. Rules live in be/src/lib/transactions.ts (`transactionF
 `searchTransactions`), reused by the staff list (stf-008). The client repeats the checks with the same messages
 (fe/src/transactionSearch.ts) and the search bar is fe/src/components/TransactionSearch.tsx.
 `GET /api/credit` (summary) is unchanged.
+
+## Top-up and withdrawal requests (stf-007)
+
+Top-ups and withdrawals are requests that staff approve. Design choice: a `status` column on `credit_transactions`
+(not a separate table), default `posted`, so every bid, settlement and older row is unchanged.
+
+| Status | Meaning |
+|---|---|
+| `pending` | Request saved by `POST /api/credit/topup` or `/withdraw`. No balance change. `balance_before` = `balance_after` = the credit at request time. Description "Top up request" / "Withdrawal request". |
+| `posted` | Applied. For requests: set on approval, with the real `balance_before`/`balance_after` and description "Top up" / "Withdrawal". |
+| `rejected` | Refused by staff; `rejection_reason` is required. No balance change. |
+| `deleted` | Soft-deleted request (stf-008). |
+
+Approval (`POST /api/staff/credit/requests/:id/approve`, permission `credit.manage`) locks the ledger row and the
+user row, so a request is reviewed exactly once even when two staff click at the same time. A withdrawal is checked
+against available credit (credit - locked) when requested and again at approval; if it no longer fits, approval is
+400 and the request stays pending. `reviewed_at`/`reviewed_by` record who decided.
+
+After the decision the customer gets a `credit-request` event on `/api/me/events` (new balance and locked credit:
+the navbar, /credit and its pending list update without a reload) and an email. /credit lists the
+customer's pending requests under "Pending requests"; the history shows pending/rejected rows with their status.
+Staff review requests on /staff/credit ("Credit management").

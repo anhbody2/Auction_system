@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { PASSWORD, createAuctionViaApi, createGoodsViaApi, login, registerViaApi } from './helpers';
+import { createAuctionViaApi, createGoodsViaApi, login, PASSWORD, registerViaApi, topUpViaApi } from './helpers';
 
 test('sell-006: the create-auction goods dropdown lists only available goods', async ({ page, browser }) => {
   await registerViaApi(page.request, 'av_seller');
@@ -15,7 +15,7 @@ test('sell-006: the create-auction goods dropdown lists only available goods', a
   const bidder = bidderContext.request;
   await registerViaApi(bidder, 'av_bidder');
   await bidder.post('/api/auth/login', { data: { identifier: 'av_bidder', password: PASSWORD } });
-  expect((await bidder.post('/api/credit/topup', { data: { amount: 100 } })).status()).toBe(201);
+  await topUpViaApi(bidder, 100);
   expect((await bidder.post(`/api/auctions/${soldAuction.id}/bids`, { data: { amount: 50 } })).status()).toBe(201);
   await bidder.post(`/api/dev/auctions/${soldAuction.id}/expire`);
   await expect.poll(async () => (await (await bidder.get(`/api/dev/auctions/${soldAuction.id}/raw`)).json()).status, { timeout: 15_000 }).toBe('ended');

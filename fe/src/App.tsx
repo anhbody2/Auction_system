@@ -21,6 +21,7 @@ import { ProfilePage } from './pages/Profile';
 import { RegisterPage } from './pages/Register';
 import { ResetPasswordPage } from './pages/ResetPassword';
 import { StaffAuctionDetailPage, StaffAuctionNewPage, StaffAuctionsPage } from './pages/StaffAuctions';
+import { StaffCreditPage } from './pages/StaffCredit';
 import { StaffGoodsDetailPage, StaffGoodsNewPage, StaffGoodsPage } from './pages/StaffGoods';
 import { StaffStatisticsPage } from './pages/StaffStatistics';
 import { VerifyEmailPage } from './pages/VerifyEmail';
@@ -52,6 +53,7 @@ export function App() {
         <Route path="/staff/auctions" element={<RequireAuth permission="auction.manage"><StaffAuctionsPage /></RequireAuth>} />
         <Route path="/staff/auctions/new" element={<RequireAuth permission="auction.manage"><StaffAuctionNewPage /></RequireAuth>} />
         <Route path="/staff/auctions/:id" element={<RequireAuth permission="auction.manage"><StaffAuctionDetailPage /></RequireAuth>} />
+        <Route path="/staff/credit" element={<RequireAuth permission="credit.manage"><StaffCreditPage /></RequireAuth>} />
         <Route path="/staff/goods" element={<RequireAuth permission="goods.manage"><StaffGoodsPage /></RequireAuth>} />
         <Route path="/staff/goods/new" element={<RequireAuth permission="goods.manage"><StaffGoodsNewPage /></RequireAuth>} />
         <Route path="/staff/goods/:id" element={<RequireAuth permission="goods.manage"><StaffGoodsDetailPage /></RequireAuth>} />

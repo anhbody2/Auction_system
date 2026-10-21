@@ -21,6 +21,8 @@
 
 | AUCTIONS: added `deleted_at` | stf-006 staff soft delete (hidden from customers; see docs/auction-cancel.md) |
 
+| CREDIT_TRANSACTIONS: added `status`, `rejection_reason`, `reviewed_at`, `reviewed_by` (FK USERS) | stf-007 top-up/withdrawal requests approved by staff (docs/credit-model.md) |
+
 Goods ownership (gds-003): the current owner is `buyer_id` when set, otherwise `seller_id`. When an auction ends
 with a winner, settlement sets `goods.seller_id` = that auction's seller and `goods.buyer_id` = the winner, in the
 same transaction. On a first sale the seller is unchanged; on a resale the previous buyer (the reseller) becomes the
@@ -134,6 +136,10 @@ erDiagram
         decimal balance_after
         text description
         timestamp created_at
+        varchar status "added"
+        text rejection_reason "added"
+        timestamp reviewed_at "added"
+        bigint reviewed_by FK "added"
     }
 
     AUCTION_SETTLEMENTS {

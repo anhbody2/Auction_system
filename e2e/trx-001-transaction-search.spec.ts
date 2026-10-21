@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { createAuctionViaApi, login, logout, registerViaApi } from './helpers';
+import { createAuctionViaApi, login, logout, registerViaApi, topUpViaApi } from './helpers';
 
 const TAG = Date.now().toString(36);
 
@@ -31,15 +31,11 @@ test('trx-001: a customer searches transactions by id, name, amount range and al
   await logout(page);
 
   await login(page, bidder);
-  const tx = async (path: string, amount: number) =>
-    (await (await page.request.post(path, { data: { amount } })).json()) as { transactions: { id: number; amount: number; transactionType: string }[] };
-  await tx('/api/credit/topup', 50);
-  await tx('/api/credit/topup', 200);
-  const last = await tx('/api/credit/topup', 75);
+  // stf-007: each top-up is approved by staff (topUpViaApi), so all three are posted rows.
+  await topUpViaApi(page.request, 50);
+  const id200 = String((await topUpViaApi(page.request, 200)).id);
+  const id75 = String((await topUpViaApi(page.request, 75)).id);
   expect((await page.request.post(`/api/auctions/${auction.id}/bids`, { data: { amount: 40 } })).status()).toBe(201);
-  const ledger = last.transactions;
-  const id200 = String(ledger.find((t) => Number(t.amount) === 200)!.id);
-  const id75 = String(ledger.find((t) => Number(t.amount) === 75)!.id);
 
   await page.goto('/credit');
   // Default: last 30 days, all 4 rows (3 top-ups + the bid hold)

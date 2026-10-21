@@ -34,6 +34,7 @@ export function Layout() {
           {can(user, 'report.view') && <NavLink to="/staff/statistics">Statistics</NavLink>}
           {can(user, 'auction.manage') && <NavLink to="/staff/auctions">Manage auctions</NavLink>}
           {can(user, 'goods.manage') && <NavLink to="/staff/goods">Goods</NavLink>}
+          {can(user, 'credit.manage') && <NavLink to="/staff/credit">Credit management</NavLink>}
           {can(user, 'user.manage') && <NavLink to="/admin/users">Users</NavLink>}
           {can(user, 'permission.manage') && <NavLink to="/admin/permissions">Permissions</NavLink>}
           {user && <NavLink to="/profile">Profile</NavLink>}

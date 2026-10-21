@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { createAuctionViaApi, login, logout, registerViaApi, testPng } from './helpers';
+import { createAuctionViaApi, login, logout, registerViaApi, testPng, topUpViaApi } from './helpers';
 
 const TAG = Date.now().toString(36);
 
@@ -42,7 +42,7 @@ test('sys-004: forms, bids and uploads go through the axios client; a 401 sends 
 
   // Place a bid
   await login(page, bidder);
-  expect((await page.request.post('/api/credit/topup', { data: { amount: 100 } })).status()).toBe(201);
+  await topUpViaApi(page.request, 100);
   await page.goto(`/auctions/${auction.id}`);
   await page.getByLabel('Your bid').fill('20');
   await page.getByRole('button', { name: 'Place bid' }).click();

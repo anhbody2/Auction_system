@@ -201,7 +201,7 @@
       "srs_ref": "Staff - Credit Management, Req-3",
       "title": "Top-up and withdrawal requests wait for staff approval",
       "user_visible_behavior": "When a customer tops up or withdraws on /credit, the request is saved as 'Pending' and the balance does not change yet; /credit shows it under 'Pending requests'. Staff see pending requests on /staff/credit and approve or reject them (reject needs a reason). Approve posts the ledger row and updates the balance (withdrawals re-check available credit at approval time). The customer's balance and list update live and they get an email with the result.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Permissions: new code 'credit.manage' seeded for staff and admin; customers get 403 on approve/reject.",
         "Unit (be/tests/credit.approval.test.ts): POST /api/credit/topup -> 201 status 'pending', credit_balance unchanged; approve -> balance + amount, ledger row with balance before/after; reject -> no balance change, reason stored.",
@@ -211,7 +211,15 @@
         "E2E (e2e/stf-007-credit-approval.spec.ts): bob requests a $50 top-up and sees it pending with unchanged balance; staff approves; bob's navbar and /credit show +$50 without reload.",
         "Docs: docs/changes/stf-007.md; docs/credit-model.md describes request states and the approval step."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-21 ./init.sh exit 0: be vitest 54 files / 264 tests, fe vitest 5 files / 32 tests, fe build ok, Playwright 52/52",
+        "credit.manage seeded for staff and admin (migration 20261021180000); customers 403 on approve/reject/list, guests 401",
+        "be/tests/credit.approval.test.ts: topup -> 201 pending, balance unchanged; approve -> balance + amount, row posted with before/after and reviewer; reject needs a reason, stores it, no change, mail; withdrawal over available at approval -> 400 and stays pending; approving/rejecting twice -> 400; two staff approve at once (Promise.all) -> one 200 one 400, balance changes once; SSE credit-request event carries the new balance",
+        "Design: status column on credit_transactions (default posted); recorded in docs/credit-model.md",
+        "Existing tests use topUp/topUpViaApi helpers that approve through the staff route; credit.test concurrent withdrawals now race approvals (3 of 5 succeed); cust-005 checks the pending -> approved flow",
+        "e2e/stf-007-credit-approval.spec.ts passes: customer requests $50 -> pending, balance $0; staff approves in another session; customer /credit and navbar show $50.00 without reload; $70 rejected with reason 'Card declined' shown in history",
+        "Docs: docs/changes/stf-007.md, docs/credit-model.md, docs/ERD_edited.md"
+      ],
       "notes": "Today POST /api/credit/topup and /withdraw apply immediately via applyCredit() (be/src/routes/credit.ts). Suggested design: a status column on credit_transactions ('pending' | 'posted' | 'rejected' | 'deleted', default 'posted' so bid/settlement rows are unchanged) or a separate credit_requests table; pick one and record it in docs. Live update reuses the per-user SSE stream (useUserEvents)."
     },
     {

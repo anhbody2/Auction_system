@@ -12,7 +12,12 @@ interface Summary {
   balance: number;
   held: number;
   transactions: Tx[];
+  /** stf-007: top-up / withdrawal requests waiting for staff. */
+  pending: Tx[];
 }
+
+/** stf-007: fired by useUserEvents when staff approve or reject one of this user's requests. */
+export const CREDIT_REQUEST_EVENT = 'credit-request-reviewed';
 
 function AmountForm({ action, label, onDone }: { action: 'topup' | 'withdraw'; label: string; onDone: (s: Summary) => void }) {
   const toast = useToast();
@@ -61,9 +66,10 @@ export function CreditPage() {
   const [result, setResult] = useState<TxPage | null>(null);
   const [serverErrors, setServerErrors] = useState<FilterErrors>({});
 
-  useEffect(() => {
+  const loadSummary = useCallback(() => {
     api<Summary>('/credit').then(setData);
   }, []);
+  useEffect(loadSummary, [loadSummary]);
 
   const search = useCallback(async (f: TransactionFilterValues, p: number) => {
     try {
@@ -76,6 +82,16 @@ export function CreditPage() {
   useEffect(() => {
     search(filter, page);
   }, [search, filter, page]);
+
+  // stf-007: a reviewed request changes the balance, the pending list and the history without a reload.
+  useEffect(() => {
+    const onReviewed = () => {
+      loadSummary();
+      search(filter, page);
+    };
+    window.addEventListener(CREDIT_REQUEST_EVENT, onReviewed);
+    return () => window.removeEventListener(CREDIT_REQUEST_EVENT, onReviewed);
+  }, [loadSummary, search, filter, page]);
 
   const onDone = (s: Summary) => {
     setData(s);
@@ -105,7 +121,26 @@ export function CreditPage() {
         <AmountForm action="topup" label="Top up" onDone={onDone} />
         <AmountForm action="withdraw" label="Withdraw" onDone={onDone} />
       </div>
-      <p className="muted small">Bids and withdrawals can use your credit minus your locked credit. Top-ups are simulated; no real payment is taken.</p>
+      <p className="muted small">
+        Top-ups and withdrawals are requests: staff approve them before your credit changes. Bids and withdrawals can use your credit minus your
+        locked credit. Top-ups are simulated; no real payment is taken.
+      </p>
+
+      <h2>Pending requests</h2>
+      {data.pending.length === 0 ? (
+        <p className="muted" data-testid="no-pending">
+          No requests waiting for approval.
+        </p>
+      ) : (
+        <ul className="pending-list" data-testid="pending-requests">
+          {data.pending.map((p) => (
+            <li key={p.id} data-testid={`pending-${p.id}`}>
+              <span className="badge badge-pending">pending</span> {p.transactionType === 'topup' ? 'Top up' : 'Withdrawal'} of {money(p.amount)}
+              <span className="muted small"> · requested {new Date(p.createdAt).toLocaleString()}</span>
+            </li>
+          ))}
+        </ul>
+      )}
 
       <h2>Transaction history</h2>
       <TransactionSearch

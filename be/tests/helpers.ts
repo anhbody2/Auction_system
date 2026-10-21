@@ -87,6 +87,19 @@ export async function createAuction(agent: request.Agent, overrides: Record<stri
 
 export { inMinutes };
 
+/**
+ * stf-007: a top-up is a request; this asks for it as the agent and has the seeded staff user approve it.
+ * Returns the approved ledger row.
+ */
+export async function topUp(agent: request.Agent, amount: number) {
+  const res = await agent.post('/api/credit/topup').send({ amount });
+  if (res.status !== 201) throw new Error(`top-up request failed: ${JSON.stringify(res.body)}`);
+  const staff = await loginAs('staff');
+  const approved = await staff.post(`/api/staff/credit/requests/${res.body.request.id}/approve`);
+  if (approved.status !== 200) throw new Error(`top-up approval failed: ${JSON.stringify(approved.body)}`);
+  return approved.body.transaction;
+}
+
 /** Returns a supertest agent that keeps the auth cookie. */
 export async function loginAs(identifier: string, password = PASSWORD) {
   const agent = request.agent(app);

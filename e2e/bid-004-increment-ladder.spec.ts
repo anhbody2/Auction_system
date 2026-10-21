@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { createAuctionViaApi, login, logout, registerViaApi } from './helpers';
+import { createAuctionViaApi, login, logout, registerViaApi, topUpViaApi } from './helpers';
 
 test('bid-004: the next minimum bid steps by $10 from $100 and by $100 from $1000', async ({ page }) => {
   await login(page, 'alice');
@@ -8,7 +8,7 @@ test('bid-004: the next minimum bid steps by $10 from $100 and by $100 from $100
 
   await registerViaApi(page.request, 'ladder_bidder');
   await login(page, 'ladder_bidder');
-  expect((await page.request.post('/api/credit/topup', { data: { amount: 2000 } })).status()).toBe(201);
+  await topUpViaApi(page.request, 2000);
   await page.goto(`/auctions/${auction.id}`);
 
   await page.getByLabel('Your bid').fill('100');

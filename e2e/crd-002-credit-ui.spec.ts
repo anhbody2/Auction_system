@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { createAuctionViaApi, login, logout, registerViaApi } from './helpers';
+import { createAuctionViaApi, login, logout, registerViaApi, topUpViaApi } from './helpers';
 
 /** Header pill, dashboard and /credit all show Credit and Locked credit, never 'Available credit'. */
 async function expectCreditEverywhere(page: Page, credit: string, locked: string) {
@@ -27,7 +27,7 @@ test('crd-002: a bid changes Locked credit but not Credit; Credit drops only whe
   await logout(page);
 
   await login(page, 'ui_bidder');
-  expect((await page.request.post('/api/credit/topup', { data: { amount: 1000 } })).status()).toBe(201);
+  await topUpViaApi(page.request, 1000);
   await expectCreditEverywhere(page, '$1,000.00', '$0.00');
 
   // Bid through the UI: the header pill updates the lock, the credit stays.

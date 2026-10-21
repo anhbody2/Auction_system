@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { createAuctionViaApi, login, logout, registerViaApi } from './helpers';
+import { createAuctionViaApi, login, logout, registerViaApi, topUpViaApi } from './helpers';
 
 const inMinutes = (m: number) => new Date(Date.now() + m * 60_000).toISOString();
 
@@ -7,7 +7,7 @@ test('sell-005: the seller cancels only before the start; after that only the ad
   // A fresh bidder so locked credit starts at $0.00
   await registerViaApi(page.request, 'kim');
   await login(page, 'kim');
-  expect((await page.request.post('/api/credit/topup', { data: { amount: 500 } })).status()).toBe(201);
+  await topUpViaApi(page.request, 500);
   await logout(page);
 
   await login(page, 'alice');

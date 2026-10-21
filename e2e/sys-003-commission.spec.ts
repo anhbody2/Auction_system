@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { createAuctionViaApi, login, logout, registerViaApi } from './helpers';
+import { createAuctionViaApi, login, logout, registerViaApi, topUpViaApi } from './helpers';
 
 test('sys-003: seller proceeds are reduced by the tiered commission (5% at $150, 10% at $60)', async ({ page }) => {
   await registerViaApi(page.request, 'tia_seller');
@@ -11,7 +11,7 @@ test('sys-003: seller proceeds are reduced by the tiered commission (5% at $150,
   await logout(page);
 
   await login(page, 'tom_buyer');
-  await page.request.post('/api/credit/topup', { data: { amount: 500 } });
+  await topUpViaApi(page.request, 500);
   for (const [a, amount] of [[mid, 150], [low, 60]] as const) {
     expect((await page.request.post(`/api/auctions/${a.id}/bids`, { data: { amount } })).status()).toBe(201);
     await page.request.post(`/api/dev/auctions/${a.id}/expire`);

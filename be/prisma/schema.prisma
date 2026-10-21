@@ -29,6 +29,7 @@ model User {
   wonAuctions        Auction[]                @relation("WinnerAuctions")
   bids               BidTicket[]
   transactions       CreditTransaction[]
+  reviewedCredit     CreditTransaction[]      @relation("ReviewedCredit")
   messages           AuctionMessage[]
   resetTokens        PasswordResetToken[]
   verificationTokens EmailVerificationToken[]
@@ -158,11 +159,18 @@ model CreditTransaction {
   balanceBefore   Decimal    @map("balance_before") @db.Decimal(14, 2)
   balanceAfter    Decimal    @map("balance_after") @db.Decimal(14, 2)
   description     String?
+  /// stf-007: pending (request waiting for staff) | posted (applied) | rejected | deleted (stf-008)
+  status          String     @default("posted") @db.VarChar(20)
+  rejectionReason String?    @map("rejection_reason")
+  reviewedAt      DateTime?  @map("reviewed_at")
+  reviewedById    BigInt?    @map("reviewed_by")
   createdAt       DateTime   @default(now()) @map("created_at")
   user            User       @relation(fields: [userId], references: [id])
   auction         Auction?   @relation(fields: [auctionId], references: [id])
   bidTicket       BidTicket? @relation(fields: [bidTicketId], references: [id])
+  reviewedBy      User?      @relation("ReviewedCredit", fields: [reviewedById], references: [id])
 
+  @@index([status])
   @@map("credit_transactions")
 }
 

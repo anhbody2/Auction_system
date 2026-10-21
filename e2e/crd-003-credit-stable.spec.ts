@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Request } from '@playwright/test';
-import { createAuctionViaApi, login, logout, registerViaApi } from './helpers';
+import { createAuctionViaApi, login, logout, registerViaApi, topUpViaApi } from './helpers';
 
 /** Credit refetches the page could make: the user (/api/auth/me) or the credit summary. Streams are not counted. */
 const isCreditFetch = (r: Request) => {
@@ -10,7 +10,7 @@ const isCreditFetch = (r: Request) => {
 async function signIn(page: Page, username: string) {
   await registerViaApi(page.request, username);
   await login(page, username);
-  expect((await page.request.post('/api/credit/topup', { data: { amount: 1000 } })).status()).toBe(201);
+  await topUpViaApi(page.request, 1000);
   // A full load, so the header picks up the top-up.
   await page.goto('/dashboard');
   await expect(page.getByTestId('header-credit')).toHaveText('$1,000.00');

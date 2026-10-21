@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { PASSWORD, createAuctionViaApi, login, logout, registerViaApi } from './helpers';
+import { createAuctionViaApi, login, logout, PASSWORD, registerViaApi, topUpViaApi } from './helpers';
 
 test('cust-007: bidder sees each auction with latest bid, highest bid and outcome', async ({ page, browser }) => {
   // Fresh bidder jack with credit, and a rival bidder (bob) in a separate context
   await registerViaApi(page.request, 'jack');
   await login(page, 'jack');
-  await page.request.post('/api/credit/topup', { data: { amount: 1000 } });
+  await topUpViaApi(page.request, 1000);
   await logout(page);
 
   const rival = await browser.newContext({ baseURL: 'http://localhost:5180' });
