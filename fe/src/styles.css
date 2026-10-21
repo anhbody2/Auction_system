@@ -200,3 +200,8 @@ th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: u
 .pending-list { list-style: none; padding: 0; margin: 0 0 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
 .badge-posted { background: #e3f6ea; color: var(--success); }
 .badge-deleted { background: #eceef2; color: var(--muted); }
+
+/* mail-002 activation */
+.banner { background: #fff4e0; color: #5c3b00; border-radius: 8px; padding: 0.6rem 0.9rem; margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.notice-success { background: #e3f6ea; color: var(--success); }
+.resend { display: inline-flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }

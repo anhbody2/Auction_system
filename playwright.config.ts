@@ -27,6 +27,8 @@ export default defineConfig({
         NODE_ENV: 'e2e',
         AUCTION_JOB_INTERVAL_MS: '1000',
         UPLOAD_DIR: 'be/uploads/e2e',
+        // mail-002: the e2e flow resends activation mails back to back.
+        ACTIVATION_RESEND_INTERVAL_MS: '0',
       },
     },
     {

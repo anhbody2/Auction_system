@@ -9,9 +9,12 @@ import { activationMail, resetPasswordMail } from '../lib/mailTemplates';
 import { hashToken, newToken } from '../lib/tokens';
 import { getPublicUser } from '../lib/users';
 import { emailField, fullNameField, passwordField, phoneField, usernameField } from '../lib/validation';
-import { requireAuth, signToken } from '../middleware/auth';
+import { optionalAuth, requireAuth, signToken } from '../middleware/auth';
 
 export const authRouter = Router();
+
+export const ACTIVATION_LINK_MESSAGE = 'This activation link is invalid or has expired';
+export const ACTIVATED_MESSAGE = 'Your account is activated';
 
 const cookieOptions = {
   httpOnly: true,
@@ -87,15 +90,51 @@ authRouter.post(
   '/verify-email',
   asyncHandler(async (req, res) => {
     const { token } = z.object({ token: z.string().min(1) }).parse(req.body);
-    const record = await prisma.emailVerificationToken.findUnique({ where: { tokenHash: hashToken(token) } });
-    if (!record || record.usedAt || record.expiresAt < new Date()) {
-      throw new HttpError(400, 'This confirmation link is invalid or has expired');
+    const record = await prisma.emailVerificationToken.findUnique({ where: { tokenHash: hashToken(token) }, include: { user: true } });
+    if (!record || record.usedAt || record.expiresAt < new Date() || record.user.status === 'deleted') {
+      throw new HttpError(400, ACTIVATION_LINK_MESSAGE);
     }
-    await prisma.$transaction([
+    const [, user] = await prisma.$transaction([
       prisma.emailVerificationToken.update({ where: { id: record.id }, data: { usedAt: new Date() } }),
-      prisma.user.update({ where: { id: record.userId }, data: { emailVerifiedAt: new Date(), status: 'active' } }),
+      // Locked or disabled accounts stay as they are; only a pending account becomes active.
+      prisma.user.update({
+        where: { id: record.userId },
+        data: { emailVerifiedAt: new Date(), ...(record.user.status === 'pending' ? { status: 'active' } : {}) },
+      }),
     ]);
-    res.json({ message: 'Email confirmed' });
+    // mail-002: the link also signs the user in, so the page can take them straight to the main page.
+    if (user.status === 'active') res.cookie(config.cookieName, signToken(user), cookieOptions);
+    res.json({ message: ACTIVATED_MESSAGE, user: await getPublicUser(user.id) });
+  }),
+);
+
+/**
+ * mail-002: a new activation link. Identifies the account by the signed-in (pending) user or by an old link's
+ * token (the link page offers this when a link is used or expired). Older links stop working.
+ */
+authRouter.post(
+  '/resend-activation',
+  optionalAuth,
+  asyncHandler(async (req, res) => {
+    const { token } = z.object({ token: z.string().optional() }).parse(req.body ?? {});
+    let userId = req.user?.id;
+    if (!userId && token) userId = (await prisma.emailVerificationToken.findUnique({ where: { tokenHash: hashToken(token) } }))?.userId;
+    if (!userId) throw new HttpError(400, 'Log in, or open the link from your email, to get a new activation email');
+    const user = await prisma.user.findUnique({ where: { id: userId }, include: { info: true } });
+    if (!user || user.status === 'deleted') throw new HttpError(400, 'Log in, or open the link from your email, to get a new activation email');
+    if (user.emailVerifiedAt || user.status !== 'pending') throw new HttpError(400, 'Account is already activated');
+
+    const last = await prisma.emailVerificationToken.findFirst({ where: { userId }, orderBy: { createdAt: 'desc' } });
+    if (last && Date.now() - last.createdAt.getTime() < config.activationResendMs) {
+      throw new HttpError(429, 'Please wait a minute before asking for another activation email');
+    }
+    const fresh = newToken();
+    await prisma.$transaction([
+      prisma.emailVerificationToken.updateMany({ where: { userId, usedAt: null }, data: { usedAt: new Date() } }),
+      prisma.emailVerificationToken.create({ data: { userId, tokenHash: fresh.tokenHash, expiresAt: new Date(Date.now() + 24 * 3600 * 1000) } }),
+    ]);
+    await sendAccountMail(user.email, activationMail(user.info?.fullName ?? user.username, `${config.appUrl}/verify-email?token=${fresh.token}`));
+    res.json({ message: `A new activation email has been sent to ${user.email}` });
   }),
 );
 

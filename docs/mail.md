@@ -46,3 +46,18 @@ Account mails go through `sendAccountMail`: if the transport fails, the error is
 - Forgot password: the link was created but not delivered; asking again creates a new one.
 
 Notification mails (goods review, credit requests) are best effort: a failure is logged and the action still succeeds.
+
+## Activation (mail-002)
+
+1. Register creates a `pending` account and mails a 24-hour activation link (`/verify-email?token=...`).
+2. Opening it calls `POST /api/auth/verify-email {token}`: the account becomes `active`, `email_verified_at` is set,
+   the auth cookie is returned (the user is signed in) and the page goes to the main page `/` with
+   "Your account is activated". Locked or disabled accounts are verified but not activated or signed in.
+3. A used, expired or replaced link answers 400 "This activation link is invalid or has expired". The page then
+   offers **Resend activation email**. Signed-in pending users see the same button in a banner on every page.
+4. `POST /api/auth/resend-activation` finds the account by the signed-in user or by the old link's token, marks every
+   unused link as used (older links stop working) and mails a new one. Already active -> 400 "Account is already
+   activated". At most one mail a minute per account (429; `ACTIVATION_RESEND_INTERVAL_MS`, 0 in the e2e run).
+
+Open question kept from the feature notes: pending accounts can still log in (only the banner differs). The SRS
+does not ask to block them, so it was not changed.

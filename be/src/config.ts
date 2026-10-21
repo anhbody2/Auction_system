@@ -15,4 +15,8 @@ export const config = {
   get settleOnRequest() {
     return process.env.SETTLE_ON_REQUEST !== '0';
   },
+  /** mail-002: least time between two activation emails for one account (default one minute). */
+  get activationResendMs() {
+    return Number(process.env.ACTIVATION_RESEND_INTERVAL_MS ?? 60_000);
+  },
 };

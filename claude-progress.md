@@ -354,3 +354,9 @@
 - Verification: ./init.sh exit 0 -> be vitest 279, fe vitest 32, fe build ok, Playwright 53/53
 - BLOCKED: the manual real-inbox check needs the user's Gmail app password in be/.env (not committed). Status 'blocked', not passing
 - Next best step: mail-002 (activation link signs in and redirects)
+
+### Session 010 (cont.) mail-002
+
+- Completed: activation link signs in and redirects to / with 'Your account is activated'; resend-activation (session or old token; invalidates older links; already-active 400; once a minute, 0 in e2e); pending banner and error page resend button
+- Verification: ./init.sh exit 0 -> be vitest 283, fe vitest 32, fe build ok, Playwright 54/54
+- Next best step: mail-003 (change password by emailed link)

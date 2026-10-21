@@ -279,15 +279,21 @@
       "srs_ref": "Customer - Mail services 3.7.3 REQ-1, REQ-2",
       "title": "Activation link activates the account and redirects to the main page",
       "user_visible_behavior": "After registering, the user gets an activation email. Opening the link activates the account, signs them in, shows 'Your account is activated' and redirects to the main page (/). An expired or used link shows an error with a 'Resend activation email' button (also available on the pending-account banner). Resending invalidates older links.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Unit (be/tests/auth.activation.test.ts): POST /api/auth/verify-email with a valid token -> status 'active', email_verified_at set, auth cookie returned; reused or expired token -> 400; resend issues a new token and the old one fails.",
         "Unit: resend for an already active account -> 400 'Account is already activated'; resend is rate-limited (e.g. once per minute).",
         "E2E (e2e/mail-002-activation.spec.ts): register a new user, read the link from the dev outbox, open it, land on / signed in with the success message; open the same link again and see the error and resend button; resend and use the new link.",
         "Docs: docs/changes/mail-002.md; docs/mail.md activation section."
       ],
-      "evidence": [],
-      "notes": "Existing: register creates status 'pending' + token and mails /verify-email?token=..., fe/src/pages/VerifyEmail.tsx shows 'Go to log in'. OPEN QUESTION for the user: should pending (not activated) accounts be blocked from logging in? Today they can log in (Session 001 note). Not required by the SRS text, so not included unless confirmed."
+      "evidence": [
+        "2026-10-21 ./init.sh exit 0: be vitest 58 files / 283 tests, fe vitest 32, fe build ok, Playwright 54/54",
+        "be/tests/auth.activation.test.ts: valid token -> status active, email_verified_at set, auth cookie returned and /api/auth/me works with it; reused or expired token -> 400; resend by old token and as the signed-in pending user issues a new token and older ones fail; active account -> 400 'Account is already activated'; resend limited to once a minute (429); unidentified resend -> 400",
+        "e2e/mail-002-activation.spec.ts passes: register via the form; pending banner resend (link 1 dies); link 1 shows the error + resend (link 2 dies); link 3 activates, signs in, lands on / with 'Your account is activated'; reopening it shows the error and resend answers 'Account is already activated'",
+        "e2e/guest-001 updated to the new landing (signed in on / with the notice), log-in check kept",
+        "Docs: docs/changes/mail-002.md, docs/mail.md 'Activation'"
+      ],
+      "notes": "Existing: register creates status 'pending' + token and mails /verify-email?token=..., fe/src/pages/VerifyEmail.tsx shows 'Go to log in'. OPEN QUESTION for the user: should pending (not activated) accounts be blocked from logging in? Today they can log in (Session 001 note). Not required by the SRS text, so not included unless confirmed. Open question still unanswered: pending accounts can log in (unchanged). E2E reading of 'open the same link again ... resend and use the new link' recorded in docs/changes/mail-002.md."
     },
     {
       "id": "mail-003",

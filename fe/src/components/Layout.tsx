@@ -1,11 +1,15 @@
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { money } from '../api';
 import { can, useAuth } from '../auth';
 import { useCredit, useCreditSync } from '../store/useCredit';
+import { ResendActivation } from './ResendActivation';
 
 export function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  // mail-002 (and others): a one-off message passed with navigate(path, { state: { notice } }).
+  const notice = (location.state as { notice?: string } | null)?.notice;
   useCreditSync();
   const { credit, locked } = useCredit();
 
@@ -76,6 +80,16 @@ export function Layout() {
         </div>
       </header>
       <main className="container">
+        {user?.status === 'pending' && (
+          <div className="banner" data-testid="pending-banner">
+            Confirm your email address: we sent an activation link to {user.email}. <ResendActivation />
+          </div>
+        )}
+        {notice && (
+          <p className="notice notice-success" role="status" data-testid="page-notice">
+            {notice}
+          </p>
+        )}
         <Outlet />
       </main>
     </>

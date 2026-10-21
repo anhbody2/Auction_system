@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { login } from './helpers';
+import { login, logout } from './helpers';
 
 test('guest-001: guest registers with validated fields and a confirmation email is sent', async ({ page }) => {
   // 1. Open register page
@@ -44,9 +44,13 @@ test('guest-001: guest registers with validated fields and a confirmation email 
   expect(outbox.mails[0].subject).toBe('Confirm your BidHouse account');
   const link = outbox.mails[0].text.match(/https?:\/\/\S+verify-email\?token=\w+/)[0];
 
+  // mail-002: the link activates the account, signs erin in and lands on the main page.
   await page.goto(new URL(link).pathname + new URL(link).search);
-  await expect(page.getByText('Email confirmed')).toBeVisible();
+  await expect(page.getByTestId('page-notice')).toHaveText('Your account is activated');
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByTestId('current-user')).toHaveText('erin');
 
+  await logout(page);
   await login(page, 'erin', 'Secret123');
   await expect(page.getByTestId('current-user')).toHaveText('erin');
 });
