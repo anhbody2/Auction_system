@@ -53,6 +53,8 @@ export async function auctionView(a: AuctionWithRelations, viewerId?: bigint) {
     endTime: a.endTime,
     durationMinutes: a.durationMinutes,
     status,
+    // sell-007: the 'New' tag lasts until the start time (spec 'new' = upcoming), even before the start job runs.
+    isNew: status === 'upcoming',
     winner: a.winner,
     cancelledAt: a.cancelledAt,
     closedAt: a.closedAt,

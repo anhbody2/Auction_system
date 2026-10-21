@@ -27,6 +27,19 @@ devRouter.post(
   }),
 );
 
+/** sell-007: moves an auction's start to `seconds` from now (end follows the duration), so the start can be watched live. */
+devRouter.post(
+  '/auctions/:id/start-in',
+  asyncHandler(async (req, res) => {
+    const id = parseId(req.params.id);
+    const seconds = Number(req.body?.seconds ?? 0);
+    const a = await prisma.auction.findUniqueOrThrow({ where: { id } });
+    const startTime = new Date(Date.now() + seconds * 1000);
+    await prisma.auction.update({ where: { id }, data: { startTime, endTime: new Date(startTime.getTime() + a.durationMinutes * 60_000) } });
+    res.json({ ok: true, startTime });
+  }),
+);
+
 /** Stored (not derived) auction status, so scheduled jobs can be observed. */
 devRouter.get(
   '/auctions/:id/raw',

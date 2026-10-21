@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { CONDITION_LABELS, money } from '../api';
-import { Countdown, StatusBadge } from '../components/AuctionBits';
+import { Countdown, NewTag, StatusBadge } from '../components/AuctionBits';
 import { BidHistory, BidPanel } from '../components/BidPanel';
 import { CancelAuction } from '../components/CancelAuction';
 import { Messages } from '../components/Messages';
@@ -47,7 +47,7 @@ export function AuctionDetailPage() {
       </div>
       <aside className="card">
         <div className="row spread">
-          <StatusBadge status={auction.status} />
+          <StatusBadge status={auction.status} /> <NewTag status={auction.status} startTime={auction.startTime} />
           <Countdown status={auction.status} startTime={auction.startTime} endTime={auction.endTime} onElapsed={load} />
         </div>
         <h1 style={{ marginTop: '0.75rem' }}>{auction.name}</h1>

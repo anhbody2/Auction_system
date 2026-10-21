@@ -53,7 +53,9 @@ describe('sell-004 POST /api/auctions with start time and duration', () => {
     const res = await send({ startTime: inMinutes(-1), duration: { value: 3, unit: 'hours' } });
     expect(res.status).toBe(201);
     const row = await prisma.auction.findUniqueOrThrow({ where: { id: BigInt(res.body.auction.id) } });
-    expect(row.status).toBe('active');
+    // sell-007: stored as 'upcoming' (spec 'new') until the start job; it has started, so the API says active.
+    expect(row.status).toBe('upcoming');
+    expect(res.body.auction.status).toBe('active');
     expect(row.endTime.getTime() - row.startTime.getTime()).toBe(3 * 3600_000);
     expect(Math.abs(row.startTime.getTime() - Date.now())).toBeLessThan(10_000);
   });

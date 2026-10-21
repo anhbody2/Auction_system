@@ -19,6 +19,7 @@ const auction = (over: Partial<Auction> = {}): Auction => ({
   endTime: '2026-10-22T00:00:00.000Z',
   durationMinutes: 1440,
   status: 'active',
+  isNew: false,
   winner: null,
   cancelledAt: null,
   closedAt: null,

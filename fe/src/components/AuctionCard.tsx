@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { money, type Auction } from '../api';
-import { Countdown, StatusBadge } from './AuctionBits';
+import { Countdown, NewTag, StatusBadge } from './AuctionBits';
 
 export function AuctionCard({ auction, onElapsed }: { auction: Auction; onElapsed?: () => void }) {
   const ended = auction.status === 'ended';
@@ -14,7 +14,10 @@ export function AuctionCard({ auction, onElapsed }: { auction: Auction; onElapse
         )}
         <div className="card-body">
           <div className="row spread">
-            <StatusBadge status={auction.status} />
+            <span className="row tags">
+              <StatusBadge status={auction.status} />
+              <NewTag status={auction.status} startTime={auction.startTime} />
+            </span>
             <span className="muted small">{auction.goods.category?.name}</span>
           </div>
           <h3>{auction.name}</h3>

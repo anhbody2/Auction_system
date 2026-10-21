@@ -91,7 +91,7 @@
       "srs_ref": "Seller - Create new auction, Req-1, Req-2, Req-3",
       "title": "Every newly created auction shows a 'New' tag until it starts",
       "user_visible_behavior": "Creating an auction (by a seller, by a buyer re-auctioning, or by staff) always gives it status 'upcoming' (spec 'new') and a visible 'New' tag on the home page cards, search results, My Auctions and the auction page. The scheduler starts it at its start time; at that moment the tag disappears (the open page drops it live when the countdown reaches zero, and the API stops returning it once started).",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Unit (be/tests/auction.new-tag.test.ts): POST /api/auctions ignores any status in the body and stores 'upcoming'; the auction JSON has isNew=true while upcoming and start_time in the future.",
         "Unit: after the start job runs (or start_time has passed with stored status still 'upcoming'), isNew=false.",
@@ -99,7 +99,14 @@
         "E2E (e2e/sell-007-new-tag.spec.ts): alice creates an auction starting ~1 minute out; the 'New' tag shows on the home card, in My Auctions and on the auction page; after the start (dev clock/start job) the tag is gone on all three.",
         "Docs: docs/changes/sell-007.md."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-21 ./init.sh exit 0: be vitest 46 files / 230 tests, fe vitest 4 files / 26 tests, fe build ok, Playwright 48/48",
+        "be/tests/auction.new-tag.test.ts: body status ignored, stored 'upcoming', isNew true on GET, home listing and My auctions; start-now auction stored upcoming but isNew false; start passed with stored upcoming -> isNew false, after startDueAuctions stored active and isNew false; cancelled -> isNew false",
+        "fe/src/components/AuctionBits.test.ts: newTagLabel 'New' before start, null at/after start, null for active/ended/cancelled",
+        "e2e/sell-007-new-tag.spec.ts passes: tag on home card, My auctions, auction page; start moved to +3 s, tag disappears live on the open page, stored status becomes active via the job, API isNew false, tag gone on home and My auctions",
+        "Existing tests updated for the new stored status (not weakened): auction.duration (stored upcoming + API active), job.close (stored upcoming before close)",
+        "Docs: docs/changes/sell-007.md"
+      ],
       "notes": "Start job: be/src/lib/jobs.ts / scheduler.ts. Live status calc on the client is in fe/src/components/AuctionBits.tsx. 'The system will check and restart it' is read as: the scheduler checks upcoming auctions and starts them on time (existing sys-001 behaviour), verified here again with the tag."
     },
     {

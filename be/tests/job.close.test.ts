@@ -132,7 +132,8 @@ describe('sys-002 close auction job and settlement', () => {
     const res = await bob.post(`/api/auctions/${a.id}/bids`).send({ amount: 500 });
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('This auction has ended');
-    expect((await auction(a.id)).status).toBe('active'); // still stored as active: the job has not run
+    // Still stored as open (sell-007: created 'upcoming', no start job ran either): the close job has not run.
+    expect((await auction(a.id)).status).toBe('upcoming');
     expect((await request(app).get(`/api/auctions/${a.id}`)).body.auction.status).toBe('ended');
   });
 });

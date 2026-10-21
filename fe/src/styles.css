@@ -68,6 +68,8 @@ input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--
 .badge { display: inline-block; border-radius: 999px; padding: 0.1rem 0.55rem; font-size: 0.75rem; font-weight: 600; text-transform: capitalize; }
 .badge-active, .badge-winning, .badge-won { background: #e3f6ea; color: var(--success); }
 .badge-upcoming { background: #eef2ff; color: var(--primary); }
+.badge-new { background: #fdecef; color: #b4234a; text-transform: none; }
+.tags { gap: 0.35rem; flex-wrap: wrap; }
 .badge-ended, .badge-lost { background: #eceef2; color: var(--muted); }
 .badge-cancelled, .badge-outbid { background: #fdecea; color: var(--danger); }
 .badge.standing { text-transform: none; font-size: 0.85rem; padding: 0.2rem 0.7rem; margin: 0 0 0.5rem; }

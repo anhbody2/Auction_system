@@ -91,6 +91,8 @@ export interface Auction {
   endTime: string;
   durationMinutes: number;
   status: AuctionStatus;
+  /** sell-007: upcoming and not yet started ('New' tag). */
+  isNew: boolean;
   winner: { id: number; username: string } | null;
   cancelledAt: string | null;
   closedAt: string | null;

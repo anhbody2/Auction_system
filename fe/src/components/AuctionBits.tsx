@@ -9,6 +9,23 @@ export function StatusBadge({ status }: { status: string }) {
   );
 }
 
+/** sell-007: 'New' while the auction is upcoming and has not reached its start time; null after. */
+export function newTagLabel(status: string, startTime: string, now = Date.now()) {
+  return status === 'upcoming' && now < new Date(startTime).getTime() ? 'New' : null;
+}
+
+/** sell-007: the 'New' tag; disappears live when the countdown reaches the start time. */
+export function NewTag({ status, startTime }: { status: string; startTime: string }) {
+  const now = useNow();
+  const label = newTagLabel(status, startTime, now);
+  if (!label) return null;
+  return (
+    <span className="badge badge-new" data-testid="new-tag">
+      {label}
+    </span>
+  );
+}
+
 function useNow(intervalMs = 1000) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, money, type Auction, type AuctionStatus } from '../api';
-import { Countdown, StatusBadge } from '../components/AuctionBits';
+import { Countdown, NewTag, StatusBadge } from '../components/AuctionBits';
 
 const FILTERS: ('all' | AuctionStatus)[] = ['all', 'active', 'upcoming', 'ended', 'cancelled'];
 
@@ -54,7 +54,7 @@ export function MyAuctionsPage() {
                     <Link to={`/auctions/${a.id}`}>{a.name}</Link>
                   </td>
                   <td>
-                    <StatusBadge status={a.status} />
+                    <StatusBadge status={a.status} /> <NewTag status={a.status} startTime={a.startTime} />
                   </td>
                   <td data-testid="highest-bid">{a.currentPrice ? money(a.currentPrice) : <span className="muted">No bids</span>}</td>
                   <td>{a.bidCount}</td>

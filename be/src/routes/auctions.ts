@@ -97,7 +97,8 @@ auctionsRouter.post(
           startTime,
           endTime: new Date(startTime.getTime() + d.duration * 60_000),
           durationMinutes: d.duration,
-          status: startTime <= now ? 'active' : 'upcoming',
+          // sell-007: every new auction starts as 'upcoming' (spec 'new'); the start job (sys-001) makes it active.
+          status: 'upcoming',
         },
         include: auctionInclude,
       });
