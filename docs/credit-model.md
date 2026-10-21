@@ -81,3 +81,21 @@ required; see [realtime.md](realtime.md)):
 - be/tests/credit.events.test.ts - outbid event with the released amount, auction-finished to winner, outbid bidders and seller after close and on cancel
 - fe/src/store/creditSlice.test.ts - bid/outbid change locked only, auction-finished refetches
 - e2e/crd-003-credit-stable.spec.ts - no credit refetch while bidding, live locked credit on outbid, credit after close without reload
+
+## Searching transactions (trx-001)
+
+`GET /api/credit/transactions` searches the signed-in user's ledger. Query parameters, all optional and combined with AND:
+
+| Param | Meaning |
+|---|---|
+| `from`, `to` | Local days (YYYY-MM-DD, inclusive; `tz` = the browser's getTimezoneOffset()). Default: the last 30 days. Neither may be older than 30 days ("Date must be within the last 30 days"), `to` may not be in the future, `from` <= `to`. |
+| `name` | Case-insensitive match on the auction name or the transaction description. |
+| `id` | Exact transaction id. |
+| `min`, `max` | Amount range on the (always positive) amount. `min` >= $1; blank `max` = no upper limit; `max` >= `min`. |
+| `page`, `pageSize` | Paging (default 1 / 20, pageSize up to 100). The response has `total`, `page`, `pageSize`, `from`, `to`. |
+
+"Search in parallel" (SRS) is read as: every criterion can be given at once in one query. The count and the page
+are queried in parallel. Rules live in be/src/lib/transactions.ts (`transactionFilterSchema`, `transactionWhere`,
+`searchTransactions`), reused by the staff list (stf-008). The client repeats the checks with the same messages
+(fe/src/transactionSearch.ts) and the search bar is fe/src/components/TransactionSearch.tsx.
+`GET /api/credit` (summary) is unchanged.

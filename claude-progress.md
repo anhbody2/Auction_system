@@ -315,3 +315,9 @@
 - Two older tests asserted stored 'active' right after create; updated to the new stored 'upcoming' with the same intent
 - Verification: ./init.sh exit 0 -> be vitest 230, fe vitest 26, fe build ok, Playwright 48/48
 - Next best step: trx-001 (transaction search)
+
+### Session 010 (cont.) trx-001
+
+- Completed: GET /api/credit/transactions (be/src/lib/transactions.ts, reusable for stf-008); fe TransactionSearch + TransactionTable + Pager; /credit history is the paged search (last 30 days by default)
+- Verification: ./init.sh exit 0 -> be vitest 235, fe vitest 32, fe build ok, Playwright 49/49
+- Next best step: stf-005 (staff goods + approval; ripple: every goods fixture must approve)

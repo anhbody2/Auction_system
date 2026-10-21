@@ -7,7 +7,7 @@ export const STAT_STATUSES = ['all', 'upcoming', 'active', 'ended', 'cancelled']
 export type StatStatus = (typeof STAT_STATUSES)[number];
 
 const DAY_MS = 24 * 3600 * 1000;
-const dateField = (label: string) =>
+export const dateField = (label: string) =>
   z
     .string({ required_error: `${label} date is required` })
     .regex(/^\d{4}-\d{2}-\d{2}$/, `${label} date must be YYYY-MM-DD`)

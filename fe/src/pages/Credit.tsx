@@ -1,28 +1,18 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { ApiError, api, money } from '../api';
+import { TransactionSearch } from '../components/TransactionSearch';
+import { Pager, TransactionTable, type Tx, type TxPage } from '../components/TransactionTable';
 import { useAuth } from '../auth';
 import { useAppDispatch } from '../store';
 import { creditLoaded } from '../store/creditSlice';
 import { useToast } from '../toast';
+import { defaultFilter, filterQuery, type FilterErrors, type TransactionFilterValues } from '../transactionSearch';
 
-interface Tx {
-  id: number;
-  transactionType: string;
-  amount: number;
-  balanceBefore: number;
-  balanceAfter: number;
-  description: string | null;
-  createdAt: string;
-  auction: { id: number; name: string } | null;
-}
 interface Summary {
   balance: number;
   held: number;
   transactions: Tx[];
 }
-
-const SIGN: Record<string, string> = { topup: '+', payout: '+', release: '+', withdraw: '-', hold: '-', payment: '-' };
 
 function AmountForm({ action, label, onDone }: { action: 'topup' | 'withdraw'; label: string; onDone: (s: Summary) => void }) {
   const toast = useToast();
@@ -65,13 +55,31 @@ export function CreditPage() {
   const { refresh } = useAuth();
   const dispatch = useAppDispatch();
   const [data, setData] = useState<Summary | null>(null);
+  // trx-001: the history is the search result (last 30 days by default), paged.
+  const [filter, setFilter] = useState<TransactionFilterValues>(() => defaultFilter());
+  const [page, setPage] = useState(1);
+  const [result, setResult] = useState<TxPage | null>(null);
+  const [serverErrors, setServerErrors] = useState<FilterErrors>({});
 
   useEffect(() => {
     api<Summary>('/credit').then(setData);
   }, []);
 
+  const search = useCallback(async (f: TransactionFilterValues, p: number) => {
+    try {
+      setResult(await api<TxPage>(`/credit/transactions?${filterQuery(f, { page: p, pageSize: 20 })}`));
+      setServerErrors({});
+    } catch (err) {
+      if (err instanceof ApiError) setServerErrors(err.fields as FilterErrors);
+    }
+  }, []);
+  useEffect(() => {
+    search(filter, page);
+  }, [search, filter, page]);
+
   const onDone = (s: Summary) => {
     setData(s);
+    search(filter, page);
     // crd-003: deposits and withdrawals update the navbar credit at once.
     dispatch(creditLoaded({ credit: s.balance, locked: s.held }));
     refresh();
@@ -100,46 +108,24 @@ export function CreditPage() {
       <p className="muted small">Bids and withdrawals can use your credit minus your locked credit. Top-ups are simulated; no real payment is taken.</p>
 
       <h2>Transaction history</h2>
-      {data.transactions.length === 0 ? (
-        <p className="muted">No transactions yet.</p>
+      <TransactionSearch
+        serverErrors={serverErrors}
+        onSearch={(f) => {
+          setFilter(f);
+          setPage(1);
+        }}
+      />
+      {!result ? (
+        <p className="muted">Loading...</p>
+      ) : result.transactions.length === 0 ? (
+        <p className="muted" data-testid="tx-empty">
+          {JSON.stringify(filter) === JSON.stringify(defaultFilter()) ? 'No transactions yet.' : 'No transactions match.'}
+        </p>
       ) : (
-        <div className="table-wrap">
-          <table data-testid="transactions">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Type</th>
-                <th>Details</th>
-                <th>Amount</th>
-                <th>Credit after</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.transactions.map((t) => (
-                <tr key={t.id}>
-                  <td>{new Date(t.createdAt).toLocaleString()}</td>
-                  <td>
-                    <span className="badge">{t.transactionType}</span>
-                  </td>
-                  <td>
-                    {t.description}
-                    {t.auction && (
-                      <>
-                        {' · '}
-                        <Link to={`/auctions/${t.auction.id}`}>{t.auction.name}</Link>
-                      </>
-                    )}
-                  </td>
-                  <td>
-                    {SIGN[t.transactionType]}
-                    {money(t.amount)}
-                  </td>
-                  <td>{money(t.balanceAfter)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <TransactionTable rows={result.transactions} />
+          <Pager page={result.page} pageSize={result.pageSize} total={result.total} onPage={setPage} />
+        </>
       )}
     </div>
   );

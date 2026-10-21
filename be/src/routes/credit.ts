@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../db';
 import { applyCredit } from '../lib/credit';
 import { asyncHandler } from '../lib/http';
+import { searchTransactions, transactionFilterSchema } from '../lib/transactions';
 import { moneyField } from '../lib/validation';
 import { requireAuth } from '../middleware/auth';
 
@@ -29,6 +30,15 @@ creditRouter.get(
   '/',
   asyncHandler(async (req, res) => {
     res.json(await summary(req.user!.id));
+  }),
+);
+
+// trx-001: search the signed-in user's transactions (date range within 30 days, name, id, amount range; all combined).
+creditRouter.get(
+  '/transactions',
+  asyncHandler(async (req, res) => {
+    const filter = transactionFilterSchema().parse(req.query);
+    res.json(await searchTransactions(filter, [{ userId: req.user!.id }]));
   }),
 );
 

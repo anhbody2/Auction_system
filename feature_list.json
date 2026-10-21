@@ -117,7 +117,7 @@
       "srs_ref": "System - Searchbar function for transactions, Req-1, Req-2",
       "title": "Search transactions by date, name, transaction id and amount range, all at once",
       "user_visible_behavior": "The transactions list on /credit gets a search bar with: date range limited to the last 30 days (the picker cannot go further back; default is the last 30 days), name (matches auction name or description), transaction id, and amount range with min >= $1 and max optional (blank = unlimited). All filters apply together in one search (combined with AND), results are paged, and clearing resets to the default. Invalid input (date older than 30 days, min < 1, max < min) shows a message and does not search. The same component is reused on the staff credit list (stf-008) with an extra customer-name filter.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Unit (be/tests/credit.search.test.ts): GET /api/credit/transactions with from/to/name/id/min/max returns only matching rows of the signed-in user; every combination of two or more filters narrows the result (AND).",
         "Unit: from older than 30 days -> 400 'Date must be within the last 30 days'; min < 1 -> 400; max < min -> 400; missing max = no upper bound; paging params page/pageSize return total.",
@@ -126,8 +126,14 @@
         "E2E (e2e/trx-001-transaction-search.spec.ts): bob tops up and bids to create several rows; searching by id, by name, by amount range and by all three together shows the expected rows; an out-of-range date shows the error.",
         "Docs: docs/changes/trx-001.md; docs/credit-model.md gets a 'Searching transactions' section."
       ],
-      "evidence": [],
-      "notes": "Current /api/credit returns the last 100 rows with no filters (be/src/routes/credit.ts summary()). Assumption (confirm if wrong): 'Search in parallel' = all criteria can be combined in one query, not one field at a time like the auction SearchTools. The SQL also runs the count and the page query in parallel (Promise.all)."
+      "evidence": [
+        "2026-10-21 ./init.sh exit 0: be vitest 47 files / 235 tests, fe vitest 5 files / 32 tests, fe build ok, Playwright 49/49",
+        "be/tests/credit.search.test.ts: defaults to last 30 days with paging totals; each filter alone; combinations of 2-5 filters narrow (AND); other users' rows never appear (also by id); from 31 days ago -> 400 'Date must be within the last 30 days', 30 days ok, from > to 400, future to 400, min 0.5 -> 400, max < min -> 400, blank max unlimited; guests 401",
+        "fe/src/components/TransactionSearch.test.ts: client checks give the server messages; default filter; query omits blank fields",
+        "e2e/trx-001-transaction-search.spec.ts passes: 3 top-ups + a bid; default 4 rows, date picker min = 30 days ago; search by id, by auction name, by $60-$250, min only, all together, a non-matching combination; 40-days-ago and min 0.5 show the messages; Clear restores the default",
+        "Docs: docs/changes/trx-001.md, docs/credit-model.md 'Searching transactions'"
+      ],
+      "notes": "Current /api/credit returns the last 100 rows with no filters (be/src/routes/credit.ts summary()). Assumption (confirm if wrong): 'Search in parallel' = all criteria can be combined in one query, not one field at a time like the auction SearchTools. The SQL also runs the count and the page query in parallel (Promise.all). Decision: name also matches the transaction description (top-ups have no auction); 'To' cannot be in the future (both sides)."
     },
     {
       "id": "stf-005",
