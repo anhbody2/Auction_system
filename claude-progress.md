@@ -10,7 +10,7 @@
 - Demo accounts: alice / bob / carol (customers), staff (staff), admin (admin); password `Password123!` for all (docs/accounts.md; `npm run db:seed -w be` reseeds the dev DB)
 - Feature list: round 1 (14 features) archived to progress-feature-list/feature_list_1.json; round 2 (bid-003, sys-001, sys-002, sys-003, all passing) archived to progress-feature-list/feature_list_2.json. round 3 (SRS 3.19-3.21: sec-001/002, adm-001..005, stf-001..004, all passing) archived to progress-feature-list/feature_list_3.json. round 4 (crd-001/002, upl-001, gds-001/002, sell-003/004, bid-004, all passing) archived to progress-feature-list/feature_list_4.json. round 5 (sell-005, rt-001, crd-003, sell-006, cmt-001, all passing 2026-10-21) archived to progress-feature-list/feature_list_5.json. round 6 active in ./feature_list.json (11 features: 10 passing, mail-001 blocked on Gmail credentials for its manual inbox check). progress-feature-list/feature_list.json is the untouched bootstrap template
 - Uploads: images stored in UPLOAD_DIR (default be/uploads/, gitignored); see docs/image-upload.md
-- Current blocker: mail-001 manual real-inbox check needs the user's GMAIL_USER + GMAIL_APP_PASSWORD in be/.env (docs/mail.md); round 6 cannot be archived until it passes
+- Current blocker: mail-001 manual real-inbox check needs the user's Gmail OAuth 2.0 credentials (GMAIL_USER, GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN) in be/.env (docs/mail.md); round 6 cannot be archived until it passes
 
 ## Session Log
 
@@ -368,3 +368,11 @@
 - Round 6: 10/11 passing. mail-001 is 'blocked' only on the manual Gmail inbox check (needs credentials). Feature list NOT archived (CLAUDE.md: archive when all pass)
 - Open product-owner points: pending accounts can still log in; sold goods on auction create now 403 (gds-003); staff management API prefix /api/staff/manage/auctions
 - Next best step: user adds GMAIL_USER + GMAIL_APP_PASSWORD to be/.env (docs/mail.md), restart the API, register / forgot / change password with a real inbox, record the result in mail-001 evidence, set it passing, then archive the list as progress-feature-list/feature_list_6.json
+
+### Session 010 (cont.) mail-001 rule change: Nodemailer + OAuth 2.0
+
+- User changed the rule: Gmail through Nodemailer with OAuth 2.0 instead of an app password. feature_list.json mail-001 title/behaviour/verification/notes rewritten to say so (recorded in its notes); app-password mode removed
+- Completed: mailSettings Gmail branch uses auth { type 'OAuth2', user, clientId, clientSecret, refreshToken } (XOAUTH2, smtp.gmail.com:465); .env.example and docs/mail.md (Google Cloud + OAuth Playground refresh-token steps) updated
+- Verification: npm run verify exit 0 -> be vitest 288, fe vitest 35, fe build ok, Playwright 55/55. ./init.sh stopped at npm install (EPERM; the user's npm run dev holds the Prisma DLL; not stopped)
+- Still BLOCKED: real-inbox check needs the OAuth credentials. Round 6 = 10 passing + mail-001 blocked; list not archived
+- Next best step: user fills the four GMAIL_* values in be/.env, restarts the API, tests register / forgot / change password with a real inbox; then mark mail-001 passing and archive as progress-feature-list/feature_list_6.json

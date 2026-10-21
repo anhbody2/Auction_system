@@ -17,24 +17,52 @@ const register = (username: string) =>
   });
 
 describe('mail-001 Gmail transport', () => {
-  it('with GMAIL_USER and GMAIL_APP_PASSWORD it uses Gmail (smtp.gmail.com, TLS) and sends from that account', () => {
-    const s = mailSettings({ GMAIL_USER: 'bidhouse.app@gmail.com', GMAIL_APP_PASSWORD: 'abcd efgh ijkl mnop' });
+  const OAUTH = {
+    GMAIL_USER: 'bidhouse.app@gmail.com',
+    GMAIL_CLIENT_ID: 'client-id.apps.googleusercontent.com',
+    GMAIL_CLIENT_SECRET: 'client-secret',
+    GMAIL_REFRESH_TOKEN: '1//refresh-token',
+  };
+
+  it('with the GMAIL_* OAuth 2.0 settings it uses Gmail (smtp.gmail.com, TLS) with XOAUTH2 and sends from that account', () => {
+    const s = mailSettings(OAUTH);
     expect(s.kind).toBe('gmail');
-    expect(s.options).toMatchObject({
+    expect(s.options).toEqual({
       service: 'gmail',
       host: 'smtp.gmail.com',
       port: 465,
       secure: true,
-      auth: { user: 'bidhouse.app@gmail.com', pass: 'abcd efgh ijkl mnop' },
+      auth: {
+        type: 'OAuth2',
+        user: 'bidhouse.app@gmail.com',
+        clientId: 'client-id.apps.googleusercontent.com',
+        clientSecret: 'client-secret',
+        refreshToken: '1//refresh-token',
+      },
     });
+    // No password-style auth for Gmail.
+    expect(JSON.stringify(s.options)).not.toMatch(/"pass"/);
     expect(s.from).toBe('BidHouse <bidhouse.app@gmail.com>');
-    expect(mailSettings({ GMAIL_USER: 'x@gmail.com', GMAIL_APP_PASSWORD: 'p', MAIL_FROM_NAME: 'Auctions' }).from).toBe('Auctions <x@gmail.com>');
+    expect(mailSettings({ ...OAUTH, MAIL_FROM_NAME: 'Auctions' }).from).toBe('Auctions <bidhouse.app@gmail.com>');
   });
 
-  it('without Gmail settings it falls back to SMTP_HOST, then to the dev outbox', () => {
+  it('a Nodemailer transport builds from those options as an OAuth2 SMTP transport', async () => {
+    const nodemailer = (await import('nodemailer')).default;
+    const t = nodemailer.createTransport(mailSettings(OAUTH).options!);
+    const opts = (t as unknown as { options: { auth: { type: string }; host: string } }).options;
+    expect(opts.auth.type).toBe('OAuth2');
+    expect(opts.host).toBe('smtp.gmail.com');
+    t.close();
+  });
+
+  it('with any OAuth setting missing it falls back to SMTP_HOST, then to the dev outbox (no app-password mode)', () => {
+    for (const key of Object.keys(OAUTH)) {
+      const partial: Record<string, string> = { ...OAUTH };
+      delete partial[key];
+      expect(mailSettings(partial).kind, `without ${key}`).toBe('outbox');
+    }
+    expect(mailSettings({ GMAIL_USER: 'x@gmail.com', GMAIL_APP_PASSWORD: 'abcd efgh ijkl mnop' }).kind).toBe('outbox');
     expect(mailSettings({ SMTP_HOST: 'smtp.example.com' }).kind).toBe('smtp');
-    expect(mailSettings({}).kind).toBe('outbox');
-    expect(mailSettings({ GMAIL_USER: 'only-user@gmail.com' }).kind).toBe('outbox');
     expect(mailSettings({}).options).toBeNull();
   });
 

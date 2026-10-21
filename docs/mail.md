@@ -2,34 +2,45 @@
 
 ## Transport
 
-The transport is chosen from the environment each time a mail is sent (be/src/lib/mailer.ts `mailSettings`):
+Mail is sent with **Nodemailer**. The transport is chosen from the environment each time a mail is sent
+(be/src/lib/mailer.ts `mailSettings`):
 
 | Settings in be/.env | Transport | From |
 |---|---|---|
-| `GMAIL_USER` and `GMAIL_APP_PASSWORD` | Gmail SMTP (`service: 'gmail'`, smtp.gmail.com:465, TLS) | `MAIL_FROM_NAME <GMAIL_USER>` (default name "BidHouse") |
+| `GMAIL_USER`, `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN` (all four) | Gmail SMTP (`service: 'gmail'`, smtp.gmail.com:465, TLS) with **OAuth 2.0 / XOAUTH2**: `auth: { type: 'OAuth2', user, clientId, clientSecret, refreshToken }`. Nodemailer exchanges the refresh token for short-lived access tokens itself. | `MAIL_FROM_NAME <GMAIL_USER>` (default name "BidHouse") |
 | `SMTP_HOST` (+ `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`) | Any SMTP server | `MAIL_FROM` |
-| neither | Dev outbox: kept in memory, readable at `GET /api/dev/outbox?to=<email>` (not in production), logged to the console | - |
+| otherwise | Dev outbox: kept in memory, readable at `GET /api/dev/outbox?to=<email>` (not in production), logged to the console | - |
 
-Tests and local dev run without credentials, so they use the outbox. **Never commit be/.env**: it is gitignored,
-and be/.env.example lists the variable names only.
+No Gmail password or app password is used (rule change 2026-10-21). Tests and local dev run without credentials,
+so they use the outbox. **Never commit be/.env**: it is gitignored; be/.env.example lists the names only.
 
-### Setting up Gmail
+### Setting up Gmail OAuth 2.0
 
-1. Use a Gmail account for the app (for example a dedicated `bidhouse.yourname@gmail.com`).
-2. Turn on 2-Step Verification for that account (Google Account → Security).
-3. Create an app password: Google Account → Security → 2-Step Verification → App passwords. Pick any name
-   ("BidHouse"). Google shows a 16-character password once.
-4. In be/.env set:
+1. **Google Cloud project.** At https://console.cloud.google.com create (or pick) a project, then
+   *APIs & Services → Library → Gmail API → Enable*.
+2. **Consent screen.** *APIs & Services → OAuth consent screen*: user type *External*, app name "BidHouse",
+   your email as support and developer contact. Add the scope `https://mail.google.com/`. Under *Test users*
+   add the Gmail address that will send the mails. (While the app is in "Testing", Google expires refresh
+   tokens after 7 days; publish the app, or redo step 4 when mails start failing.)
+3. **OAuth client.** *APIs & Services → Credentials → Create credentials → OAuth client ID*, type
+   *Web application*. Under *Authorized redirect URIs* add `https://developers.google.com/oauthplayground`.
+   Copy the **Client ID** and **Client secret**.
+4. **Refresh token.** Open https://developers.google.com/oauthplayground. Click the gear icon, tick
+   *Use your own OAuth credentials*, paste the client ID and secret. In step 1 enter the scope
+   `https://mail.google.com/`, click *Authorize APIs* and sign in with the sending Gmail account. In step 2 click
+   *Exchange authorization code for tokens* and copy the **Refresh token**.
+5. In be/.env set:
    ```
    GMAIL_USER=bidhouse.yourname@gmail.com
-   GMAIL_APP_PASSWORD=abcdabcdabcdabcd
+   GMAIL_CLIENT_ID=1234567890-abc.apps.googleusercontent.com
+   GMAIL_CLIENT_SECRET=GOCSPX-...
+   GMAIL_REFRESH_TOKEN=1//0g...
    APP_URL=http://localhost:5173
    ```
-   `APP_URL` is the site address put into the links.
-5. Restart the API. Register with a real address you can read: the activation mail arrives from the Gmail account.
-
-Gmail limits sending (about 500 mails a day for a normal account). OAuth2 is not used; an app password is
-enough for this project.
+   `GMAIL_USER` must be the account that authorised the token. `APP_URL` is the site address put into the links.
+6. Restart the API. Register with a real address you can read: the activation mail arrives from the Gmail account.
+   If the token is revoked or expired, sending fails, the API logs the Google error and the user sees
+   "We could not send the email, please try again".
 
 ## Templates
 

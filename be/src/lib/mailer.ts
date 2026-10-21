@@ -28,13 +28,15 @@ const outbox: Mail[] = [];
 
 /**
  * mail-001: transport options from the environment, read at send time.
- *  - GMAIL_USER + GMAIL_APP_PASSWORD -> Gmail (smtp.gmail.com:465, TLS), sent from the Gmail account
- *  - SMTP_HOST                       -> any SMTP server (older setup)
- *  - neither                         -> null: the dev outbox
+ *  - GMAIL_USER + GMAIL_CLIENT_ID + GMAIL_CLIENT_SECRET + GMAIL_REFRESH_TOKEN
+ *      -> Gmail SMTP (smtp.gmail.com:465, TLS) with OAuth 2.0 (XOAUTH2). Nodemailer gets a fresh access token
+ *         from the refresh token when needed; no Gmail password is stored. Sent from the Gmail account.
+ *  - SMTP_HOST -> any SMTP server (older setup)
+ *  - otherwise -> null: the dev outbox
  */
 export function mailSettings(env: NodeJS.ProcessEnv = process.env) {
   const name = env.MAIL_FROM_NAME ?? 'BidHouse';
-  if (env.GMAIL_USER && env.GMAIL_APP_PASSWORD) {
+  if (env.GMAIL_USER && env.GMAIL_CLIENT_ID && env.GMAIL_CLIENT_SECRET && env.GMAIL_REFRESH_TOKEN) {
     return {
       kind: 'gmail' as const,
       from: `${name} <${env.GMAIL_USER}>`,
@@ -43,7 +45,13 @@ export function mailSettings(env: NodeJS.ProcessEnv = process.env) {
         host: 'smtp.gmail.com',
         port: 465,
         secure: true,
-        auth: { user: env.GMAIL_USER, pass: env.GMAIL_APP_PASSWORD },
+        auth: {
+          type: 'OAuth2' as const,
+          user: env.GMAIL_USER,
+          clientId: env.GMAIL_CLIENT_ID,
+          clientSecret: env.GMAIL_CLIENT_SECRET,
+          refreshToken: env.GMAIL_REFRESH_TOKEN,
+        },
       },
     };
   }
