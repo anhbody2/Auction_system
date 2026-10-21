@@ -376,3 +376,13 @@
 - Verification: npm run verify exit 0 -> be vitest 288, fe vitest 35, fe build ok, Playwright 55/55. ./init.sh stopped at npm install (EPERM; the user's npm run dev holds the Prisma DLL; not stopped)
 - Still BLOCKED: real-inbox check needs the OAuth credentials. Round 6 = 10 passing + mail-001 blocked; list not archived
 - Next best step: user fills the four GMAIL_* values in be/.env, restarts the API, tests register / forgot / change password with a real inbox; then mark mail-001 passing and archive as progress-feature-list/feature_list_6.json
+
+### Session 011 mail-001 (credentials added)
+
+- SRS.txt diff = the Customer mail services section, already covered by mail-001/002/003 in the round 6 feature_list.json; list kept as is (no new features)
+- Startup: stopped auction_db and the user's npm run dev (Prisma DLL EPERM); user restarted npm run dev, so verification ran as `npm run verify` (schema unchanged, generate not needed)
+- Found: real GMAIL_* values in be/.env leaked into vitest via dotenv -> 4 tests timed out sending real mail. Fixed in be/vitest.config.ts + playwright.config.ts (blank mail env)
+- Gmail OAuth: refresh token valid (scope https://mail.google.com/), SMTP XOAUTH2 login OK via transporter.verify(). The '535' in logs is the fake failing transport in mailer.gmail.test.ts, not Gmail
+- Verification: npm run verify exit 0 -> be vitest 288, fe vitest 35, fe build ok, Playwright 55/55
+- Still BLOCKED (manual only): real-inbox delivery + link click for register / forgot / change password
+- Next best step: user runs those three flows on npm run dev with a real inbox; then `node scripts/feature.js mail-001 passing "..."` and archive feature_list.json as progress-feature-list/feature_list_6.json

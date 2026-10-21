@@ -29,6 +29,12 @@ export default defineConfig({
         UPLOAD_DIR: 'be/uploads/e2e',
         // mail-002: the e2e flow resends activation mails back to back.
         ACTIVATION_RESEND_INTERVAL_MS: '0',
+        // Specs read links from the dev outbox, so never send real mail here.
+        GMAIL_USER: '',
+        GMAIL_CLIENT_ID: '',
+        GMAIL_CLIENT_SECRET: '',
+        GMAIL_REFRESH_TOKEN: '',
+        SMTP_HOST: '',
       },
     },
     {

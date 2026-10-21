@@ -54,3 +54,15 @@ System - Axios API call
 Description and Priority
 
 set up Axios to call API
+
+Customer – Mail services for activation account, forget password, change password
+3.7.1	Description and Priority
+The function use google gmail to send activation link, forget password link , change password link to gmail of end user.                                                                                                
+
+
+3.7.3	Functional Requirements
+REQ-1:	When the user Create new account/send forget password request/send change password. The link to set a new password/activation will be sent to the email of the user.
+REQ-2:	When the user clicks the link, the new password(activation end redirect user to mainpage) form will be display.
+REQ-3:	The new password must match with password conditions of the system.
+
+

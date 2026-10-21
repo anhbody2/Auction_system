@@ -14,3 +14,10 @@ SRS: Customer - Mail services 3.7.1; 3.7.3 REQ-1. Setup and rules: docs/mail.md.
 Rule change (user, 2026-10-21): Gmail is used through Nodemailer with OAuth 2.0 (XOAUTH2: client ID, client secret,
 refresh token) instead of an app password. The app-password mode from commit a5658b9 was removed; with only
 `GMAIL_USER` + `GMAIL_APP_PASSWORD` set the API now uses the dev outbox. docs/mail.md has the Google Cloud setup.
+
+Test isolation (2026-10-21, after real credentials were added to be/.env):
+
+| File | Change |
+|---|---|
+| be/vitest.config.ts | Blank `GMAIL_*` and `SMTP_HOST` in the test env. `src/config.ts` loads be/.env through dotenv, which does not override keys that are already set, so tests stay on the in-memory outbox instead of sending real mail (it caused 20s timeouts). |
+| playwright.config.ts | Same blanks for the e2e API server; specs read links from the dev outbox. |
