@@ -292,3 +292,13 @@
 - Assumptions recorded in feature notes, to confirm with the product owner: 'buyer-->seller' on resale; 'search in parallel' = combined filters; posted ledger rows are reversed, not deleted; pending accounts blocked from login? (open question, not included)
 - Ripple risk: stf-005 (goods approval) and stf-007 (credit approval) change fixtures used by many existing tests; update helpers, do not weaken specs
 - Next best step: start gds-003
+
+### Session 010 - round 6, gds-003
+
+- Date: 2026-10-21
+- Startup: stopped the auction_db container and the user's `npm run dev` (with the user's OK). Baseline ./init.sh: vitest 220 + fe 15 + build ok, Playwright 44/45 - guest-003 read result cards before they re-rendered (summary updates first); fixed with expect.poll on the cards (same assertions)
+- User confirmed: gds-003 'buyer --> seller' reading (reseller becomes goods.seller_id on resale)
+- Completed gds-003: goods.buyer_id (migration with backfill), settlement hands goods over (seller = auction seller, buyer = winner) in the settlement transaction; owner = buyer ?? seller; viewer-based goods state (former seller sees sold); My goods lists sold and bought goods with a 'bought' badge; auction create on sold goods 403 (was 409)
+- Verification: ./init.sh exit 0 -> be vitest 45 files / 226 tests, fe vitest 15, fe build ok, Playwright 46/46
+- Known: after a resale the first seller no longer sees the goods in My goods (they are neither seller nor buyer); their auction stays in My auctions
+- Next best step: sys-004 (Axios client)

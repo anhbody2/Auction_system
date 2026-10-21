@@ -22,7 +22,8 @@ model User {
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
   info               UserInfo?
-  goods              Goods[]
+  goods              Goods[]                   @relation("SellerGoods")
+  boughtGoods        Goods[]                   @relation("BuyerGoods")
   auctions           Auction[]                 @relation("SellerAuctions")
   wonAuctions        Auction[]                 @relation("WinnerAuctions")
   bids               BidTicket[]
@@ -61,6 +62,8 @@ model Category {
 model Goods {
   id          BigInt        @id @default(autoincrement())
   sellerId    BigInt        @map("seller_id")
+  /// gds-003: winner of the goods' last sale; the current owner is buyer when set, otherwise seller.
+  buyerId     BigInt?       @map("buyer_id")
   categoryId  BigInt?       @map("category_id")
   name        String        @db.VarChar(255)
   description String?
@@ -68,7 +71,8 @@ model Goods {
   status      String        @default("active") @db.VarChar(20)
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
-  seller      User          @relation(fields: [sellerId], references: [id])
+  seller      User          @relation("SellerGoods", fields: [sellerId], references: [id])
+  buyer       User?         @relation("BuyerGoods", fields: [buyerId], references: [id])
   category    Category?     @relation(fields: [categoryId], references: [id])
   images      GoodsImage[]
   auctions    Auction[]

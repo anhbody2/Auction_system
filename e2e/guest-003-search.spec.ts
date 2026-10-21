@@ -46,17 +46,17 @@ test('guest-003: guest searches by seller, auction, category and product', async
   // Category (combined with tag via product search below); category alone matches every Art auction
   await search(page, 'Art', 'Category');
   await expect(page.getByTestId('search-summary')).toContainText('"Art" in category');
-  const artNames = await resultNames(page);
-  expect(artNames).toEqual(expect.arrayContaining([`Watercolor ${TAG}`, `Oil portrait ${TAG}`]));
-  expect(artNames).not.toContain(`Silk scarf ${TAG}`);
+  // The summary can show the new query before the cards re-render, so poll the cards.
+  await expect.poll(() => resultNames(page)).toEqual(expect.arrayContaining([`Watercolor ${TAG}`, `Oil portrait ${TAG}`]));
+  await expect.poll(() => resultNames(page)).not.toContain(`Silk scarf ${TAG}`);
 
   // Product (goods name / description)
   await search(page, TAG, 'Product');
   await expect(page.getByTestId('search-summary')).toContainText('3 results');
   await search(page, 'hand-printed', 'Product');
   await expect(page.getByTestId('search-summary')).toContainText('"hand-printed" in product');
-  expect(await resultNames(page)).toContain(`Silk scarf ${TAG}`);
-  expect(await resultNames(page)).not.toContain(`Watercolor ${TAG}`);
+  await expect.poll(() => resultNames(page)).toContain(`Silk scarf ${TAG}`);
+  await expect.poll(() => resultNames(page)).not.toContain(`Watercolor ${TAG}`);
 
   // No match
   await search(page, `${TAG}-nothing`, 'Everything');

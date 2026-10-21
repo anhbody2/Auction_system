@@ -17,10 +17,14 @@ export async function addGoods(agent: request.Agent, name: string, overrides: Re
   return BigInt(res.body.goods.id);
 }
 
-/** Attaches an auction in the given state directly, so the goods' derived status can be set up on its own. */
+/**
+ * Attaches an auction in the given state directly, so the goods' derived status can be set up on its own.
+ * With a winner the goods are handed over to them, as settlement does (gds-003).
+ */
 export async function attachAuction(goodsId: bigint, status: string, winner?: string) {
   const goods = await prisma.goods.findUniqueOrThrow({ where: { id: goodsId } });
   const winnerId = winner ? (await prisma.user.findUniqueOrThrow({ where: { username: winner } })).id : null;
+  if (winnerId) await prisma.goods.update({ where: { id: goodsId }, data: { buyerId: winnerId } });
   return prisma.auction.create({
     data: {
       sellerId: goods.sellerId,

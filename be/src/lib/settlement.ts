@@ -9,6 +9,7 @@ import { publishAuctionEvent, publishAuctionFinished } from './events';
  *  - leading bid meets reserve -> ticket won, winner pays from held credit, seller receives amount minus tiered commission
  *  - otherwise                -> leading hold released, ticket lost
  *  - every other non-cancelled ticket becomes lost
+ *  - on a sale the goods get buyer = winner, seller = this auction's seller (gds-003)
  */
 export async function settleAuction(auctionId: bigint) {
   const finished = await prisma.$transaction(async (tx) => {
@@ -37,6 +38,8 @@ export async function settleAuction(auctionId: bigint) {
       await tx.auctionSettlement.create({
         data: { auctionId, winningBidId: leading.id, commissionAmount: commission, settlementStatus: 'settled', settledAt: now },
       });
+      // gds-003: the goods pass to the winner. On a resale the reseller (previous buyer) becomes the seller.
+      await tx.goods.update({ where: { id: auction.goodsId }, data: { sellerId: auction.sellerId, buyerId: winnerId } });
     } else {
       if (leading) {
         await tx.bidTicket.update({ where: { id: leading.id }, data: { status: 'lost' } });

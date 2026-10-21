@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db';
 import { HttpError, asyncHandler } from '../lib/http';
-import { checkGoodsRefs, goodsInclude, goodsSchema, goodsView, lockChangeableGoods, lockOwnGoods } from '../lib/goods';
+import { checkGoodsRefs, goodsInclude, goodsSchema, goodsView, lockChangeableGoods, lockOwnGoods, visibleGoodsWhere } from '../lib/goods';
 import { requireAuth } from '../middleware/auth';
 
 /** Seller - Manage Goods (gds-001). Mounted at /api. */
@@ -15,11 +15,11 @@ goodsRouter.get(
     // sell-006: ?status=available lists only goods that can go into a new auction (the create-auction picker).
     const { status } = z.object({ status: z.enum(['available', 'in_auction', 'sold']).optional() }).parse(req.query);
     const goods = await prisma.goods.findMany({
-      where: { sellerId: req.user!.id, status: { not: 'deleted' } },
+      where: visibleGoodsWhere(req.user!.id),
       include: goodsInclude,
       orderBy: { id: 'desc' },
     });
-    const views = goods.map(goodsView);
+    const views = goods.map((g) => goodsView(g, req.user!.id));
     res.json({ goods: status ? views.filter((g) => g.status === status) : views });
   }),
 );
@@ -43,7 +43,7 @@ goodsRouter.post(
         include: goodsInclude,
       });
     });
-    res.status(201).json({ goods: goodsView(goods) });
+    res.status(201).json({ goods: goodsView(goods, req.user!.id) });
   }),
 );
 
@@ -57,7 +57,7 @@ goodsRouter.get(
   requireAuth,
   asyncHandler(async (req, res) => {
     const goods = await prisma.$transaction((tx) => lockOwnGoods(tx, idParam(req.params.id), req.user!.id));
-    res.json({ goods: goodsView(goods.goods) });
+    res.json({ goods: goodsView(goods.goods, req.user!.id) });
   }),
 );
 
@@ -91,7 +91,7 @@ goodsRouter.patch(
         include: goodsInclude,
       });
     });
-    res.json({ message: 'Goods updated', goods: goodsView(goods) });
+    res.json({ message: 'Goods updated', goods: goodsView(goods, req.user!.id) });
   }),
 );
 

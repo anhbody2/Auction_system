@@ -36,7 +36,7 @@
       "srs_ref": "System - update goods table, Req-1, Req-2 (Highly Priority)",
       "title": "Goods get a nullable buyer column, set when a customer wins; re-auctioning moves buyer to seller",
       "user_visible_behavior": "When an auction ends with a winner, the goods row records that winner as buyer. The goods then appear in the buyer's My Goods as 'Bought' and the buyer can put them up for auction again; the original seller sees them as 'Sold' and can no longer auction them. If the buyer re-auctions the goods and another customer wins, the goods' seller becomes the previous buyer and the buyer becomes the new winner. An auction that ends with no winner, or is cancelled, leaves buyer unchanged.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Migration: goods.buyer_id BIGINT NULL REFERENCES users(id) added via Prisma migration; docs/ERD_edited.md updated. Existing rows keep buyer_id NULL (backfill from ended auctions with a winner is part of the migration and checked by a test).",
         "Unit (be/tests/goods.buyer.test.ts): closing an auction with a winning bid sets goods.buyer_id = winner id in the same transaction as settlement.",
@@ -46,8 +46,15 @@
         "E2E (e2e/gds-003-buyer-resale.spec.ts): alice sells to bob through a short auction; bob sees the goods in My Goods, re-auctions it, carol wins; bob's My Goods shows it sold and carol's shows it bought.",
         "Docs: docs/changes/gds-003.md; docs/ERD_edited.md documents buyer_id and the ownership hand-over rule."
       ],
-      "evidence": [],
-      "notes": "Settlement on close lives in be/src/lib/settlement.ts / jobs.ts; goodsState() in be/src/lib/goods.ts currently returns 'sold' for any ended-with-winner auction, which would block resale. Ownership for listing/creating auctions should become: the current owner is buyer_id when set, otherwise seller_id. Assumption (confirm if wrong): 'update buyer-->seller' means the reseller (previous buyer) is written into goods.seller_id when the resale is won."
+      "evidence": [
+        "2026-10-21 ./init.sh exit 0: be vitest 45 files / 226 tests, fe vitest 2 files / 15 tests, fe build ok, Playwright 46/46",
+        "Migration 20261021090000_goods_buyer (buyer_id + FK + backfill); backfill checked in be/tests/goods.buyer.test.ts by running the migration's UPDATE on pre-column rows (single sale, unsold, sold twice)",
+        "be/tests/goods.buyer.test.ts: winner -> buyer_id at close; a failing goods update (trigger) rolls back the whole settlement (same transaction); no bids / reserve not met / cancel leave buyer null",
+        "be/tests/goods.resale.test.ts: alice -> bob -> carol; bob lists it available+bought, alice sold and not in ?status=available; alice POST /api/auctions 403, stranger 404; after resale seller=bob, buyer=carol, bob paid minus commission; resale without winner leaves buyer",
+        "e2e/gds-003-buyer-resale.spec.ts passes: bob sees 'bought', re-auctions from My goods, alice sees 'sold' and no goods to auction, carol 'bought', bob 'sold'",
+        "Docs: docs/changes/gds-003.md, docs/ERD_edited.md (buyer_id + ownership rule)"
+      ],
+      "notes": "Settlement on close lives in be/src/lib/settlement.ts / jobs.ts; goodsState() in be/src/lib/goods.ts currently returns 'sold' for any ended-with-winner auction, which would block resale. Ownership for listing/creating auctions should become: the current owner is buyer_id when set, otherwise seller_id. Assumption (confirm if wrong): 'update buyer-->seller' means the reseller (previous buyer) is written into goods.seller_id when the resale is won. Confirmed by the user 2026-10-21: buyer->seller reading is correct. Decision: sold goods on auction create are 403 (was 409), per the verification text."
     },
     {
       "id": "sys-004",

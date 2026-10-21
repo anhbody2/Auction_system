@@ -97,7 +97,7 @@ describe('sell-001 create auction', () => {
       expect((await alice.post('/api/auctions').send(terms(999999))).status).toBe(404);
     });
 
-    it('goods already in an open auction, or sold, are 409; after a cancelled or unsold auction they can go again', async () => {
+    it('goods already in an open auction are 409, sold goods 403 for the former seller (gds-003); after a cancelled or unsold auction they can go again', async () => {
       const alice = await loginAs('alice');
       const open = await createGoodsFor(alice, { name: 'Open lamp' });
       expect((await alice.post('/api/auctions').send(terms(Number(open.id)))).status).toBe(201);
@@ -108,7 +108,7 @@ describe('sell-001 create auction', () => {
       const sold = await createGoodsFor(alice, { name: 'Sold lamp' });
       await attachAuction(sold.id, 'ended', 'bob');
       const again = await alice.post('/api/auctions').send(terms(Number(sold.id)));
-      expect(again.status).toBe(409);
+      expect(again.status).toBe(403);
       expect(again.body.fields.goodsId).toBe('These goods have been sold');
 
       for (const status of ['cancelled', 'ended']) {

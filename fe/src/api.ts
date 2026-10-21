@@ -98,6 +98,8 @@ export interface Goods {
   category: { id: number; name: string } | null;
   images: string[];
   status: GoodsStatus;
+  /** gds-003: the signed-in user won these goods in an auction (shown as 'Bought'; they can auction them again). */
+  bought: boolean;
   /** gds-002: why Edit and Delete are off, or null. */
   lockedReason: string | null;
   auctionId: number | null;

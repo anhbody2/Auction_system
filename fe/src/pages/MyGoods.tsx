@@ -4,10 +4,12 @@ import { ApiError, CONDITION_LABELS, GOODS_STATUS_LABELS, api, type Goods } from
 import { EMPTY_GOODS, GoodsForm, type GoodsValues } from '../components/GoodsForm';
 import { useToast } from '../toast';
 
-export function GoodsStatusBadge({ status }: { status: Goods['status'] }) {
+export function GoodsStatusBadge({ status, bought = false }: { status: Goods['status']; bought?: boolean }) {
+  // gds-003: goods the user won and has not put up again read 'bought'.
+  const label = bought && status === 'available' ? 'bought' : GOODS_STATUS_LABELS[status];
   return (
-    <span className={`badge badge-${status}`} data-testid="goods-status">
-      {GOODS_STATUS_LABELS[status]}
+    <span className={`badge badge-${bought && status === 'available' ? 'bought' : status}`} data-testid="goods-status">
+      {label}
     </span>
   );
 }
@@ -29,7 +31,7 @@ export function MyGoodsPage() {
           + Add goods
         </Link>
       </div>
-      <p className="muted small">Add goods here first; then create an auction for them. Goods in an auction or sold cannot be changed.</p>
+      <p className="muted small">Add goods here first; then create an auction for them. Goods you won show as bought and can be auctioned again. Goods in an auction or sold cannot be changed.</p>
       {!goods ? (
         <p className="muted">Loading...</p>
       ) : goods.length === 0 ? (
@@ -55,7 +57,7 @@ export function MyGoodsPage() {
                   <td>{g.category?.name ?? '-'}</td>
                   <td>{g.condition ? CONDITION_LABELS[g.condition] ?? g.condition : '-'}</td>
                   <td>
-                    <GoodsStatusBadge status={g.status} />
+                    <GoodsStatusBadge status={g.status} bought={g.bought} />
                     {g.auctionId && g.status !== 'available' && (
                       <>
                         {' '}

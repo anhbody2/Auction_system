@@ -15,6 +15,13 @@
 | new AUCTION_MESSAGES | bid-002 post a message on an auction (public thread) |
 | new PASSWORD_RESET_TOKENS | cust-004 forget password (single-use token) |
 | new EMAIL_VERIFICATION_TOKENS | guest-002 register: confirmation email |
+| GOODS: added `buyer_id` (FK USERS, nullable) | gds-003 goods remember who bought them so the buyer can re-auction them (migration `20261021090000_goods_buyer`, backfilled from the last auction that ended with a winner) |
+
+Goods ownership (gds-003): the current owner is `buyer_id` when set, otherwise `seller_id`. When an auction ends
+with a winner, settlement sets `goods.seller_id` = that auction's seller and `goods.buyer_id` = the winner, in the
+same transaction. On a first sale the seller is unchanged; on a resale the previous buyer (the reseller) becomes the
+seller. No winner (no bids, reserve not met) or a cancel leaves both columns unchanged. Only the owner can auction,
+edit or delete the goods; the former seller sees them as sold.
 
 Status values used:
 - USERS.status: `active`, `pending`, `disabled`
@@ -60,6 +67,7 @@ erDiagram
     GOODS {
         bigint id PK
         bigint seller_id FK
+        bigint buyer_id FK "added, nullable"
         bigint category_id FK
         varchar name
         text description
@@ -168,6 +176,7 @@ erDiagram
 
     USERS ||--|| USER_INFO : has
     USERS ||--o{ GOODS : sells
+    USERS ||--o{ GOODS : buys
     USERS ||--o{ AUCTIONS : creates
     USERS ||--o{ AUCTIONS : wins
     USERS ||--o{ BID_TICKETS : places

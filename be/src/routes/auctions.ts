@@ -84,7 +84,8 @@ auctionsRouter.post(
       // Same row lock as goods edit/delete (gds-002), so the goods cannot change while the auction is created.
       const { goods, state } = await lockOwnGoods(tx, BigInt(d.goodsId), sellerId);
       if (state === 'in_auction') throw new HttpError(409, GOODS_IN_AUCTION, { goodsId: GOODS_IN_AUCTION });
-      if (state === 'sold') throw new HttpError(409, GOODS_SOLD, { goodsId: GOODS_SOLD });
+      // gds-003: once sold the goods belong to the buyer; only they can auction them again.
+      if (state === 'sold') throw new HttpError(403, GOODS_SOLD, { goodsId: GOODS_SOLD });
       return tx.auction.create({
         data: {
           sellerId,
