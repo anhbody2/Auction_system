@@ -1,0 +1,249 @@
+{
+  "project": "Online Auction System",
+  "last_updated": "2026-10-21",
+  "scope": "Round 6. Only the requirements in SRS.txt: System - update goods table (buyer column), System - Searchbar function for transactions, Seller - Create new auction ('new' tag), Staff - Auction Management, Staff - Goods Management (incl. approval), Staff - Credit Management (incl. approval), System - Axios API call, Customer - Mail services (activation, forget password, change password via Gmail). Builds on rounds 1-5 (archived in progress-feature-list/). SRS 'All delete mean soft delete' applies to every delete in this round.",
+  "conventions": {
+    "tests": "Playwright e2e specs go in e2e/ as <id>-<slug>.spec.ts. Unit and API/integration tests use the existing vitest setup in be/tests/ as <area>.<topic>.test.ts; frontend unit tests sit next to the code (fe/src/**/*.test.ts) like the existing store tests. Every feature needs both kinds unless its verification list says otherwise.",
+    "change_docs": "Each feature writes docs/changes/<id>.md listing the files it added or changed and why. Features with design decisions also add or update a topic doc under docs/, as named in their verification list.",
+    "soft_delete": "Delete never removes rows. Use a status value ('deleted') or a deleted_at column, hide soft-deleted rows from normal lists, and keep them visible to staff with a filter.",
+    "status_mapping": "Spec 'new' auction = schema status 'upcoming' (same mapping as round 2). Spec 'close' = 'ended'.",
+    "run_all": "./init.sh (npm install + npm run verify = vitest + fe build + Playwright) must exit 0 before a feature moves to passing. Stop running Docker containers / dev servers first (CLAUDE.md), otherwise prisma generate hits EPERM.",
+    "existing_tests": "When a feature changes behaviour that an older test or spec checks (goods approval, credit approval, api client), update that test or its fixtures to check the new behaviour. Do not delete or weaken it."
+  },
+  "rules": {
+    "single_active_feature": true,
+    "passing_requires_evidence": true,
+    "do_not_skip_verification": true
+  },
+  "status_legend": {
+    "not_started": "Work has not begun.",
+    "in_progress": "The feature is the current active task.",
+    "blocked": "Work cannot continue until a documented blocker is resolved.",
+    "passing": "Required verification has passed and evidence is recorded."
+  },
+  "roles": {
+    "customer": "A signed-in user who bids, tops up credit and receives account emails.",
+    "seller": "A customer acting as a seller: owns goods and auctions. Same users.role value 'customer'. After gds-003 a buyer who won goods can also re-auction them as their seller.",
+    "staff": "users.role 'staff'. Manages auctions, goods and credit through permission codes (be/src/lib/permissions.ts).",
+    "admin": "users.role 'admin'. Has every staff permission."
+  },
+  "features": [
+    {
+      "id": "gds-003",
+      "priority": 1,
+      "role": "system",
+      "area": "goods-ownership",
+      "srs_ref": "System - update goods table, Req-1, Req-2 (Highly Priority)",
+      "title": "Goods get a nullable buyer column, set when a customer wins; re-auctioning moves buyer to seller",
+      "user_visible_behavior": "When an auction ends with a winner, the goods row records that winner as buyer. The goods then appear in the buyer's My Goods as 'Bought' and the buyer can put them up for auction again; the original seller sees them as 'Sold' and can no longer auction them. If the buyer re-auctions the goods and another customer wins, the goods' seller becomes the previous buyer and the buyer becomes the new winner. An auction that ends with no winner, or is cancelled, leaves buyer unchanged.",
+      "status": "not_started",
+      "verification": [
+        "Migration: goods.buyer_id BIGINT NULL REFERENCES users(id) added via Prisma migration; docs/ERD_edited.md updated. Existing rows keep buyer_id NULL (backfill from ended auctions with a winner is part of the migration and checked by a test).",
+        "Unit (be/tests/goods.buyer.test.ts): closing an auction with a winning bid sets goods.buyer_id = winner id in the same transaction as settlement.",
+        "Unit: closing with no bids, reserve not met, or cancelling leaves buyer_id unchanged.",
+        "Integration (be/tests/goods.resale.test.ts): bob wins alice's goods -> buyer=bob, seller=alice. bob creates a new auction on the same goods (allowed), carol wins -> seller=bob, buyer=carol. alice gets 404/403 trying to auction it after the first sale.",
+        "Integration: GET /api/goods for bob lists the bought goods as available for auction; for alice it shows them as sold and not selectable in the create-auction dropdown (sell-006 still holds).",
+        "E2E (e2e/gds-003-buyer-resale.spec.ts): alice sells to bob through a short auction; bob sees the goods in My Goods, re-auctions it, carol wins; bob's My Goods shows it sold and carol's shows it bought.",
+        "Docs: docs/changes/gds-003.md; docs/ERD_edited.md documents buyer_id and the ownership hand-over rule."
+      ],
+      "evidence": [],
+      "notes": "Settlement on close lives in be/src/lib/settlement.ts / jobs.ts; goodsState() in be/src/lib/goods.ts currently returns 'sold' for any ended-with-winner auction, which would block resale. Ownership for listing/creating auctions should become: the current owner is buyer_id when set, otherwise seller_id. Assumption (confirm if wrong): 'update buyer-->seller' means the reseller (previous buyer) is written into goods.seller_id when the resale is won."
+    },
+    {
+      "id": "sys-004",
+      "priority": 2,
+      "role": "system",
+      "area": "api-client",
+      "srs_ref": "System - Axios API call",
+      "title": "Frontend calls the API through a shared Axios instance",
+      "user_visible_behavior": "No visible change in behaviour: every page still loads and submits the same data and shows the same error messages. Under the hood all HTTP calls go through one Axios instance (baseURL /api, cookies included) with an interceptor that turns error responses into the existing ApiError (status, message, field errors). A 401 on a protected call clears the signed-in user and sends them to /login. Image upload shows progress through Axios upload progress.",
+      "status": "not_started",
+      "verification": [
+        "fe/package.json adds axios at an exact version; fe/src/api.ts exports the axios instance and keeps the api<T>(path, options) helper signature so callers do not change (or all callers are migrated).",
+        "Unit (fe/src/api.test.ts, axios mock adapter or a stub adapter): a 400 with {error, fields} becomes ApiError with the same status/message/fields; a network error becomes ApiError with a readable message; withCredentials is true; GET without body sends no Content-Type.",
+        "Unit: a 401 response triggers the unauthorized handler once.",
+        "grep check recorded in evidence: no remaining fetch('/api...') calls in fe/src except EventSource SSE streams.",
+        "E2E (e2e/sys-004-axios-client.spec.ts): login, place a bid, submit a form with a validation error (field message shown), and upload an image, all through the new client. The full existing Playwright suite still passes.",
+        "Docs: docs/changes/sys-004.md; docs/api-client.md (instance config, error mapping, 401 handling, why SSE stays on EventSource)."
+      ],
+      "evidence": [],
+      "notes": "Current client: fe/src/api.ts api() uses fetch. Uploads are in fe/src/components/ImageUpload.tsx. SSE hooks in fe/src/store/use*Events.ts stay on EventSource. Done early so the staff pages in this round are built on it."
+    },
+    {
+      "id": "sell-007",
+      "priority": 3,
+      "role": "seller",
+      "area": "auction-new-tag",
+      "srs_ref": "Seller - Create new auction, Req-1, Req-2, Req-3",
+      "title": "Every newly created auction shows a 'New' tag until it starts",
+      "user_visible_behavior": "Creating an auction (by a seller, by a buyer re-auctioning, or by staff) always gives it status 'upcoming' (spec 'new') and a visible 'New' tag on the home page cards, search results, My Auctions and the auction page. The scheduler starts it at its start time; at that moment the tag disappears (the open page drops it live when the countdown reaches zero, and the API stops returning it once started).",
+      "status": "not_started",
+      "verification": [
+        "Unit (be/tests/auction.new-tag.test.ts): POST /api/auctions ignores any status in the body and stores 'upcoming'; the auction JSON has isNew=true while upcoming and start_time in the future.",
+        "Unit: after the start job runs (or start_time has passed with stored status still 'upcoming'), isNew=false.",
+        "Unit (fe, e.g. fe/src/components/AuctionBits.test.ts): the tag helper returns 'New' for upcoming before start and nothing once now >= start.",
+        "E2E (e2e/sell-007-new-tag.spec.ts): alice creates an auction starting ~1 minute out; the 'New' tag shows on the home card, in My Auctions and on the auction page; after the start (dev clock/start job) the tag is gone on all three.",
+        "Docs: docs/changes/sell-007.md."
+      ],
+      "evidence": [],
+      "notes": "Start job: be/src/lib/jobs.ts / scheduler.ts. Live status calc on the client is in fe/src/components/AuctionBits.tsx. 'The system will check and restart it' is read as: the scheduler checks upcoming auctions and starts them on time (existing sys-001 behaviour), verified here again with the tag."
+    },
+    {
+      "id": "trx-001",
+      "priority": 4,
+      "role": "customer",
+      "area": "transaction-search",
+      "srs_ref": "System - Searchbar function for transactions, Req-1, Req-2",
+      "title": "Search transactions by date, name, transaction id and amount range, all at once",
+      "user_visible_behavior": "The transactions list on /credit gets a search bar with: date range limited to the last 30 days (the picker cannot go further back; default is the last 30 days), name (matches auction name or description), transaction id, and amount range with min >= $1 and max optional (blank = unlimited). All filters apply together in one search (combined with AND), results are paged, and clearing resets to the default. Invalid input (date older than 30 days, min < 1, max < min) shows a message and does not search. The same component is reused on the staff credit list (stf-008) with an extra customer-name filter.",
+      "status": "not_started",
+      "verification": [
+        "Unit (be/tests/credit.search.test.ts): GET /api/credit/transactions with from/to/name/id/min/max returns only matching rows of the signed-in user; every combination of two or more filters narrows the result (AND).",
+        "Unit: from older than 30 days -> 400 'Date must be within the last 30 days'; min < 1 -> 400; max < min -> 400; missing max = no upper bound; paging params page/pageSize return total.",
+        "Unit: another user's transaction id never appears.",
+        "Unit (fe, e.g. fe/src/components/TransactionSearch.test.ts): client-side validation messages match the server rules.",
+        "E2E (e2e/trx-001-transaction-search.spec.ts): bob tops up and bids to create several rows; searching by id, by name, by amount range and by all three together shows the expected rows; an out-of-range date shows the error.",
+        "Docs: docs/changes/trx-001.md; docs/credit-model.md gets a 'Searching transactions' section."
+      ],
+      "evidence": [],
+      "notes": "Current /api/credit returns the last 100 rows with no filters (be/src/routes/credit.ts summary()). Assumption (confirm if wrong): 'Search in parallel' = all criteria can be combined in one query, not one field at a time like the auction SearchTools. The SQL also runs the count and the page query in parallel (Promise.all)."
+    },
+    {
+      "id": "stf-005",
+      "priority": 5,
+      "role": "staff",
+      "area": "staff-goods",
+      "srs_ref": "Staff - Goods Management, REQ-1, REQ-2, Req-3",
+      "title": "Staff manage goods: list, search, page, view, add, edit, soft delete, and approve new goods",
+      "user_visible_behavior": "Goods a customer adds now start as 'Pending approval' and cannot be chosen for an auction until approved. Staff open /staff/goods: a paged list (20 per page) searchable by name, seller, category and status, with a 'Pending' filter. Staff can view a goods item (images, seller, buyer, auctions), add goods for a chosen seller (approved at once), edit name/description/category/condition/images, soft-delete it (blocked while it is in an upcoming or active auction), and approve or reject pending goods with an optional reason. The seller sees the new status in My Goods and gets an email on approval/rejection.",
+      "status": "not_started",
+      "verification": [
+        "Permissions: new code 'goods.manage' seeded for staff and admin; customers get 403 on every /api/staff/goods route.",
+        "Unit (be/tests/staff.goods.list.test.ts): search by each field and combined, paging totals, status filter, soft-deleted rows only with status=deleted.",
+        "Unit (be/tests/staff.goods.crud.test.ts): create for a seller -> status 'active' (approved); edit validation; delete sets status 'deleted' and keeps the row; delete while in an open auction -> 400.",
+        "Integration (be/tests/goods.approval.test.ts): customer POST /api/goods -> status 'pending'; POST /api/auctions with pending or rejected goods -> 400 'Goods must be approved before auction'; staff approve -> seller can create the auction; reject stores the reason and emails the seller.",
+        "Existing goods/auction tests and e2e fixtures that create goods are updated to approve them (helper), not weakened.",
+        "E2E (e2e/stf-005-staff-goods.spec.ts): alice adds goods and sees 'Pending approval' and no option in Create Auction; staff finds it with the Pending filter, approves it; alice can now auction it. Staff searches, pages, edits and deletes another item.",
+        "Docs: docs/changes/stf-005.md; docs/goods-approval.md (status values pending/active/rejected/deleted and who changes them)."
+      ],
+      "evidence": [],
+      "notes": "Goods routes: be/src/routes/goods.ts, state helper be/src/lib/goods.ts; goods.status today is 'active' or 'deleted'. Staff routes and nav: be/src/routes/staff.ts, fe/src/App.tsx RequireAuth permission. Goods re-auctioned by a buyer (gds-003) are already approved and do not go back to pending."
+    },
+    {
+      "id": "stf-006",
+      "priority": 6,
+      "role": "staff",
+      "area": "staff-auctions",
+      "srs_ref": "Staff - Auction Management, REQ-1, REQ-2",
+      "title": "Staff manage auctions: list, search, page, view, add, edit, soft delete",
+      "user_visible_behavior": "Staff open /staff/auctions: a paged list searchable by auction name, seller, status and start-date range. Staff can view an auction (details, bids, settlement), add an auction for a chosen seller from that seller's approved, available goods (it gets the 'New' tag), edit an upcoming auction (name, description, prices, start time, duration; started auctions are read-only except description), and soft-delete an auction. Deleting an upcoming or active auction voids its bids and releases every held amount exactly like a cancel; the auction disappears from public pages but stays in the staff list under a 'Deleted' filter.",
+      "status": "not_started",
+      "verification": [
+        "Permissions: new code 'auction.manage' seeded for staff and admin; customers get 403. This does not let staff use the seller/admin cancel route (sell-005 rule stays).",
+        "Unit (be/tests/staff.auctions.list.test.ts): search by each field and combined, paging totals, deleted filter.",
+        "Unit (be/tests/staff.auctions.crud.test.ts): create for a seller with unapproved or unavailable goods -> 400; edit of an active auction's price/start -> 400; edit of an upcoming one -> 200 and end_time recomputed.",
+        "Integration (be/tests/staff.auctions.delete.test.ts): delete an active auction with bids -> row kept with deleted_at set, all tickets 'cancelled', every bidder's held_balance restored, release ledger rows 'Auction deleted by staff: <name>'; the auction is gone from GET /api/auctions and search, and its page returns 404 to customers.",
+        "E2E (e2e/stf-006-staff-auctions.spec.ts): staff searches and pages the list, creates an auction for alice, edits it, deletes another auction that bob bid on; bob's /credit shows the hold released.",
+        "Docs: docs/changes/stf-006.md; docs/auction-cancel.md gets a 'Staff delete' section."
+      ],
+      "evidence": [],
+      "notes": "Reuse the release logic from the cancel route in be/src/routes/bids.ts rather than copying it. Needs auctions.deleted_at (migration + ERD). Assumption: deleting ended auctions is allowed only as hiding (no money moves after settlement)."
+    },
+    {
+      "id": "stf-007",
+      "priority": 7,
+      "role": "staff",
+      "area": "credit-approval",
+      "srs_ref": "Staff - Credit Management, Req-3",
+      "title": "Top-up and withdrawal requests wait for staff approval",
+      "user_visible_behavior": "When a customer tops up or withdraws on /credit, the request is saved as 'Pending' and the balance does not change yet; /credit shows it under 'Pending requests'. Staff see pending requests on /staff/credit and approve or reject them (reject needs a reason). Approve posts the ledger row and updates the balance (withdrawals re-check available credit at approval time). The customer's balance and list update live and they get an email with the result.",
+      "status": "not_started",
+      "verification": [
+        "Permissions: new code 'credit.manage' seeded for staff and admin; customers get 403 on approve/reject.",
+        "Unit (be/tests/credit.approval.test.ts): POST /api/credit/topup -> 201 status 'pending', credit_balance unchanged; approve -> balance + amount, ledger row with balance before/after; reject -> no balance change, reason stored.",
+        "Unit: approving a withdrawal larger than available credit at approval time -> 400 and stays pending; approving or rejecting twice -> 400.",
+        "Integration: two staff approve the same request at once (Promise.all) -> exactly one succeeds, balance changes once.",
+        "Existing credit/bid tests and e2e that top up are updated to approve through a helper (or the staff route), not weakened.",
+        "E2E (e2e/stf-007-credit-approval.spec.ts): bob requests a $50 top-up and sees it pending with unchanged balance; staff approves; bob's navbar and /credit show +$50 without reload.",
+        "Docs: docs/changes/stf-007.md; docs/credit-model.md describes request states and the approval step."
+      ],
+      "evidence": [],
+      "notes": "Today POST /api/credit/topup and /withdraw apply immediately via applyCredit() (be/src/routes/credit.ts). Suggested design: a status column on credit_transactions ('pending' | 'posted' | 'rejected' | 'deleted', default 'posted' so bid/settlement rows are unchanged) or a separate credit_requests table; pick one and record it in docs. Live update reuses the per-user SSE stream (useUserEvents)."
+    },
+    {
+      "id": "stf-008",
+      "priority": 8,
+      "role": "staff",
+      "area": "staff-credit",
+      "srs_ref": "Staff - Credit Management, REQ-1, REQ-2",
+      "title": "Staff manage transactions: list, search, page, view, add, edit, soft delete",
+      "user_visible_behavior": "On /staff/credit staff see every customer's transactions in a paged list, searched with the trx-001 search bar plus a customer filter and a status filter (pending/posted/rejected/deleted). Staff can view a transaction (user, auction, bid, balances before/after), add a manual adjustment for a customer (credit or debit with a required reason, posted at once), edit a pending request's amount or any row's description, and soft-delete a pending or rejected request. Posted ledger rows cannot be deleted or have their amount changed; the screen offers 'Reverse' instead, which posts an opposite adjustment.",
+      "status": "not_started",
+      "verification": [
+        "Unit (be/tests/staff.credit.list.test.ts): all trx-001 filters plus customer and status, combined, with paging totals.",
+        "Unit (be/tests/staff.credit.crud.test.ts): manual credit/debit updates the balance and writes type 'adjustment' with the reason; debit beyond available -> 400; editing a posted row's amount -> 400; deleting a posted row -> 400; deleting a pending row sets status 'deleted' and keeps the row; reverse posts the opposite amount.",
+        "Unit: customers get 403 on every /api/staff/credit route.",
+        "E2E (e2e/stf-008-staff-credit.spec.ts): staff filters by customer and amount range, adds a $20 adjustment for carol (carol's /credit shows it), edits a pending request's amount, deletes another pending request, and reverses a posted adjustment.",
+        "Docs: docs/changes/stf-008.md; docs/credit-model.md lists which transactions can be edited, deleted or reversed and why."
+      ],
+      "evidence": [],
+      "notes": "Depends on trx-001 (search component and query) and stf-007 (status values). Assumption (confirm if wrong): 'delete transactions' cannot remove posted money movements, because balances are derived from them; delete is a soft delete of requests and reversal covers posted rows."
+    },
+    {
+      "id": "mail-001",
+      "priority": 9,
+      "role": "system",
+      "area": "mail-gmail",
+      "srs_ref": "Customer - Mail services 3.7.1; 3.7.3 REQ-1",
+      "title": "Account emails are sent through Gmail",
+      "user_visible_behavior": "With Gmail credentials configured (GMAIL_USER + GMAIL_APP_PASSWORD), activation, forgot-password and change-password emails reach the user's real inbox from the Gmail account, as HTML with a clear button and a plain-text fallback containing the same link. Without credentials (tests, local dev) the mails go to the existing dev outbox exactly as now. A send failure is logged and the user sees 'We could not send the email, please try again' instead of a silent success.",
+      "status": "not_started",
+      "verification": [
+        "Unit (be/tests/mailer.gmail.test.ts): with GMAIL_* set, the transport is created with service 'gmail' (smtp.gmail.com, secure) and from = GMAIL_USER; without them the outbox fallback is used; each template has html + text with the same link.",
+        "Unit: a transport error on register / forgot-password returns 502 with the message above and leaves the account/token in a state where a resend works.",
+        "Manual check recorded in evidence (needs the user's Gmail app password in be/.env, never committed): register, forgot password and change password each deliver to a real inbox and the link works. If credentials are not available, this item is marked blocked, not skipped.",
+        "E2E: existing register/forgot-password specs still pass on the outbox.",
+        "Docs: docs/changes/mail-001.md; docs/mail.md (Gmail app-password setup, env vars, outbox fallback, templates). .env.example updated; no secret committed."
+      ],
+      "evidence": [],
+      "notes": "Current transport: be/src/lib/mailer.ts (generic SMTP via SMTP_HOST, else in-memory outbox at GET /api/dev/outbox). Gmail needs 2FA + an app password; OAuth2 is optional and out of scope unless the user asks."
+    },
+    {
+      "id": "mail-002",
+      "priority": 10,
+      "role": "customer",
+      "area": "mail-activation",
+      "srs_ref": "Customer - Mail services 3.7.3 REQ-1, REQ-2",
+      "title": "Activation link activates the account and redirects to the main page",
+      "user_visible_behavior": "After registering, the user gets an activation email. Opening the link activates the account, signs them in, shows 'Your account is activated' and redirects to the main page (/). An expired or used link shows an error with a 'Resend activation email' button (also available on the pending-account banner). Resending invalidates older links.",
+      "status": "not_started",
+      "verification": [
+        "Unit (be/tests/auth.activation.test.ts): POST /api/auth/verify-email with a valid token -> status 'active', email_verified_at set, auth cookie returned; reused or expired token -> 400; resend issues a new token and the old one fails.",
+        "Unit: resend for an already active account -> 400 'Account is already activated'; resend is rate-limited (e.g. once per minute).",
+        "E2E (e2e/mail-002-activation.spec.ts): register a new user, read the link from the dev outbox, open it, land on / signed in with the success message; open the same link again and see the error and resend button; resend and use the new link.",
+        "Docs: docs/changes/mail-002.md; docs/mail.md activation section."
+      ],
+      "evidence": [],
+      "notes": "Existing: register creates status 'pending' + token and mails /verify-email?token=..., fe/src/pages/VerifyEmail.tsx shows 'Go to log in'. OPEN QUESTION for the user: should pending (not activated) accounts be blocked from logging in? Today they can log in (Session 001 note). Not required by the SRS text, so not included unless confirmed."
+    },
+    {
+      "id": "mail-003",
+      "priority": 11,
+      "role": "customer",
+      "area": "mail-password",
+      "srs_ref": "Customer - Mail services 3.7.3 REQ-1, REQ-2, REQ-3",
+      "title": "Forgot password and change password both work by an emailed link to a new-password form",
+      "user_visible_behavior": "Forgot password: the user enters their email and gets a link (works as now). Change password: on /change-password a signed-in user clicks 'Send me a change-password link'; an email goes to their address and the page says so. Both links open the same new-password form, which shows the password rules (at least 8 characters, a letter and a number) and checks them live and on the server. After saving, all older links for that user stop working and the user is sent to log in (forgot) or back to the profile (change) with a success message.",
+      "status": "not_started",
+      "verification": [
+        "Unit (be/tests/password.change-link.test.ts): POST /api/me/password/link (signed in) creates a token and sends a mail to the user's own email; the link page accepts a valid token and sets the password; reused/expired token -> 400.",
+        "Unit: new passwords that break each rule -> 400 with the same messages as passwordField in be/src/lib/validation.ts, for both the reset and the change link.",
+        "Unit (fe, e.g. fe/src/validate.test.ts): client password rule messages match the server ones.",
+        "E2E (e2e/mail-003-password-links.spec.ts): bob requests a change link from /change-password, opens it from the outbox, tries a weak password (rule errors shown), sets a valid one, and logs in with it. carol does the forgot-password path the same way. The existing cust-003 / cust-004 specs are updated if the change-password page changes, not deleted.",
+        "Docs: docs/changes/mail-003.md; docs/mail.md password-link section."
+      ],
+      "evidence": [],
+      "notes": "Existing: forgot/reset in be/src/routes/auth.ts (PasswordResetToken, 1h), ChangePassword.tsx uses current-password form at PUT /api/me/password. Decide (and record) whether the current-password form stays alongside the email link; the SRS only requires the link."
+    }
+  ]
+}
