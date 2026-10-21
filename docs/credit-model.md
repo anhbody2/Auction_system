@@ -48,6 +48,29 @@ No figure is labelled "Available credit". The server messages "Bid exceeds your 
 "Amount exceeds your available credit" stay, because they describe the limit (credit minus locked credit).
 `GET /api/credit` still returns `available` for API clients.
 
+## When the UI refreshes (crd-003)
+
+The navbar pills, the dashboard and the bid panel read Credit and Locked credit from a Redux slice
+(fe/src/store/creditSlice.ts), not straight from the user object.
+
+| Moment | Credit | Locked credit | Request made |
+|---|---|---|---|
+| Page load, login | loaded | loaded | `GET /api/auth/me` (as before) |
+| Own bid | unchanged | `+ amount - released` (released = own earlier hold when raising) | none; the `POST` response carries `released` |
+| Outbid by someone else | unchanged | `- releasedAmount` from the `outbid` event | none |
+| Auction the user is in finishes (ended or cancelled), as bidder or seller | fetched again | fetched again | `GET /api/credit` on the `auction-finished` event |
+| Deposit or withdrawal on /credit | at once, from the response | at once | the top-up/withdraw `POST` (plus the existing `/auth/me` refresh) |
+| Event stream reconnects after a drop | fetched again | fetched again | `GET /api/credit` (events sent while disconnected are lost) |
+
+Events come from the signed-in customer's own stream, `GET /api/me/events` (Server-Sent Events, auth
+required; see [realtime.md](realtime.md)):
+
+- `outbid` `{ auctionId, auctionName, bidId, releasedAmount }` to the previous leader when someone else
+  bids higher. Raising your own bid sends none.
+- `auction-finished` `{ auctionId, auctionName, reason: 'ended' | 'cancelled' }` once per involved user
+  (seller and every bidder), sent after the settlement or cancel transaction commits, so a refetch sees
+  the settled balances.
+
 ## Tests
 
 - be/tests/credit.lock.test.ts - outbid release and ledger, released credit usable at once, raise own bid, sum across auctions
@@ -55,3 +78,6 @@ No figure is labelled "Available credit". The server messages "Bid exceeds your 
 - e2e/crd-001-credit-lock.spec.ts - the same journey on the /credit page
 - be/tests/credit.summary.test.ts - balance unchanged by bid and outbid until close; ledger rows record the balance
 - e2e/crd-002-credit-ui.spec.ts - labels on header, dashboard and /credit before and after close
+- be/tests/credit.events.test.ts - outbid event with the released amount, auction-finished to winner, outbid bidders and seller after close and on cancel
+- fe/src/store/creditSlice.test.ts - bid/outbid change locked only, auction-finished refetches
+- e2e/crd-003-credit-stable.spec.ts - no credit refetch while bidding, live locked credit on outbid, credit after close without reload

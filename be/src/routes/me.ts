@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db';
+import { streamUser } from '../lib/events';
 import { HttpError, asyncHandler } from '../lib/http';
 import { getPublicUser } from '../lib/users';
 import { emailField, fullNameField, passwordField, phoneField } from '../lib/validation';
@@ -9,6 +10,9 @@ import { requireAuth } from '../middleware/auth';
 
 export const meRouter = Router();
 meRouter.use(requireAuth);
+
+/** crd-003: the signed-in user's own events ('outbid', 'auction-finished') as Server-Sent Events. */
+meRouter.get('/events', (req, res) => streamUser(req, res, req.user!.id));
 
 meRouter.get(
   '/profile',

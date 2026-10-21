@@ -8,7 +8,7 @@
 - Standard startup path: start Docker Desktop, then `./init.sh` (npm install + full verify). `npm run dev` runs API on :4000 and web on :5173 (Vite proxies /api)
 - Standard verification path: `npm run verify` = `npm test` (vitest on DB auction_test + fe build) and `npm run e2e` (Playwright on DB auction_e2e, servers on :4100/:5180)
 - Demo accounts: alice / bob / carol (customers), staff (staff), admin (admin); password `Password123!` for all (docs/accounts.md; `npm run db:seed -w be` reseeds the dev DB)
-- Feature list: round 1 (14 features) archived to progress-feature-list/feature_list_1.json; round 2 (bid-003, sys-001, sys-002, sys-003, all passing) archived to progress-feature-list/feature_list_2.json. round 3 (SRS 3.19-3.21: sec-001/002, adm-001..005, stf-001..004, all passing) archived to progress-feature-list/feature_list_3.json. round 4 (crd-001/002, upl-001, gds-001/002, sell-003/004, bid-004, all passing) archived to progress-feature-list/feature_list_4.json. Round 5 (from SRS.txt, 2026-10-20: sell-005 cancel rules, rt-001 Redux + real-time bids, crd-003 stable credit UI, sell-006 available goods only, cmt-001 comments close) is the active feature_list.json at the root: sell-005 and rt-001 passing (2026-10-21), the rest not_started (progress-feature-list/feature_list.json is the untouched bootstrap template)
+- Feature list: round 1 (14 features) archived to progress-feature-list/feature_list_1.json; round 2 (bid-003, sys-001, sys-002, sys-003, all passing) archived to progress-feature-list/feature_list_2.json. round 3 (SRS 3.19-3.21: sec-001/002, adm-001..005, stf-001..004, all passing) archived to progress-feature-list/feature_list_3.json. round 4 (crd-001/002, upl-001, gds-001/002, sell-003/004, bid-004, all passing) archived to progress-feature-list/feature_list_4.json. Round 5 (from SRS.txt, 2026-10-20: sell-005 cancel rules, rt-001 Redux + real-time bids, crd-003 stable credit UI, sell-006 available goods only, cmt-001 comments close) is the active feature_list.json at the root: sell-005, rt-001, crd-003 passing (2026-10-21), the rest not_started (progress-feature-list/feature_list.json is the untouched bootstrap template)
 - Uploads: images stored in UPLOAD_DIR (default be/uploads/, gitignored); see docs/image-upload.md
 - Current blocker: none
 
@@ -257,3 +257,11 @@
 - Known limits: one API process only (EventEmitter bus); no Last-Event-ID replay (reload on reconnect instead); navbar credit still from the auth context (crd-003)
 - The user's running Vite dev server may need a restart to pre-bundle the new Redux packages
 - Next best step: crd-003 (credit slice + per-user event stream)
+
+### Session 008 (cont.) crd-003
+
+- Completed: per-user SSE GET /api/me/events ('outbid' with releasedAmount after a bid commits; 'auction-finished' after settlement and after cancel, once per involved user); bid POST returns `released`; fe credit slice (creditSlice, useCreditSync/useCredit, useUserEvents); header, dashboard, bid panel read it; BidPanel no longer calls refresh() after a bid; /credit deposits update the slice at once
+- Verification: npm run verify exit 0 -> be vitest 43 files / 215 tests, fe vitest 15 tests, fe build ok, Playwright 42/42
+- Decision: auction-finished also on cancel (credit unchanged, locked refetched); recorded in docs/credit-model.md
+- Known: a user's second tab is not told about bids made in the first (its locked credit catches up on the next auction-finished or reload)
+- Next best step: sell-006 (available goods only in the create-auction dropdown)

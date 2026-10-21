@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { prisma } from '../db';
 import { auctionInclude, auctionView, effectiveStatus, nextMinBid } from '../lib/auctions';
 import { applyCredit } from '../lib/credit';
-import { publishAuctionEvent, streamAuction } from '../lib/events';
+import { publishAuctionEvent, publishAuctionFinished, publishUserEvent, streamAuction } from '../lib/events';
 import { HttpError, asyncHandler } from '../lib/http';
 import { moneyField } from '../lib/validation';
 import { requireAuth } from '../middleware/auth';
@@ -52,7 +52,7 @@ bidsRouter.post(
     const amount = new Prisma.Decimal(raw);
     const bidderId = req.user!.id;
 
-    const { ticket, event } = await prisma.$transaction(async (tx) => {
+    const { ticket, event, outbid, released, auctionName } = await prisma.$transaction(async (tx) => {
       const auction = await lockAuction(tx, auctionId);
       if (!auction) throw new HttpError(404, 'Auction not found');
       if (auction.sellerId === bidderId) throw new HttpError(403, 'You cannot bid on your own auction');
@@ -95,11 +95,21 @@ bidsRouter.post(
         bidCount: await tx.bidTicket.count({ where: { auctionId } }),
         reserveMet: !auction.reservePrice || amount.greaterThanOrEqualTo(auction.reservePrice),
       };
-      return { ticket: created, event };
+      const outbid = leading && leading.bidderId !== bidderId ? leading : null;
+      // crd-003: the bidder's own earlier hold freed by raising their bid, so the client can update its locked credit.
+      const released = leading && leading.bidderId === bidderId ? leading.amount : new Prisma.Decimal(0);
+      return { ticket: created, event, outbid, released, auctionName: auction.name };
     });
 
     publishAuctionEvent(auctionId, { type: 'bid', id: String(event.bid.id), data: event });
-    res.status(201).json({ message: 'Bid placed', bid: ticket, event });
+    if (outbid) {
+      publishUserEvent(outbid.bidderId, {
+        type: 'outbid',
+        id: String(outbid.id),
+        data: { auctionId, auctionName, bidId: outbid.id, releasedAmount: outbid.amount },
+      });
+    }
+    res.status(201).json({ message: 'Bid placed', bid: ticket, event, released });
   }),
 );
 
@@ -108,7 +118,7 @@ bidsRouter.post(
   requireAuth,
   asyncHandler(async (req, res) => {
     const auctionId = parseId(req.params.id);
-    await prisma.$transaction(async (tx) => {
+    const cancelled = await prisma.$transaction(async (tx) => {
       const auction = await lockAuction(tx, auctionId);
       if (!auction) throw new HttpError(404, 'Auction not found');
       // sell-005: the seller may cancel only before the start time; after that only an admin can.
@@ -126,9 +136,12 @@ bidsRouter.post(
       for (const t of held) {
         await applyCredit(tx, { userId: t.bidderId, type: 'release', amount: t.amount, auctionId, bidTicketId: t.id, description: `Auction cancelled: ${auction.name}` });
       }
+      const bidders = await tx.bidTicket.findMany({ where: { auctionId }, select: { bidderId: true }, distinct: ['bidderId'] });
       await tx.bidTicket.updateMany({ where: { auctionId }, data: { status: 'cancelled' } });
       await tx.auction.update({ where: { id: auctionId }, data: { status: 'cancelled', cancelledAt: new Date() } });
+      return { name: auction.name, involved: [auction.sellerId, ...bidders.map((b) => b.bidderId)] };
     });
+    publishAuctionFinished(cancelled.involved, { auctionId, auctionName: cancelled.name, reason: 'cancelled' });
     res.json({ message: 'Auction cancelled' });
   }),
 );

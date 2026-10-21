@@ -90,7 +90,7 @@
       "srs_ref": "System - UI update - Navbar & Dashboard, Req-1 (High Priority)",
       "title": "Navbar and dashboard credit loads once and changes only when an auction finishes; locked credit updates on bids",
       "user_visible_behavior": "The 'Credit' figure in the navbar and on the dashboard is fetched once when the page loads. After that it does not change while the customer bids, is outbid or raises a bid. It is fetched again only when an auction the customer is involved in finishes (as bidder or seller), or after a deposit or withdrawal on /credit. 'Locked credit' does update straight away: it goes up when the customer bids and down when they are outbid, including when the outbid comes from another user in real time.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Unit (fe store tests, e.g. fe/src/store/creditSlice.test.ts): a 'bid placed' or 'outbid' action changes locked only; credit stays the same. An 'auction finished' action triggers a credit refetch.",
         "Integration (be/tests/credit.events.test.ts): when the close job settles an auction, the winner, the outbid bidders and the seller each receive an 'auction-finished' event on their user event stream. When a user is outbid they receive an 'outbid' event with the released amount.",
@@ -100,8 +100,15 @@
         "E2E: the existing e2e/crd-002-credit-ui.spec.ts and e2e/cust-005-credit.spec.ts still pass.",
         "Docs: docs/credit-model.md gets a 'When the UI refreshes' section. docs/changes/crd-003.md lists changed files."
       ],
-      "evidence": [],
-      "notes": "Depends on rt-001 (store + event transport). Current code: fe/src/components/BidPanel.tsx calls useAuth().refresh() after every bid, which refetches the whole user (credit included). Layout.tsx reads user.creditBalance and user.heldBalance from the auth context. Move credit and locked into a Redux credit slice. Replace the refresh() after a bid with a locked-only update, and add a per-user event stream (e.g. GET /api/me/events) for 'outbid' and 'auction-finished'. CONFIRMED by the user on 2026-10-20: deposits and withdrawals on /credit still refresh credit at once."
+      "evidence": [
+        "2026-10-21: npm run verify exit 0 -> be vitest 43 files / 215 tests, fe vitest 2 files / 15 tests, fe build ok, Playwright 42/42 (./init.sh install blocked by the user's running dev server, as before)",
+        "fe/src/store/creditSlice.test.ts (7): bidPlaced/outbid change locked only (credit unchanged, cents, floor 0, raise locks the difference); auctionFinished calls GET /api/credit once and stores both figures; bids/outbids make no request",
+        "be/tests/credit.events.test.ts (4): /api/me/events 401 anonymous; outbid event to the previous leader with releasedAmount 110, none for raising own bid; close job sends auction-finished once each to winner, outbid bidder and seller (not to uninvolved staff), after commit (refetch sees settled balance); cancel sends reason 'cancelled'",
+        "e2e/crd-003-credit-stable.spec.ts: bob $1,000 bids $100 -> header-locked $100.00, header/dashboard credit $1,000.00, zero GET /api/auth/me|/api/me|/api/credit; carol outbids -> bob locked $0.00 live, credit $1,000.00; after expire + close job carol header-credit $890.00 and locked $0.00 with 0 page loads",
+        "crd-002 and cust-005 e2e pass unchanged",
+        "Docs: docs/credit-model.md 'When the UI refreshes (crd-003)', docs/realtime.md per-user stream, docs/changes/crd-003.md"
+      ],
+      "notes": "Depends on rt-001 (store + event transport). Current code: fe/src/components/BidPanel.tsx calls useAuth().refresh() after every bid, which refetches the whole user (credit included). Layout.tsx reads user.creditBalance and user.heldBalance from the auth context. Move credit and locked into a Redux credit slice. Replace the refresh() after a bid with a locked-only update, and add a per-user event stream (e.g. GET /api/me/events) for 'outbid' and 'auction-finished'. CONFIRMED by the user on 2026-10-20: deposits and withdrawals on /credit still refresh credit at once. DONE: auction-finished is also sent on cancel (reason 'cancelled'); reconnect of the user stream refetches credit once."
     },
     {
       "id": "sell-006",

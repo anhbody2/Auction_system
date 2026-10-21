@@ -2,6 +2,8 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { ApiError, api, money } from '../api';
 import { useAuth } from '../auth';
+import { useAppDispatch } from '../store';
+import { creditLoaded } from '../store/creditSlice';
 import { useToast } from '../toast';
 
 interface Tx {
@@ -61,6 +63,7 @@ function AmountForm({ action, label, onDone }: { action: 'topup' | 'withdraw'; l
 
 export function CreditPage() {
   const { refresh } = useAuth();
+  const dispatch = useAppDispatch();
   const [data, setData] = useState<Summary | null>(null);
 
   useEffect(() => {
@@ -69,6 +72,8 @@ export function CreditPage() {
 
   const onDone = (s: Summary) => {
     setData(s);
+    // crd-003: deposits and withdrawals update the navbar credit at once.
+    dispatch(creditLoaded({ credit: s.balance, locked: s.held }));
     refresh();
   };
 

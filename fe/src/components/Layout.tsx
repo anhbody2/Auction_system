@@ -1,10 +1,13 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { money } from '../api';
 import { can, useAuth } from '../auth';
+import { useCredit, useCreditSync } from '../store/useCredit';
 
 export function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  useCreditSync();
+  const { credit, locked } = useCredit();
 
   const onLogout = async () => {
     await logout();
@@ -42,10 +45,10 @@ export function Layout() {
               {user.role === 'customer' ? (
                 <>
                   <span className="pill" title="Credit">
-                    Credit <span data-testid="header-credit">{money(user.creditBalance)}</span>
+                    Credit <span data-testid="header-credit">{money(credit)}</span>
                   </span>
                   <span className="pill pill-muted" title="Locked credit: held in active bids">
-                    Locked credit <span data-testid="header-locked">{money(user.heldBalance)}</span>
+                    Locked credit <span data-testid="header-locked">{money(locked)}</span>
                   </span>
                 </>
               ) : (

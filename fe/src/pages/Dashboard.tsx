@@ -1,8 +1,10 @@
 import { money } from '../api';
 import { useAuth } from '../auth';
+import { useCredit } from '../store/useCredit';
 
 export function DashboardPage() {
   const { user } = useAuth();
+  const { credit, locked } = useCredit();
   if (!user) return null;
   return (
     <div>
@@ -10,12 +12,12 @@ export function DashboardPage() {
       <div className="grid stats">
         <div className="card">
           <div className="muted small">Credit</div>
-          <div className="big" data-testid="dashboard-credit">{money(user.creditBalance)}</div>
+          <div className="big" data-testid="dashboard-credit">{money(credit)}</div>
           <div className="muted small">Changes on top up, withdrawal and when an auction closes</div>
         </div>
         <div className="card">
           <div className="muted small">Locked credit</div>
-          <div className="big" data-testid="dashboard-locked">{money(user.heldBalance)}</div>
+          <div className="big" data-testid="dashboard-locked">{money(locked)}</div>
           <div className="muted small">Held in active bids</div>
         </div>
       </div>

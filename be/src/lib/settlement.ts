@@ -1,6 +1,7 @@
 import { prisma } from '../db';
 import { commissionFor, commissionRate } from './commission';
 import { applyCredit } from './credit';
+import { publishAuctionFinished } from './events';
 
 /**
  * Closes one auction whose end time has passed. Idempotent: the auction row is locked and
@@ -10,10 +11,10 @@ import { applyCredit } from './credit';
  *  - every other non-cancelled ticket becomes lost
  */
 export async function settleAuction(auctionId: bigint) {
-  return prisma.$transaction(async (tx) => {
+  const finished = await prisma.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT id FROM auctions WHERE id = ${auctionId} FOR UPDATE`;
     const auction = await tx.auction.findUnique({ where: { id: auctionId } });
-    if (!auction || auction.status === 'cancelled' || auction.status === 'ended' || auction.endTime > new Date()) return false;
+    if (!auction || auction.status === 'cancelled' || auction.status === 'ended' || auction.endTime > new Date()) return null;
 
     const now = new Date();
     const leading = await tx.bidTicket.findFirst({ where: { auctionId, status: 'active' }, orderBy: { amount: 'desc' } });
@@ -48,8 +49,13 @@ export async function settleAuction(auctionId: bigint) {
 
     await tx.bidTicket.updateMany({ where: { auctionId, status: { in: ['active', 'outbid'] } }, data: { status: 'lost' } });
     await tx.auction.update({ where: { id: auctionId }, data: { status: 'ended', closedAt: now, winnerId } });
-    return true;
+    const bidders = await tx.bidTicket.findMany({ where: { auctionId }, select: { bidderId: true }, distinct: ['bidderId'] });
+    return { name: auction.name, involved: [auction.sellerId, ...bidders.map((b) => b.bidderId)] };
   });
+  if (!finished) return false;
+  // crd-003: after commit, so a client that refetches its credit sees the settled balances.
+  publishAuctionFinished(finished.involved, { auctionId, auctionName: finished.name, reason: 'ended' });
+  return true;
 }
 
 /**

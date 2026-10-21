@@ -1,64 +1,16 @@
 import http from 'node:http';
-import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { auctionListenerCount } from '../src/lib/events';
-import { app, createAuction, loginAs, resetDb } from './helpers';
+import { createAuction, loginAs, resetDb } from './helpers';
+import { listen, settle, subscribe as open, waitFor } from './sse';
 
-interface SseEvent {
-  event: string;
-  id?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data: any;
-}
-
-/** Opens GET /api/auctions/:id/events and collects parsed events until close(). */
-function subscribe(port: number, auctionId: number) {
-  const events: SseEvent[] = [];
-  let req!: http.ClientRequest;
-  const ready = new Promise<{ status: number; headers: http.IncomingHttpHeaders }>((resolve, reject) => {
-    req = http.get({ host: '127.0.0.1', port, path: `/api/auctions/${auctionId}/events` }, (res) => {
-      let buffer = '';
-      res.setEncoding('utf8');
-      res.on('data', (chunk: string) => {
-        buffer += chunk;
-        let at: number;
-        while ((at = buffer.indexOf('\n\n')) >= 0) {
-          const frame = buffer.slice(0, at);
-          buffer = buffer.slice(at + 2);
-          const ev: Partial<SseEvent> = {};
-          for (const line of frame.split('\n')) {
-            if (line.startsWith('event: ')) ev.event = line.slice(7);
-            else if (line.startsWith('id: ')) ev.id = line.slice(4);
-            else if (line.startsWith('data: ')) ev.data = JSON.parse(line.slice(6));
-          }
-          if (ev.event) events.push(ev as SseEvent);
-        }
-      });
-      resolve({ status: res.statusCode!, headers: res.headers });
-    });
-    req.on('error', (err) => {
-      if ((err as NodeJS.ErrnoException).code !== 'ECONNRESET') reject(err);
-    });
-  });
-  return { events, ready, close: () => req.destroy() };
-}
-
-const waitFor = async (check: () => boolean, ms = 3000) => {
-  const until = Date.now() + ms;
-  while (!check()) {
-    if (Date.now() > until) throw new Error('timed out waiting');
-    await new Promise((r) => setTimeout(r, 20));
-  }
-};
-const settle = () => new Promise((r) => setTimeout(r, 300));
+const subscribe = (port: number, auctionId: number) => open(port, `/api/auctions/${auctionId}/events`);
 
 describe('rt-001 auction event stream', () => {
   let server: http.Server;
   let port: number;
   beforeAll(async () => {
-    server = app.listen(0);
-    await new Promise((r) => server.once('listening', r));
-    port = (server.address() as AddressInfo).port;
+    ({ server, port } = await listen());
   });
   afterAll(() => new Promise((r) => server.close(r)));
   beforeEach(resetDb);

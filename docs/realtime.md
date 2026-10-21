@@ -77,5 +77,11 @@ fe/src/store/index.ts creates the store (`Provider` in fe/src/main.tsx). Slice `
 - The auction page, the bid panel and the bid history all read this slice. The panel shows
   "You are the leading bidder" / "You have been outbid" (`data-testid="my-standing"`) from it.
 
-The navbar credit figures still come from the auth context; moving them to a credit slice that reacts to
-outbid and auction-finished events is crd-003.
+## Per-user stream (crd-003)
+
+`GET /api/me/events` (signed in; 401 otherwise) is the same kind of stream on channel `user:<id>`. It carries
+`outbid` and `auction-finished`; the `credit` slice (fe/src/store/creditSlice.ts) and `useUserEvents` use
+it. Credit refresh rules are in [credit-model.md](credit-model.md#when-the-ui-refreshes-crd-003).
+
+Store slices now: `auction` (above) and `credit` (`{ credit, locked }`, both `number | null` until loaded).
+Each signed-in customer page holds two streams at most (their user stream and the open auction's).

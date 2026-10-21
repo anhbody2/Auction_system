@@ -4,12 +4,15 @@ import { ApiError, api, money, type Auction, type Bid, type BidEvent } from '../
 import { useAuth } from '../auth';
 import { useAppDispatch } from '../store';
 import { bidReceived } from '../store/auctionSlice';
+import { bidPlaced } from '../store/creditSlice';
+import { useCredit } from '../store/useCredit';
 import { useToast } from '../toast';
 
 export type { Bid };
 
 export function BidPanel({ auction, bids, onReload }: { auction: Auction; bids: Bid[]; onReload: () => void }) {
-  const { user, refresh } = useAuth();
+  const { user } = useAuth();
+  const { credit, locked } = useCredit();
   const dispatch = useAppDispatch();
   const toast = useToast();
   const location = useLocation();
@@ -39,11 +42,12 @@ export function BidPanel({ auction, bids, onReload }: { auction: Auction; bids: 
     setError('');
     setBusy(true);
     try {
-      const res = await api<{ event: BidEvent }>(`/auctions/${auction.id}/bids`, { body: { amount } });
+      const res = await api<{ event: BidEvent; released: number }>(`/auctions/${auction.id}/bids`, { body: { amount } });
       // Same reducer as pushed events; the pushed copy of this bid is then ignored as a duplicate.
       dispatch(bidReceived(res.event));
+      // crd-003: only locked credit changes on a bid; no refetch of the user or credit.
+      dispatch(bidPlaced({ amount: res.event.bid.amount, released: res.released }));
       toast(`Bid of ${money(Number(amount))} placed`, 'success');
-      refresh();
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.fields.amount ?? err.message);
@@ -80,7 +84,7 @@ export function BidPanel({ auction, bids, onReload }: { auction: Auction; bids: 
         {busy ? 'Placing...' : 'Place bid'}
       </button>
       <span className="muted small">
-        Credit: {money(user.creditBalance)} · Locked credit: {money(user.heldBalance)}
+        Credit: {money(credit)} · Locked credit: {money(locked)}
       </span>
     </form>
   );

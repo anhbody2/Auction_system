@@ -18,9 +18,23 @@ export interface StreamEvent {
 }
 
 const auctionChannel = (auctionId: bigint) => `auction:${auctionId}`;
+const userChannel = (userId: bigint) => `user:${userId}`;
 
 export function publishAuctionEvent(auctionId: bigint, event: StreamEvent) {
   bus.emit(auctionChannel(auctionId), event);
+}
+
+/** crd-003: events for one signed-in user ('outbid', 'auction-finished'). */
+export function publishUserEvent(userId: bigint, event: StreamEvent) {
+  bus.emit(userChannel(userId), event);
+}
+
+/** crd-003: tells everyone involved in an auction (seller and bidders) that it has finished. */
+export function publishAuctionFinished(
+  userIds: Iterable<bigint>,
+  data: { auctionId: bigint; auctionName: string; reason: 'ended' | 'cancelled' },
+) {
+  for (const userId of new Set([...userIds].map(String))) publishUserEvent(BigInt(userId), { type: 'auction-finished', data });
 }
 
 export const HEARTBEAT_MS = 25_000;
@@ -56,6 +70,15 @@ function streamChannel(req: Request, res: Response, channel: string) {
 
 export function streamAuction(req: Request, res: Response, auctionId: bigint) {
   streamChannel(req, res, auctionChannel(auctionId));
+}
+
+export function streamUser(req: Request, res: Response, userId: bigint) {
+  streamChannel(req, res, userChannel(userId));
+}
+
+/** For tests: how many streams are listening to a user. */
+export function userListenerCount(userId: bigint) {
+  return bus.listenerCount(userChannel(userId));
 }
 
 /** For tests: how many streams are listening to an auction. */
