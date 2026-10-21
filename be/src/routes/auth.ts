@@ -4,7 +4,8 @@ import { z } from 'zod';
 import { config } from '../config';
 import { prisma } from '../db';
 import { HttpError, asyncHandler } from '../lib/http';
-import { sendMail } from '../lib/mailer';
+import { sendAccountMail } from '../lib/mailer';
+import { activationMail, resetPasswordMail } from '../lib/mailTemplates';
 import { hashToken, newToken } from '../lib/tokens';
 import { getPublicUser } from '../lib/users';
 import { emailField, fullNameField, passwordField, phoneField, usernameField } from '../lib/validation';
@@ -73,11 +74,8 @@ authRouter.post(
         verificationTokens: { create: { tokenHash, expiresAt: new Date(Date.now() + 24 * 3600 * 1000) } },
       },
     });
-    await sendMail(
-      user.email,
-      'Confirm your BidHouse account',
-      `Hi ${data.fullName},\n\nConfirm your email address by opening this link:\n${config.appUrl}/verify-email?token=${token}\n\nThe link expires in 24 hours.`,
-    );
+    // mail-001: if the mail cannot be sent the account stays pending with its token; a resend works later.
+    await sendAccountMail(user.email, activationMail(data.fullName, `${config.appUrl}/verify-email?token=${token}`));
     res.status(201).json({
       message: 'Account created. Check your email to confirm your address.',
       user: await getPublicUser(user.id),
@@ -115,11 +113,7 @@ authRouter.post(
         prisma.passwordResetToken.updateMany({ where: { userId: user.id, usedAt: null }, data: { usedAt: new Date() } }),
         prisma.passwordResetToken.create({ data: { userId: user.id, tokenHash, expiresAt: new Date(Date.now() + 3600 * 1000) } }),
       ]);
-      await sendMail(
-        user.email,
-        'Reset your BidHouse password',
-        `Someone asked to reset the password for ${user.username}.\n\nSet a new password here:\n${config.appUrl}/reset-password?token=${token}\n\nThe link expires in 1 hour. Ignore this email if it wasn't you.`,
-      );
+      await sendAccountMail(user.email, resetPasswordMail(user.username, `${config.appUrl}/reset-password?token=${token}`));
     }
     res.json({ message: FORGOT_MESSAGE });
   }),

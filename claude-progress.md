@@ -347,3 +347,10 @@
 - Completed: staff transaction list/search (trx-001 + customer + status), view, manual adjustments (credit/debit, type 'adjustment'), edit (pending amount, any description), soft delete of pending/rejected, reverse of posted top-ups/withdrawals/adjustments; /staff/credit list + /staff/credit/:id
 - Verification: ./init.sh exit 0 -> be vitest 273, fe vitest 32, fe build ok, Playwright 53/53
 - Next best step: mail-001 (Gmail transport; the real-inbox check needs the user's Gmail app password)
+
+### Session 010 (cont.) mail-001 (blocked on credentials)
+
+- Completed: Gmail transport chosen from GMAIL_USER + GMAIL_APP_PASSWORD (else SMTP_HOST, else dev outbox); HTML + text templates; account mail failures -> 502 'We could not send the email, please try again'; docs/mail.md with the app-password setup
+- Verification: ./init.sh exit 0 -> be vitest 279, fe vitest 32, fe build ok, Playwright 53/53
+- BLOCKED: the manual real-inbox check needs the user's Gmail app password in be/.env (not committed). Status 'blocked', not passing
+- Next best step: mail-002 (activation link signs in and redirects)
