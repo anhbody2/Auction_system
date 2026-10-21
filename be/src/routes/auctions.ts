@@ -16,14 +16,14 @@ const GOODS_SOLD = 'These goods have been sold';
 /** Ended auctions stay on the homepage ("just completed") for this many days. */
 const JUST_COMPLETED_DAYS = 7;
 
-const price = (label: string) =>
+export const price = (label: string) =>
   z.coerce
     .number({ invalid_type_error: `${label} must be a number` })
     .positive(`${label} must be greater than 0`)
     .max(1_000_000_000, `${label} is too large`)
     .refine((n) => Math.abs(n * 100 - Math.round(n * 100)) < 1e-6, `${label} can have at most 2 decimals`);
 
-const optionalPrice = (label: string) =>
+export const optionalPrice = (label: string) =>
   z.preprocess((v) => (v === '' || v === null ? undefined : v), price(label).optional());
 
 const dateField = (label: string) =>
@@ -56,7 +56,7 @@ const termsSchema = z
     }
   });
 
-function parseCreate(body: unknown) {
+export function parseCreate(body: unknown) {
   const item = itemSchema.safeParse(body);
   const terms = termsSchema.safeParse(body);
   if (item.success && terms.success) return { ...item.data, ...terms.data };
@@ -114,7 +114,8 @@ auctionsRouter.get(
   asyncHandler(async (req, res) => {
     const id = parseId(req.params.id);
     const auction = await prisma.auction.findUnique({ where: { id }, include: auctionInclude });
-    if (!auction) throw new HttpError(404, 'Auction not found');
+    // stf-006: staff-deleted auctions are gone for customers (staff see them under /api/staff/manage/auctions).
+    if (!auction || auction.deletedAt) throw new HttpError(404, 'Auction not found');
     res.json({ auction: await auctionView(auction, req.user?.id) });
   }),
 );
@@ -148,14 +149,14 @@ auctionsRouter.get(
     const [open, completed] = await Promise.all([
       // live + upcoming, soonest ending first
       prisma.auction.findMany({
-        where: { AND: [{ status: { in: ['active', 'upcoming'] }, endTime: { gt: now } }, match] },
+        where: { AND: [{ status: { in: ['active', 'upcoming'] }, endTime: { gt: now }, deletedAt: null }, match] },
         include: auctionInclude,
         orderBy: { endTime: 'asc' },
         take: 200,
       }),
       // just completed, most recent first. Past end time counts even before the close job has run.
       prisma.auction.findMany({
-        where: { AND: [{ status: { not: 'cancelled' }, endTime: { gte: recent, lte: now } }, match] },
+        where: { AND: [{ status: { not: 'cancelled' }, endTime: { gte: recent, lte: now }, deletedAt: null }, match] },
         include: auctionInclude,
         orderBy: { endTime: 'desc' },
         take: 100,
@@ -171,7 +172,7 @@ auctionsRouter.get(
   requireAuth,
   asyncHandler(async (req, res) => {
     const auctions = await prisma.auction.findMany({
-      where: { sellerId: req.user!.id },
+      where: { sellerId: req.user!.id, deletedAt: null },
       include: auctionInclude,
       orderBy: { createdAt: 'desc' },
     });

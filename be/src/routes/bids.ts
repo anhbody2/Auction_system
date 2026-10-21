@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db';
 import { auctionInclude, auctionView, effectiveStatus, nextMinBid } from '../lib/auctions';
+import { lockAuction, publishVoided, voidAuction } from '../lib/auctionVoid';
 import { applyCredit } from '../lib/credit';
 import { publishAuctionEvent, publishAuctionFinished, publishUserEvent, streamAuction } from '../lib/events';
 import { HttpError, asyncHandler } from '../lib/http';
@@ -13,12 +14,6 @@ import { parseId } from './auctions';
 export const bidsRouter = Router();
 
 const fmt = (d: Prisma.Decimal) => `$${d.toFixed(2)}`;
-
-/** Locks the auction row so bids on the same auction are applied one at a time. */
-async function lockAuction(tx: Prisma.TransactionClient, id: bigint) {
-  await tx.$queryRaw`SELECT id FROM auctions WHERE id = ${id} FOR UPDATE`;
-  return tx.auction.findUnique({ where: { id } });
-}
 
 /** rt-001: the 'bid' event sent on GET /auctions/:id/events and returned by POST /auctions/:id/bids. */
 export interface BidEvent {
@@ -120,7 +115,7 @@ bidsRouter.post(
     const auctionId = parseId(req.params.id);
     const cancelled = await prisma.$transaction(async (tx) => {
       const auction = await lockAuction(tx, auctionId);
-      if (!auction) throw new HttpError(404, 'Auction not found');
+      if (!auction || auction.deletedAt) throw new HttpError(404, 'Auction not found');
       // sell-005: the seller may cancel only before the start time; after that only an admin can.
       const isAdmin = req.user!.role === 'admin';
       if (!isAdmin && auction.sellerId !== req.user!.id) throw new HttpError(403, 'Only the seller can cancel this auction');
@@ -132,17 +127,9 @@ bidsRouter.post(
         throw new HttpError(403, 'This auction has started; only an admin can cancel it');
       }
 
-      const held = await tx.bidTicket.findMany({ where: { auctionId, status: 'active' } });
-      for (const t of held) {
-        await applyCredit(tx, { userId: t.bidderId, type: 'release', amount: t.amount, auctionId, bidTicketId: t.id, description: `Auction cancelled: ${auction.name}` });
-      }
-      const bidders = await tx.bidTicket.findMany({ where: { auctionId }, select: { bidderId: true }, distinct: ['bidderId'] });
-      await tx.bidTicket.updateMany({ where: { auctionId }, data: { status: 'cancelled' } });
-      await tx.auction.update({ where: { id: auctionId }, data: { status: 'cancelled', cancelledAt: new Date() } });
-      return { name: auction.name, involved: [auction.sellerId, ...bidders.map((b) => b.bidderId)] };
+      return voidAuction(tx, auction, 'Auction cancelled');
     });
-    publishAuctionFinished(cancelled.involved, { auctionId, auctionName: cancelled.name, reason: 'cancelled' });
-    publishAuctionEvent(auctionId, { type: 'closed', data: { auctionId, status: 'cancelled' } });
+    publishVoided(cancelled);
     res.json({ message: 'Auction cancelled' });
   }),
 );
@@ -157,7 +144,7 @@ bidsRouter.get(
     const latest = new Map<bigint, (typeof tickets)[number]>();
     for (const t of tickets) if (!latest.has(t.auctionId)) latest.set(t.auctionId, t);
 
-    const auctions = await prisma.auction.findMany({ where: { id: { in: [...latest.keys()] } }, include: auctionInclude });
+    const auctions = await prisma.auction.findMany({ where: { id: { in: [...latest.keys()] }, deletedAt: null }, include: auctionInclude });
     const leaders = await prisma.bidTicket.findMany({ where: { auctionId: { in: [...latest.keys()] }, status: 'active' } });
     const leaderOf = new Map(leaders.map((l) => [l.auctionId, l.bidderId]));
 

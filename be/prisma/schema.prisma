@@ -116,6 +116,8 @@ model Auction {
   updatedAt       DateTime  @updatedAt @map("updated_at")
   cancelledAt     DateTime? @map("cancelled_at")
   closedAt        DateTime? @map("closed_at")
+  /// stf-006: soft delete by staff; hidden from every customer page
+  deletedAt       DateTime? @map("deleted_at")
 
   seller       User                @relation("SellerAuctions", fields: [sellerId], references: [id])
   winner       User?               @relation("WinnerAuctions", fields: [winnerId], references: [id])

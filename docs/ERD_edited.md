@@ -19,6 +19,8 @@
 
 | GOODS: added `rejection_reason`, `reviewed_at`, `reviewed_by` (FK USERS); status `pending`/`rejected` | stf-005 staff approval of new goods (see docs/goods-approval.md) |
 
+| AUCTIONS: added `deleted_at` | stf-006 staff soft delete (hidden from customers; see docs/auction-cancel.md) |
+
 Goods ownership (gds-003): the current owner is `buyer_id` when set, otherwise `seller_id`. When an auction ends
 with a winner, settlement sets `goods.seller_id` = that auction's seller and `goods.buyer_id` = the winner, in the
 same transaction. On a first sale the seller is unchanged; on a resale the previous buyer (the reseller) becomes the
@@ -108,6 +110,7 @@ erDiagram
         timestamp updated_at
         timestamp cancelled_at
         timestamp closed_at
+        timestamp deleted_at "added"
     }
 
     BID_TICKETS {

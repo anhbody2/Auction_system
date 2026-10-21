@@ -328,3 +328,9 @@
 - Fixture ripple handled: be addGoods and e2e createGoodsViaApi approve (e2e through a real staff session); 6 older tests/specs updated to the approval flow
 - Verification: ./init.sh exit 0 -> be vitest 246, fe vitest 32, fe build ok, Playwright 50/50
 - Next best step: stf-006 (staff auctions; needs auctions.deleted_at)
+
+### Session 010 (cont.) stf-006
+
+- Completed: auctions.deleted_at + auction.manage; /api/staff/manage/auctions (list/search/page, seller-goods, view, add for seller, edit upcoming / description-only when started, soft delete); release logic shared in be/src/lib/auctionVoid.ts (cancel route uses it too); deleted auctions hidden from all customer pages; UI /staff/auctions
+- Verification: ./init.sh exit 0 -> be vitest 258, fe vitest 32, fe build ok, Playwright 51/51
+- Next best step: stf-007 (credit requests need staff approval; ripple: every top-up in tests)

@@ -64,7 +64,7 @@ describe('sec-002 role-based permissions', () => {
 
   it('the staff user sees their permissions in /api/auth/me', async () => {
     const me = await (await loginAs('staff')).get('/api/auth/me');
-    expect(me.body.user.permissions).toEqual(['goods.manage', 'report.export', 'report.view']);
+    expect(me.body.user.permissions).toEqual(['auction.manage', 'goods.manage', 'report.export', 'report.view']);
   });
 
   it('admin cannot remove user.manage or permission.manage from the admin role', async () => {

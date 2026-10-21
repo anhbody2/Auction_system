@@ -53,3 +53,18 @@ The auction page shows the cancel button (component `CancelAuction`):
   and the button is gone.
 - Admin, upcoming or active auction: "Cancel auction (admin)".
 - Both ask for confirmation ("Yes, cancel auction"), and say how many bids will be voided.
+
+## Staff delete (stf-006)
+
+Staff with `auction.manage` (staff and admin by default) soft-delete auctions with
+`DELETE /api/staff/manage/auctions/:id`. The row stays with `deleted_at` set.
+
+- Upcoming or active: exactly like a cancel. Every held bid is released with the ledger row
+  "Auction deleted by staff: <name>", all tickets become `cancelled`, the auction `cancelled`. The shared code is
+  `voidAuction` in be/src/lib/auctionVoid.ts, also used by the seller/admin cancel route.
+- Ended: hiding only. If the close job has not run yet, the auction is settled first, so no money moves after the delete.
+- Cancelled: hiding only.
+
+A deleted auction is gone from the homepage, search, the auction page (404), My auctions and My biddings. Staff see
+it in /staff/auctions with the "Deleted" filter. `auction.manage` does not open the seller/admin cancel route
+(`POST /api/auctions/:id/cancel`): the sell-005 rules stay as they are.

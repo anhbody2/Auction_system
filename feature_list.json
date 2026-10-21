@@ -173,7 +173,7 @@
       "srs_ref": "Staff - Auction Management, REQ-1, REQ-2",
       "title": "Staff manage auctions: list, search, page, view, add, edit, soft delete",
       "user_visible_behavior": "Staff open /staff/auctions: a paged list searchable by auction name, seller, status and start-date range. Staff can view an auction (details, bids, settlement), add an auction for a chosen seller from that seller's approved, available goods (it gets the 'New' tag), edit an upcoming auction (name, description, prices, start time, duration; started auctions are read-only except description), and soft-delete an auction. Deleting an upcoming or active auction voids its bids and releases every held amount exactly like a cancel; the auction disappears from public pages but stays in the staff list under a 'Deleted' filter.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Permissions: new code 'auction.manage' seeded for staff and admin; customers get 403. This does not let staff use the seller/admin cancel route (sell-005 rule stays).",
         "Unit (be/tests/staff.auctions.list.test.ts): search by each field and combined, paging totals, deleted filter.",
@@ -182,8 +182,16 @@
         "E2E (e2e/stf-006-staff-auctions.spec.ts): staff searches and pages the list, creates an auction for alice, edits it, deletes another auction that bob bid on; bob's /credit shows the hold released.",
         "Docs: docs/changes/stf-006.md; docs/auction-cancel.md gets a 'Staff delete' section."
       ],
-      "evidence": [],
-      "notes": "Reuse the release logic from the cancel route in be/src/routes/bids.ts rather than copying it. Needs auctions.deleted_at (migration + ERD). Assumption: deleting ended auctions is allowed only as hiding (no money moves after settlement)."
+      "evidence": [
+        "2026-10-21 ./init.sh exit 0: be vitest 53 files / 258 tests, fe vitest 5 files / 32 tests, fe build ok, Playwright 51/51",
+        "auction.manage seeded for staff and admin (migration 20261021150000); customers 403 on all 6 routes; staff still 403 on POST /api/auctions/:id/cancel (sell-005 kept)",
+        "be/tests/staff.auctions.list.test.ts: name, seller, status (derived), start-date range, combined; deleted only with the Deleted filter; paging totals",
+        "be/tests/staff.auctions.crud.test.ts: create for seller -> upcoming + isNew; pending/rejected/busy/foreign goods and unknown seller -> 400; view with bids/reserve; upcoming edit recomputes end_time; started auction price/start/name -> 400, description -> 200",
+        "be/tests/staff.auctions.delete.test.ts: active auction with bids -> deleted_at set, tickets cancelled, holds restored, release rows 'Auction deleted by staff: Doomed Lamp'; gone from GET /api/auctions, search, detail (404), My auctions, My biddings; goods available again; ended auction settled first and only hidden",
+        "e2e/stf-006-staff-auctions.spec.ts passes: 21 auctions page 1/2 -> 2/2 by seller+status; staff adds an auction for the seller (upcoming, New), edits it, deletes one bob bid on; bob's Locked credit $30 -> $0 and ledger shows the release; auction 404 for him",
+        "Docs: docs/changes/stf-006.md, docs/auction-cancel.md 'Staff delete', docs/ERD_edited.md"
+      ],
+      "notes": "Reuse the release logic from the cancel route in be/src/routes/bids.ts rather than copying it. Needs auctions.deleted_at (migration + ERD). Assumption: deleting ended auctions is allowed only as hiding (no money moves after settlement). API prefix /api/staff/manage/auctions because /api/staff/auctions is the stf-001 statistics list."
     },
     {
       "id": "stf-007",
