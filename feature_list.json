@@ -303,7 +303,7 @@
       "srs_ref": "Customer - Mail services 3.7.3 REQ-1, REQ-2, REQ-3",
       "title": "Forgot password and change password both work by an emailed link to a new-password form",
       "user_visible_behavior": "Forgot password: the user enters their email and gets a link (works as now). Change password: on /change-password a signed-in user clicks 'Send me a change-password link'; an email goes to their address and the page says so. Both links open the same new-password form, which shows the password rules (at least 8 characters, a letter and a number) and checks them live and on the server. After saving, all older links for that user stop working and the user is sent to log in (forgot) or back to the profile (change) with a success message.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Unit (be/tests/password.change-link.test.ts): POST /api/me/password/link (signed in) creates a token and sends a mail to the user's own email; the link page accepts a valid token and sets the password; reused/expired token -> 400.",
         "Unit: new passwords that break each rule -> 400 with the same messages as passwordField in be/src/lib/validation.ts, for both the reset and the change link.",
@@ -311,7 +311,14 @@
         "E2E (e2e/mail-003-password-links.spec.ts): bob requests a change link from /change-password, opens it from the outbox, tries a weak password (rule errors shown), sets a valid one, and logs in with it. carol does the forgot-password path the same way. The existing cust-003 / cust-004 specs are updated if the change-password page changes, not deleted.",
         "Docs: docs/changes/mail-003.md; docs/mail.md password-link section."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-21 ./init.sh exit 0: be vitest 59 files / 287 tests, fe vitest 6 files / 35 tests, fe build ok, Playwright 55/55",
+        "be/tests/password.change-link.test.ts: POST /api/me/password/link (signed in) creates a 'change' token and mails the user's own address; the link sets the password and login works with it; reused/expired -> 400; guests 401; saving kills every older link (reset and change); each weak password -> 400 with passwordField's message on both link kinds",
+        "fe/src/validate.test.ts: client PASSWORD_RULES messages equal the three passwordField messages read from be/src/lib/validation.ts; per-rule messages and checklist",
+        "e2e/mail-003-password-links.spec.ts passes (fresh accounts instead of bob/carol): change link from /change-password -> weak password shows the rule error, checklist ticks, valid password -> /profile 'Your password has been changed', login with it; forgot-password link -> /login 'Password has been reset...'; reused link -> error. cust-003 and cust-004 unchanged and passing",
+        "Decision recorded: current-password form kept below the link on /change-password",
+        "Docs: docs/changes/mail-003.md, docs/mail.md 'Password links'"
+      ],
       "notes": "Existing: forgot/reset in be/src/routes/auth.ts (PasswordResetToken, 1h), ChangePassword.tsx uses current-password form at PUT /api/me/password. Decide (and record) whether the current-password form stays alongside the email link; the SRS only requires the link."
     }
   ]

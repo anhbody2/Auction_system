@@ -218,6 +218,8 @@ model PasswordResetToken {
   tokenHash String    @unique @map("token_hash") @db.VarChar(128)
   expiresAt DateTime  @map("expires_at")
   usedAt    DateTime? @map("used_at")
+  /// mail-003: reset (forgot password) | change (signed-in user asked for a change link)
+  purpose   String    @default("reset") @db.VarChar(20)
   createdAt DateTime  @default(now()) @map("created_at")
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 

@@ -171,10 +171,13 @@ authRouter.post(
       throw new HttpError(400, 'This reset link is invalid or has expired');
     }
     await prisma.$transaction([
-      prisma.passwordResetToken.update({ where: { id: record.id }, data: { usedAt: new Date() } }),
+      // mail-003: this link and every older one (reset or change) stop working.
+      prisma.passwordResetToken.updateMany({ where: { userId: record.userId, usedAt: null }, data: { usedAt: new Date() } }),
       prisma.user.update({ where: { id: record.userId }, data: { passwordHash: await bcrypt.hash(data.newPassword, 10) } }),
     ]);
-    res.json({ message: 'Password has been reset. You can now log in.' });
+    // The page sends a forgot-password user to log in, and a change-password user back to their profile.
+    const purpose = record.purpose === 'change' ? 'change' : 'reset';
+    res.json({ message: purpose === 'change' ? 'Your password has been changed' : 'Password has been reset. You can now log in.', purpose });
   }),
 );
 

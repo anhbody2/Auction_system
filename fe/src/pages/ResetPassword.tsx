@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ApiError, api } from '../api';
 import { Field } from '../components/Field';
+import { PasswordRules } from '../components/PasswordRules';
 import { useToast } from '../toast';
 import { rules, validate } from '../validate';
 
@@ -25,9 +26,10 @@ export function ResetPasswordPage() {
     if (Object.keys(errs).length) return;
     setBusy(true);
     try {
-      const res = await api<{ message: string }>('/auth/reset-password', { body: { ...values, token: params.get('token') ?? '' } });
+      const res = await api<{ message: string; purpose: 'reset' | 'change' }>('/auth/reset-password', { body: { ...values, token: params.get('token') ?? '' } });
       toast(res.message, 'success');
-      navigate('/login');
+      // mail-003: forgot password -> log in; change password (from the profile) -> back to the profile.
+      navigate(res.purpose === 'change' ? '/profile' : '/login', { state: { notice: res.message } });
     } catch (err) {
       if (err instanceof ApiError) {
         setErrors(err.fields);
@@ -51,6 +53,7 @@ export function ResetPasswordPage() {
       <h1>Set a new password</h1>
       <form onSubmit={onSubmit} noValidate>
         <Field label="New password" autoComplete="new-password" {...bind('newPassword')} />
+        <PasswordRules value={values.newPassword} />
         <Field label="Confirm new password" autoComplete="new-password" {...bind('confirmPassword')} />
         {formError && (
           <p className="error" role="alert">

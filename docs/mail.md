@@ -61,3 +61,21 @@ Notification mails (goods review, credit requests) are best effort: a failure is
 
 Open question kept from the feature notes: pending accounts can still log in (only the banner differs). The SRS
 does not ask to block them, so it was not changed.
+
+## Password links (mail-003)
+
+Both flows mail a 1-hour link to the same new-password form (`/reset-password?token=...`):
+
+| Flow | Asked from | Token purpose | After saving |
+|---|---|---|---|
+| Forgot password | /forgot-password (`POST /api/auth/forgot-password {email}`) | `reset` | Log in page, "Password has been reset. You can now log in." |
+| Change password | /change-password, "Send me a change-password link" (`POST /api/me/password/link`, signed in; mailed to the user's own address) | `change` | Profile page, "Your password has been changed" |
+
+Tokens live in `password_reset_tokens` (new column `purpose`). Asking for a new link, and saving a new password,
+mark every unused link of that user as used, so only the newest link works and none survive a change.
+The form lists the password conditions (at least 8 characters, a letter, a number) and ticks them as the user
+types; the server checks them again with the same messages (`passwordField` in be/src/lib/validation.ts;
+fe/src/validate.ts `PASSWORD_RULES`, checked against the server text by fe/src/validate.test.ts).
+
+Decision: the old "current password + new password" form stays on /change-password under the link button
+("Or change it now"). The SRS only requires the link; keeping the form costs nothing and cust-003 still covers it.

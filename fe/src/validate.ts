@@ -6,6 +6,13 @@ export const required =
   (v) =>
     v.trim() ? undefined : msg;
 
+/** mail-003: the password conditions, shown as a checklist on the new-password form. Same text as the server. */
+export const PASSWORD_RULES: { label: string; message: string; test: (v: string) => boolean }[] = [
+  { label: 'At least 8 characters', message: 'Password must be at least 8 characters', test: (v) => v.length >= 8 },
+  { label: 'A letter', message: 'Password must contain a letter', test: (v) => /[A-Za-z]/.test(v) },
+  { label: 'A number', message: 'Password must contain a number', test: (v) => /[0-9]/.test(v) },
+];
+
 export const rules = {
   fullName: [required('Full name is required'), (v: string) => (v.trim().length >= 2 ? undefined : 'Full name is required')],
   username: [
@@ -14,11 +21,7 @@ export const rules = {
   ],
   email: [required('Email is required'), (v: string) => (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()) ? undefined : 'Enter a valid email address')],
   phone: [required('Phone is required'), (v: string) => (/^\+?[0-9 ()-]{7,20}$/.test(v.trim()) ? undefined : 'Enter a valid phone number')],
-  password: [
-    (v: string) => (v.length >= 8 ? undefined : 'Password must be at least 8 characters'),
-    (v: string) => (/[A-Za-z]/.test(v) ? undefined : 'Password must contain a letter'),
-    (v: string) => (/[0-9]/.test(v) ? undefined : 'Password must contain a number'),
-  ],
+  password: PASSWORD_RULES.map((r) => (v: string) => (r.test(v) ? undefined : r.message)),
   confirmPassword: [(v: string, all: Record<string, string>) => (v === all.password && v ? undefined : 'Passwords do not match')],
 } satisfies Record<string, Rule[]>;
 

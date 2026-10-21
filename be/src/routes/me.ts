@@ -1,9 +1,13 @@
 import bcrypt from 'bcryptjs';
 import { Router } from 'express';
 import { z } from 'zod';
+import { config } from '../config';
 import { prisma } from '../db';
 import { streamUser } from '../lib/events';
 import { HttpError, asyncHandler } from '../lib/http';
+import { sendAccountMail } from '../lib/mailer';
+import { changePasswordMail } from '../lib/mailTemplates';
+import { newToken } from '../lib/tokens';
 import { getPublicUser } from '../lib/users';
 import { emailField, fullNameField, passwordField, phoneField } from '../lib/validation';
 import { requireAuth } from '../middleware/auth';
@@ -43,6 +47,24 @@ meRouter.put(
     }
     await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(data.newPassword, 10) } });
     res.json({ message: 'Password changed' });
+  }),
+);
+
+/**
+ * mail-003: mails the signed-in user a link to the new-password form (same form as forgot password).
+ * Older unused links stop working.
+ */
+meRouter.post(
+  '/password/link',
+  asyncHandler(async (req, res) => {
+    const user = await prisma.user.findUniqueOrThrow({ where: { id: req.user!.id } });
+    const { token, tokenHash } = newToken();
+    await prisma.$transaction([
+      prisma.passwordResetToken.updateMany({ where: { userId: user.id, usedAt: null }, data: { usedAt: new Date() } }),
+      prisma.passwordResetToken.create({ data: { userId: user.id, tokenHash, purpose: 'change', expiresAt: new Date(Date.now() + 3600 * 1000) } }),
+    ]);
+    await sendAccountMail(user.email, changePasswordMail(user.username, `${config.appUrl}/reset-password?token=${token}`));
+    res.json({ message: `We sent a link to change your password to ${user.email}` });
   }),
 );
 
