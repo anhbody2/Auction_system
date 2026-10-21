@@ -121,3 +121,24 @@ After the decision the customer gets a `credit-request` event on `/api/me/events
 the navbar, /credit and its pending list update without a reload) and an email. /credit lists the
 customer's pending requests under "Pending requests"; the history shows pending/rejected rows with their status.
 Staff review requests on /staff/credit ("Credit management").
+
+## Staff transaction management (stf-008)
+
+Staff (`credit.manage`) see every customer's ledger on /staff/credit and `GET /api/staff/credit/transactions`: the
+trx-001 filters plus `customer` (username or full name) and `status` (all = not deleted, pending, posted, rejected,
+deleted), combined with AND and paged. `GET .../:id` shows user, auction, bid, balances before/after, reviewer and
+the reversal, if any.
+
+What can change, and why:
+
+| Action | Allowed on | Why |
+|---|---|---|
+| Add (`POST`) | Manual adjustment for a customer: `credit` or `debit`, amount, required reason. Type `adjustment`, posted at once, description "Adjustment: <reason>". A debit needs available credit. | Corrections that are not requests. |
+| Edit amount (`PATCH`) | Pending requests only. | No money has moved yet. |
+| Edit description (`PATCH`) | Any row that is not deleted. | Text only. |
+| Delete (`DELETE`) | Pending or rejected requests: status `deleted`, row kept, hidden from the customer. | A posted row is a real money movement and the balances follow from it, so it is never deleted (400). |
+| Reverse (`POST .../:id/reverse`) | Posted top-ups, withdrawals and adjustments, once. Posts an opposite adjustment "Reversal of #<id>: ...". | Undoes a posted movement while keeping the history. Holds, releases, payments and payouts belong to auctions and are not reversible here; a reversal cannot itself be reversed. |
+
+Adjustments store a positive amount; the direction comes from the balances (after < before = debit) and is
+returned as `direction`. Every change that affects a customer sends them the `credit-request` event, so their
+credit and /credit page refresh.

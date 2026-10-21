@@ -341,3 +341,9 @@
 - Ripple: be topUp helper and e2e topUpViaApi approve through the staff route; 3 be tests and 15 e2e specs switched
 - Verification: ./init.sh exit 0 -> be vitest 264, fe vitest 32, fe build ok, Playwright 52/52
 - Next best step: stf-008 (staff transaction list/CRUD on top of trx-001 + stf-007)
+
+### Session 010 (cont.) stf-008
+
+- Completed: staff transaction list/search (trx-001 + customer + status), view, manual adjustments (credit/debit, type 'adjustment'), edit (pending amount, any description), soft delete of pending/rejected, reverse of posted top-ups/withdrawals/adjustments; /staff/credit list + /staff/credit/:id
+- Verification: ./init.sh exit 0 -> be vitest 273, fe vitest 32, fe build ok, Playwright 53/53
+- Next best step: mail-001 (Gmail transport; the real-inbox check needs the user's Gmail app password)

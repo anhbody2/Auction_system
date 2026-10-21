@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import { HttpError } from './http';
 
 type Tx = Prisma.TransactionClient;
-export type CreditType = 'topup' | 'withdraw' | 'hold' | 'release' | 'payment' | 'payout';
+export type CreditType = 'topup' | 'withdraw' | 'hold' | 'release' | 'payment' | 'payout' | 'adjustment';
 
 interface Movement {
   userId: bigint;
@@ -11,6 +11,9 @@ interface Movement {
   auctionId?: bigint;
   bidTicketId?: bigint;
   description?: string;
+  /** stf-008: an 'adjustment' adds (credit) or takes away (debit) credit; the amount stays positive. */
+  direction?: 'credit' | 'debit';
+  reviewedById?: bigint;
 }
 
 /** Locks the user row for the rest of the transaction and returns its balances. */
@@ -33,6 +36,7 @@ export async function lockBalances(tx: Tx, userId: bigint) {
  *  release: held   -= amount
  *  payment: held -= amount, credit -= amount (winner pays from held funds)
  *  payout:  credit += amount         (seller receives proceeds)
+ *  adjustment: credit +/- amount     (staff, stf-008; a debit needs available >= amount)
  */
 export async function applyCredit(tx: Tx, m: Movement) {
   const amount = new Prisma.Decimal(m.amount);
@@ -60,6 +64,12 @@ export async function applyCredit(tx: Tx, m: Movement) {
       newHeld = Prisma.Decimal.max(held.minus(amount), 0);
       newBalance = balance.minus(amount);
       break;
+    case 'adjustment':
+      if (m.direction === 'debit') {
+        if (available.lessThan(amount)) throw new HttpError(400, 'Insufficient available credit', { amount: "Debit exceeds the customer's available credit" });
+        newBalance = balance.minus(amount);
+      } else newBalance = balance.plus(amount);
+      break;
   }
 
   await tx.user.update({ where: { id: m.userId }, data: { creditBalance: newBalance, heldBalance: newHeld } });
@@ -73,6 +83,7 @@ export async function applyCredit(tx: Tx, m: Movement) {
       balanceBefore: balance,
       balanceAfter: newBalance,
       description: m.description,
+      ...(m.reviewedById ? { reviewedById: m.reviewedById, reviewedAt: new Date() } : {}),
     },
   });
 }

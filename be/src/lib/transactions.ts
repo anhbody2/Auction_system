@@ -74,6 +74,12 @@ export function transactionWhere(f: TransactionFilter, extra: Prisma.CreditTrans
 
 export const transactionInclude = { auction: { select: { id: true, name: true } } } satisfies Prisma.CreditTransactionInclude;
 
+type Balances = { transactionType: string; balanceBefore: Prisma.Decimal; balanceAfter: Prisma.Decimal };
+/** stf-008: which way an adjustment moved credit (its amount is always positive), read from its balances. */
+export const directionOf = (t: Balances) =>
+  t.transactionType === 'adjustment' ? (t.balanceAfter.lessThan(t.balanceBefore) ? 'debit' : 'credit') : null;
+export const withDirection = <T extends Balances>(t: T) => ({ ...t, direction: directionOf(t) });
+
 /** Runs the count and the page query in parallel. */
 export async function searchTransactions(
   f: TransactionFilter,
@@ -85,5 +91,5 @@ export async function searchTransactions(
     prisma.creditTransaction.count({ where }),
     prisma.creditTransaction.findMany({ where, include, orderBy: { id: 'desc' }, skip: (f.page - 1) * f.pageSize, take: f.pageSize }),
   ]);
-  return { transactions, total, page: f.page, pageSize: f.pageSize, from: f.from, to: f.to };
+  return { transactions: transactions.map(withDirection), total, page: f.page, pageSize: f.pageSize, from: f.from, to: f.to };
 }

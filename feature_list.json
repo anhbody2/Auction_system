@@ -230,7 +230,7 @@
       "srs_ref": "Staff - Credit Management, REQ-1, REQ-2",
       "title": "Staff manage transactions: list, search, page, view, add, edit, soft delete",
       "user_visible_behavior": "On /staff/credit staff see every customer's transactions in a paged list, searched with the trx-001 search bar plus a customer filter and a status filter (pending/posted/rejected/deleted). Staff can view a transaction (user, auction, bid, balances before/after), add a manual adjustment for a customer (credit or debit with a required reason, posted at once), edit a pending request's amount or any row's description, and soft-delete a pending or rejected request. Posted ledger rows cannot be deleted or have their amount changed; the screen offers 'Reverse' instead, which posts an opposite adjustment.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Unit (be/tests/staff.credit.list.test.ts): all trx-001 filters plus customer and status, combined, with paging totals.",
         "Unit (be/tests/staff.credit.crud.test.ts): manual credit/debit updates the balance and writes type 'adjustment' with the reason; debit beyond available -> 400; editing a posted row's amount -> 400; deleting a posted row -> 400; deleting a pending row sets status 'deleted' and keeps the row; reverse posts the opposite amount.",
@@ -238,7 +238,13 @@
         "E2E (e2e/stf-008-staff-credit.spec.ts): staff filters by customer and amount range, adds a $20 adjustment for carol (carol's /credit shows it), edits a pending request's amount, deletes another pending request, and reverses a posted adjustment.",
         "Docs: docs/changes/stf-008.md; docs/credit-model.md lists which transactions can be edited, deleted or reversed and why."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-21 ./init.sh exit 0: be vitest 56 files / 273 tests, fe vitest 5 files / 32 tests, fe build ok, Playwright 53/53",
+        "be/tests/staff.credit.list.test.ts: every customer, last 30 days, not deleted; customer and status filters alone and combined with name/id/min/max/from (AND); paging totals; customers 403 on all 7 /api/staff/credit routes, guests 401",
+        "be/tests/staff.credit.crud.test.ts: credit/debit adjustment posts type 'adjustment' with reason and moves the balance; debit beyond available 400; missing reason / non-customer 400; view shows user, auction, bid, balances; pending amount edit used at approval; posted amount edit 400; delete pending/rejected -> status deleted (row kept, hidden from customer, cannot be approved); delete posted 400; reverse posts the opposite amount once, debit reverses to credit; holds and pending rows cannot be reversed",
+        "e2e/stf-008-staff-credit.spec.ts passes: customer + min amount and customer + Pending filters; $20 adjustment for carol (carol's /credit shows it); request amount edited 30 -> 35; another request deleted (status deleted, gone from the customer's pending list); adjustment reversed (Reversed by link, Reverse button gone)",
+        "Docs: docs/changes/stf-008.md, docs/credit-model.md 'Staff transaction management'"
+      ],
       "notes": "Depends on trx-001 (search component and query) and stf-007 (status values). Assumption (confirm if wrong): 'delete transactions' cannot remove posted money movements, because balances are derived from them; delete is a soft delete of requests and reversal covers posted rows."
     },
     {

@@ -14,7 +14,13 @@ export interface Tx {
   /** stf-007: pending | posted | rejected | deleted */
   status?: string;
   rejectionReason?: string | null;
+  /** stf-008: adjustments only; their amount is always positive. */
+  direction?: 'credit' | 'debit' | null;
 }
+
+/** '+', '-' or '' for a ledger row. */
+export const signOf = (t: Pick<Tx, 'transactionType' | 'direction'>) =>
+  t.transactionType === 'adjustment' ? (t.direction === 'debit' ? '-' : '+') : SIGN[t.transactionType] ?? '';
 
 /** trx-001: one page of search results. */
 export interface TxPage<T extends Tx = Tx> {
@@ -79,7 +85,7 @@ export function TransactionTable<T extends Tx>({
                 )}
               </td>
               <td>
-                {SIGN[t.transactionType] ?? ''}
+                {signOf(t)}
                 {money(t.amount)}
               </td>
               <td>{t.status && t.status !== 'posted' ? '-' : money(t.balanceAfter)}</td>

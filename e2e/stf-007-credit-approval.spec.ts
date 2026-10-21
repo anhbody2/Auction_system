@@ -45,10 +45,11 @@ test('stf-007: a top-up waits for staff approval; once approved the customer see
 
   // Reject needs a reason
   await seventy.getByRole('button', { name: /^Reject/ }).click();
-  await staff.getByRole('button', { name: 'Confirm reject' }).click();
-  await expect(staff.getByRole('alert')).toHaveText('Give a reason for the rejection');
-  await staff.getByLabel('Reason').fill('Card declined');
-  await staff.getByRole('button', { name: 'Confirm reject' }).click();
+  const rejectForm = staff.getByRole('form', { name: `Reject request ${idOf(70)}` });
+  await rejectForm.getByRole('button', { name: 'Confirm reject' }).click();
+  await expect(rejectForm.getByRole('alert')).toHaveText('Give a reason for the rejection');
+  await rejectForm.getByLabel('Reason').fill('Card declined');
+  await rejectForm.getByRole('button', { name: 'Confirm reject' }).click();
   await expect(staff.getByTestId('no-requests').or(staff.getByTestId('credit-requests'))).toBeVisible();
   await expect(seventy).toHaveCount(0);
   await staffContext.close();
