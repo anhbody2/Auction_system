@@ -1,32 +1,34 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { ApiError, CONDITION_LABELS, api, money, type Auction } from '../api';
+import { CONDITION_LABELS, money } from '../api';
 import { Countdown, StatusBadge } from '../components/AuctionBits';
-import { BidHistory, BidPanel, type Bid } from '../components/BidPanel';
+import { BidHistory, BidPanel } from '../components/BidPanel';
 import { CancelAuction } from '../components/CancelAuction';
 import { Messages } from '../components/Messages';
+import { useAppDispatch, useAppSelector } from '../store';
+import { loadAuction } from '../store/auctionSlice';
+import { useAuctionEvents } from '../store/useAuctionEvents';
 
 export function AuctionDetailPage() {
-  const { id } = useParams();
-  const [auction, setAuction] = useState<Auction | null>(null);
-  const [bids, setBids] = useState<Bid[]>([]);
-  const [error, setError] = useState('');
+  const auctionId = Number(useParams().id);
+  const dispatch = useAppDispatch();
+  // rt-001: auction and bids live in the Redux store; pushed bid events update it in place.
+  const { auction: loaded, bids: storedBids, error: loadError, requestedId } = useAppSelector((s) => s.auction);
+  const current = requestedId === auctionId && loaded?.id === auctionId;
+  const auction = current ? loaded : null;
+  const bids = current ? storedBids : [];
+  const error = requestedId === auctionId ? loadError : '';
 
-  const load = useCallback(async () => {
-    try {
-      const [r, b] = await Promise.all([api<{ auction: Auction }>(`/auctions/${id}`), api<{ bids: Bid[] }>(`/auctions/${id}/bids`)]);
-      setAuction(r.auction);
-      setBids(b.bids);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Failed to load auction');
-    }
-  }, [id]);
+  const load = useCallback(() => {
+    dispatch(loadAuction(auctionId));
+  }, [dispatch, auctionId]);
 
   useEffect(() => {
     load();
   }, [load]);
+  useAuctionEvents(Number.isFinite(auctionId) ? auctionId : null);
 
-  if (error) return <p className="error">{error}</p>;
+  if (error && !auction) return <p className="error">{error}</p>;
   if (!auction) return <p className="muted">Loading...</p>;
 
   return (
@@ -87,7 +89,7 @@ export function AuctionDetailPage() {
             </>
           )}
         </dl>
-        <BidPanel auction={auction} onBid={load} />
+        <BidPanel auction={auction} bids={bids} onReload={load} />
         <CancelAuction auction={auction} onDone={load} />
       </aside>
     </div>

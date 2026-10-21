@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { prisma } from '../db';
 import { auctionInclude, auctionView, effectiveStatus, nextMinBid } from '../lib/auctions';
 import { applyCredit } from '../lib/credit';
+import { publishAuctionEvent, streamAuction } from '../lib/events';
 import { HttpError, asyncHandler } from '../lib/http';
 import { moneyField } from '../lib/validation';
 import { requireAuth } from '../middleware/auth';
@@ -19,6 +20,29 @@ async function lockAuction(tx: Prisma.TransactionClient, id: bigint) {
   return tx.auction.findUnique({ where: { id } });
 }
 
+/** rt-001: the 'bid' event sent on GET /auctions/:id/events and returned by POST /auctions/:id/bids. */
+export interface BidEvent {
+  auctionId: bigint;
+  bid: { id: bigint; amount: Prisma.Decimal; status: 'active'; createdAt: Date; bidder: { id: bigint; username: string } };
+  /** Tickets this bid moved from 'active' to 'outbid' (the previous leader, or the bidder's own old bid). */
+  outbidBidIds: bigint[];
+  currentPrice: Prisma.Decimal;
+  nextMinBid: Prisma.Decimal;
+  bidCount: number;
+  reserveMet: boolean;
+}
+
+/** rt-001: live bid events for one auction (Server-Sent Events). Public, like the bid history. */
+bidsRouter.get(
+  '/auctions/:id/events',
+  asyncHandler(async (req, res) => {
+    const auctionId = parseId(req.params.id);
+    const exists = await prisma.auction.findUnique({ where: { id: auctionId }, select: { id: true } });
+    if (!exists) throw new HttpError(404, 'Auction not found');
+    streamAuction(req, res, auctionId);
+  }),
+);
+
 bidsRouter.post(
   '/auctions/:id/bids',
   requireAuth,
@@ -28,7 +52,7 @@ bidsRouter.post(
     const amount = new Prisma.Decimal(raw);
     const bidderId = req.user!.id;
 
-    const ticket = await prisma.$transaction(async (tx) => {
+    const { ticket, event } = await prisma.$transaction(async (tx) => {
       const auction = await lockAuction(tx, auctionId);
       if (!auction) throw new HttpError(404, 'Auction not found');
       if (auction.sellerId === bidderId) throw new HttpError(403, 'You cannot bid on your own auction');
@@ -60,10 +84,22 @@ bidsRouter.post(
       }
 
       await tx.auction.update({ where: { id: auctionId }, data: { currentPrice: amount, status: 'active' } });
-      return created;
+
+      // rt-001: what every open page needs to update itself; published only once the transaction commits.
+      const event: BidEvent = {
+        auctionId,
+        bid: { id: created.id, amount, status: 'active', createdAt: created.createdAt, bidder: { id: bidderId, username: req.user!.username } },
+        outbidBidIds: leading ? [leading.id] : [],
+        currentPrice: amount,
+        nextMinBid: await nextMinBid({ initialPrice: auction.initialPrice, currentPrice: amount }),
+        bidCount: await tx.bidTicket.count({ where: { auctionId } }),
+        reserveMet: !auction.reservePrice || amount.greaterThanOrEqualTo(auction.reservePrice),
+      };
+      return { ticket: created, event };
     });
 
-    res.status(201).json({ message: 'Bid placed', bid: ticket });
+    publishAuctionEvent(auctionId, { type: 'bid', id: String(event.bid.id), data: event });
+    res.status(201).json({ message: 'Bid placed', bid: ticket, event });
   }),
 );
 

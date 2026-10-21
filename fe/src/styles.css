@@ -70,6 +70,7 @@ input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--
 .badge-upcoming { background: #eef2ff; color: var(--primary); }
 .badge-ended, .badge-lost { background: #eceef2; color: var(--muted); }
 .badge-cancelled, .badge-outbid { background: #fdecea; color: var(--danger); }
+.badge.standing { text-transform: none; font-size: 0.85rem; padding: 0.2rem 0.7rem; margin: 0 0 0.5rem; }
 
 table { width: 100%; border-collapse: collapse; background: var(--surface); }
 th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.92rem; }

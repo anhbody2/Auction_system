@@ -57,6 +57,26 @@ export interface Auction {
   createdAt: string;
 }
 
+export interface Bid {
+  id: number;
+  amount: number;
+  status: string;
+  createdAt: string;
+  bidder: { id: number; username: string };
+}
+
+/** rt-001: pushed on GET /api/auctions/:id/events and returned by POST /api/auctions/:id/bids. */
+export interface BidEvent {
+  auctionId: number;
+  bid: Bid & { status: 'active' };
+  /** Bids this one moved from 'active' to 'outbid'. */
+  outbidBidIds: number[];
+  currentPrice: number;
+  nextMinBid: number;
+  bidCount: number;
+  reserveMet: boolean;
+}
+
 export const CONDITION_LABELS: Record<string, string> = {
   new: 'New',
   like_new: 'Like new',

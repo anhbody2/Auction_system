@@ -62,7 +62,7 @@
       "srs_ref": "System - UI update - Auction Page, Req-1, Req-2",
       "title": "Auction page bids live in a Redux Toolkit store and update in real time",
       "user_visible_behavior": "Two people watching the same auction page see each other's bids appear within a couple of seconds, without reloading: the current price, next minimum bid, bid count and bid history all update. When a viewer is outbid the page shows that they are no longer leading. The bid panel and the bid history read from one global store (Redux Toolkit), so a new bid from any source (own submit or a pushed event) updates every part of the page at once. Two bids sent at the same moment are both handled safely: one wins, the other gets the normal 'must be at least <next min bid>' error and the panel shows the new minimum.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Unit (fe store tests, e.g. fe/src/store/auctionSlice.test.ts): adding a bid event updates currentPrice, nextMinBid, bidCount and puts the bid at the top of the history. A duplicate event (same bid id) is ignored. An event for a different auction id does not change the current auction.",
         "Integration (be/tests/bid.events.test.ts): a client subscribed to the auction's event stream receives a 'bid' event with the bid id, amount, bidder username, new current price and next min bid after POST /api/auctions/:id/bids succeeds. A rejected bid sends no event.",
@@ -71,8 +71,16 @@
         "E2E: the existing e2e/bid-001-make-bid.spec.ts and bid-003/bid-004 increment specs still pass with the store in place.",
         "Docs: docs/realtime.md describes the transport, the event format, reconnect behaviour and the store shape. docs/changes/rt-001.md lists changed files, including the new fe/src/store/ files."
       ],
-      "evidence": [],
-      "notes": "Current code: fe/src/pages/AuctionDetail.tsx keeps auction and bids in local useState and reloads only after the viewer's own bid or the countdown elapsing; nothing pushes other users' bids. There is no Redux in fe/package.json yet: add @reduxjs/toolkit and react-redux at exact versions, a store in fe/src/store/ with an auction slice, and the Provider in fe/src/main.tsx. Suggested transport: Server-Sent Events (GET /api/auctions/:id/events) from Express. It needs no new server dependency and goes through the existing Vite /api proxy. Publish the event after the bid transaction commits in be/src/routes/bids.ts. Check that the proxy does not buffer SSE (set Cache-Control: no-cache and flush headers). socket.io is the alternative if SSE proves awkward; record the choice in docs/realtime.md. This store is the base for crd-003 and cmt-001."
+      "evidence": [
+        "2026-10-21: npm run verify exit 0 -> be vitest 42 files / 211 tests, fe vitest 1 file / 8 tests, fe build ok, Playwright 41/41 (./init.sh's npm install blocked by EPERM from the user's running dev server; verify run directly)",
+        "fe/src/store/auctionSlice.test.ts (8): bid event updates currentPrice/nextMinBid/bidCount and puts the bid on top, earlier bid -> outbid; duplicate bid id ignored; other auction id ignored; reload keeps data; switching auction drops late responses",
+        "be/tests/bid.events.test.ts (3): text/event-stream + no-cache headers; 'bid' event with id, amount, bidder username, currentPrice, nextMinBid, bidCount, outbidBidIds; equals the POST response's event; rejected bids and other auctions send nothing; unknown auction 404",
+        "be/tests/bid.concurrent.test.ts (2): equal concurrent bids -> one 201, one 400 'Bid must be at least $110.00', one active ticket, holds correct; 6 concurrent bids -> one active ticket, leader hold = its amount, other 0",
+        "e2e/rt-001-realtime-bids.spec.ts: bob and carol contexts see each other's bids (price, minimum, count, history row, leading/outbid) with 0 page loads. Mutation check: with the EventSource disabled the spec fails",
+        "bid-001, bid-003, bid-004 e2e pass unchanged",
+        "Docs: docs/realtime.md (transport, event format, reconnect, store shape), docs/changes/rt-001.md"
+      ],
+      "notes": "Current code: fe/src/pages/AuctionDetail.tsx keeps auction and bids in local useState and reloads only after the viewer's own bid or the countdown elapsing; nothing pushes other users' bids. There is no Redux in fe/package.json yet: add @reduxjs/toolkit and react-redux at exact versions, a store in fe/src/store/ with an auction slice, and the Provider in fe/src/main.tsx. Suggested transport: Server-Sent Events (GET /api/auctions/:id/events) from Express. It needs no new server dependency and goes through the existing Vite /api proxy. Publish the event after the bid transaction commits in be/src/routes/bids.ts. Check that the proxy does not buffer SSE (set Cache-Control: no-cache and flush headers). socket.io is the alternative if SSE proves awkward; record the choice in docs/realtime.md. This store is the base for crd-003 and cmt-001. DONE: SSE chosen (no new server dependency, works through the Vite proxy). Single-process event bus; multiple API processes would need LISTEN/NOTIFY."
     },
     {
       "id": "crd-003",

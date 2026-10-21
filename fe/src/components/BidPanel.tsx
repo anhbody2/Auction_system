@@ -1,19 +1,16 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ApiError, api, money, type Auction } from '../api';
+import { ApiError, api, money, type Auction, type Bid, type BidEvent } from '../api';
 import { useAuth } from '../auth';
+import { useAppDispatch } from '../store';
+import { bidReceived } from '../store/auctionSlice';
 import { useToast } from '../toast';
 
-export interface Bid {
-  id: number;
-  amount: number;
-  status: string;
-  createdAt: string;
-  bidder: { id: number; username: string };
-}
+export type { Bid };
 
-export function BidPanel({ auction, onBid }: { auction: Auction; onBid: () => void }) {
+export function BidPanel({ auction, bids, onReload }: { auction: Auction; bids: Bid[]; onReload: () => void }) {
   const { user, refresh } = useAuth();
+  const dispatch = useAppDispatch();
   const toast = useToast();
   const location = useLocation();
   const [amount, setAmount] = useState('');
@@ -42,22 +39,34 @@ export function BidPanel({ auction, onBid }: { auction: Auction; onBid: () => vo
     setError('');
     setBusy(true);
     try {
-      await api(`/auctions/${auction.id}/bids`, { body: { amount } });
+      const res = await api<{ event: BidEvent }>(`/auctions/${auction.id}/bids`, { body: { amount } });
+      // Same reducer as pushed events; the pushed copy of this bid is then ignored as a duplicate.
+      dispatch(bidReceived(res.event));
       toast(`Bid of ${money(Number(amount))} placed`, 'success');
       refresh();
-      onBid();
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.fields.amount ?? err.message);
-        onBid();
+        // Someone may have bid first: reload so the panel shows the new minimum.
+        onReload();
       }
     } finally {
       setBusy(false);
     }
   };
 
+  // rt-001: where the viewer stands, kept current by pushed bid events.
+  const leading = bids.find((b) => b.status === 'active');
+  const hasBid = bids.some((b) => b.bidder.id === user.id);
+  const standing = !hasBid ? null : leading?.bidder.id === user.id ? 'leading' : 'outbid';
+
   return (
     <form onSubmit={submit} noValidate>
+      {standing && (
+        <p className={`badge standing badge-${standing === 'leading' ? 'winning' : 'outbid'}`} data-testid="my-standing" role="status">
+          {standing === 'leading' ? 'You are the leading bidder' : 'You have been outbid'}
+        </p>
+      )}
       <div className="field">
         <label htmlFor="bid-amount">Your bid</label>
         <input id="bid-amount" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} aria-invalid={!!error || undefined} />
