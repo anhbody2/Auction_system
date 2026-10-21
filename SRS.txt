@@ -1,31 +1,56 @@
-Staff – Statistic and Report
-3.19.1	Description and Priority
-	This function statistic and report about auctions
-3.19.2	Stimulus/Response Sequences
-Flow of function: TBD
+Role description: You're my code-agent, i'm gonna create a sites for system auction, read all Requirements below,
+then write me a feature-list.json file, with e2e function, unit and intergration tests write to e2e folder.
+Write changed description (files, changed in code) to docs folder
+All delete mean soft delete
 
-3.19.3	Functional Requirements
-REQ-1:	Users can select from, to date and status of auction to statistics.
-REQ-2:	List all auctions matching with conditions
-REQ-3:	Print them to Excel
-REQ-4:	Draw a chart to describe the values of statistics.
+System - update goods table
+Description and Priority
+Highly Priority
+Add new column for buyer (can be null), update it when customer win bid
 
-	You can statistic and report more information for revenue or customers.
+Req-1: update buyer column when customer win bid
+Req-2: If customer re auction it, and other customer win , update buyer-->seller , then update new buyer into
 
-System Administration – User Management
-3.20.1	Description and Priority
-	This function permits management of the users of the system.
-3. 20.2	Stimulus/Response Sequences
-Flow of function: TBD
-3. 20.3	Functional Requirements
-REQ-1:	Add, list, view, edit and delete the user of the system.
-REQ-2:	Use role to define how a user can access a system.
-REQ-3:	Change the password for the user.
-System Administration – Security
-3.21.1	Description and Priority
-	This function sets up security for the system.
-3.21.2	Stimulus/Response Sequences
-Flow of function: TBD
-3.21.3	Functional Requirements
-REQ-1:	Setup login page to permit customer, staff and admin user login.
-REQ-2:	Assign permission to control user access resources.
+System - Searchbar function for transactions
+Description and Priority
+Add searchtools for searching transactions by date, name,transactions_id,  range
+
+Req-1: Date within 30days, range about 1$ to unlimited
+Req-2: Search in parallel
+
+Seller - Create new auction
+Description and Priority
+ When creating a new auction, the status of the auction is set to “new” value. It has not started. The system will check and restart it.
+
+Req-1: Update new tag for upcoming auction
+Req-2: Tag should set to new anytime create new auction
+Req-3: Remove tag when auction started
+
+Staff – Auction Management
+Description and Priority
+This function permits management the auction of the system.
+
+REQ-1:	Add, list, view, edit and delete the action of the system.
+REQ-2:	Search and paging for list.
+
+Staff – Goods Management
+Description and Priority
+This function permits management the Goods of the system.
+
+REQ-1:	Add, list, view, edit and delete the goods of the system.
+REQ-2:	Search and paging for list.
+Req-3: Approve new goods from user
+
+
+Staff – Credit Management
+Description and Priority
+This function permits management the Credit of the system.
+
+REQ-1:	Add, list, view, edit and delete the transactions of the system.
+REQ-2:	Search and paging for list.
+Req-3: Approve new transactions for user
+
+System - Axios API call
+Description and Priority
+
+set up Axios to call API

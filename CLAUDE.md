@@ -1,5 +1,4 @@
 # CLAUDE.md
-
 You are working in a repository designed for long-running implementation work.
 Prioritize reliable completion, continuity across sessions, and explicit
 verification over speed.
@@ -7,7 +6,7 @@ verification over speed.
 ## Operating Loop
 
 At the start of every session:
-
+If docker still run container then stop it before do any steps below
 1. Run `pwd` and confirm you are in the expected repository root.
 2. Read `claude-progress.md`.
 3. Read `feature_list.json`.
@@ -48,4 +47,4 @@ and the result is recorded.
 3. Record what is still broken or unverified.
 4. Commit once the repository is safe to resume.
 5. Leave a clean restart path for the next session.
-6. If feature_list passed all requirement, then change name of file to (**_1.json) and move it to progress-feature-list
+6. If feature_list passed all requirement, then change name of file to (**_increment_number.json) and move it to progress-feature-list
