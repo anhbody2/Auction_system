@@ -386,3 +386,11 @@
 - Verification: npm run verify exit 0 -> be vitest 288, fe vitest 35, fe build ok, Playwright 55/55
 - Still BLOCKED (manual only): real-inbox delivery + link click for register / forgot / change password
 - Next best step: user runs those three flows on npm run dev with a real inbox; then `node scripts/feature.js mail-001 passing "..."` and archive feature_list.json as progress-feature-list/feature_list_6.json
+
+### Session 011 (cont.) round 6 complete
+
+- mail-001 -> passing: user confirmed on 2026-10-22 that activation, forgot-password and change-password mails arrive in a real inbox through Gmail OAuth2 and the links work (first mails were found outside the inbox; the example.com seed address bounced as expected)
+- Round 6: 11/11 passing. feature_list.json archived as progress-feature-list/feature_list_6.json
+- Last automated run: npm run verify exit 0 -> be vitest 288, fe vitest 35, fe build ok, Playwright 55/55
+- Open product-owner points carried over: pending accounts can still log in; sold goods on auction create 403 (gds-003); staff API prefix /api/staff/manage/auctions
+- Next best step: new SRS round -> create a fresh feature_list.json at the root

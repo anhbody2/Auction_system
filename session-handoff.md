@@ -3,6 +3,8 @@
 State: round 1 (14 features) and round 2 (bid-003, sys-001, sys-002, sys-003) are passing and archived to
 `progress-feature-list/feature_list_1.json` and `feature_list_2.json`.
 Round 3 (SRS 3.19-3.21: staff statistics, admin users, security; 11 features) is passing and archived to `progress-feature-list/feature_list_3.json`.
+Rounds 4-6 are passing and archived to `progress-feature-list/feature_list_4.json` .. `feature_list_6.json` (round 6: buyer column, transaction search, new tag, staff auctions/goods/credit, Axios, Gmail OAuth2 mail).
+Mail: real Gmail settings live only in be/.env (docs/mail.md); vitest and Playwright blank them so tests use the dev outbox.
 Note: root package.json `overrides` pin is-generator-function/is-async-function so tsx can load exceljs on Node 20.19+ (see claude-progress Session 005 stf-002).
 `./init.sh` exits 0 (152 vitest + fe build + 29 Playwright). Stop any running `npm run dev` first (Prisma DLL lock on Windows).
 
