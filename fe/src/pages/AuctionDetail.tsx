@@ -69,15 +69,6 @@ export function AuctionDetailPage() {
               <dd data-testid="next-min-bid">{money(auction.nextMinBid)}</dd>
             </>
           )}
-          {auction.hasReserve && (
-            <>
-              <dt>Reserve</dt>
-              <dd>
-                {auction.reservePrice != null && `${money(auction.reservePrice)} · `}
-                {auction.reserveMet ? 'met' : 'not met'}
-              </dd>
-            </>
-          )}
           <dt>Starts</dt>
           <dd>{new Date(auction.startTime).toLocaleString()}</dd>
           <dt>Ends</dt>
