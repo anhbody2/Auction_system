@@ -3,66 +3,17 @@ then write me a feature-list.json file, with e2e function, unit and intergration
 Write changed description (files, changed in code) to docs folder
 All delete mean soft delete
 
-System - update goods table
+Sytem - Sercurity Functional
 Description and Priority
-Highly Priority
-Add new column for buyer (can be null), update it when customer win bid
+Log-out and clear refreshToken for inactive user(30mins inactive)
 
-Req-1: update buyer column when customer win bid
-Req-2: If customer re auction it, and other customer win , update buyer-->seller , then update new buyer into
+REQ-1: Write react custom hook for tracking customer mousemovement, "mousedown",
+      "keydown",
+      "scroll",
+      "touchstart",
+      "mousemove",
+REQ-2: Show notification at first, then log them out, clear their refreshToken
 
-System - Searchbar function for transactions
+Staff - request Approve
 Description and Priority
-Add searchtools for searching transactions by date, name,transactions_id,  range
-
-Req-1: Date within 30days, range about 1$ to unlimited
-Req-2: Search in parallel
-
-Seller - Create new auction
-Description and Priority
- When creating a new auction, the status of the auction is set to “new” value. It has not started. The system will check and restart it.
-
-Req-1: Update new tag for upcoming auction
-Req-2: Tag should set to new anytime create new auction
-Req-3: Remove tag when auction started
-
-Staff – Auction Management
-Description and Priority
-This function permits management the auction of the system.
-
-REQ-1:	Add, list, view, edit and delete the action of the system.
-REQ-2:	Search and paging for list.
-
-Staff – Goods Management
-Description and Priority
-This function permits management the Goods of the system.
-
-REQ-1:	Add, list, view, edit and delete the goods of the system.
-REQ-2:	Search and paging for list.
-Req-3: Approve new goods from user
-
-
-Staff – Credit Management
-Description and Priority
-This function permits management the Credit of the system.
-
-REQ-1:	Add, list, view, edit and delete the transactions of the system.
-REQ-2:	Search and paging for list.
-Req-3: Approve new transactions for user
-
-System - Axios API call
-Description and Priority
-
-set up Axios to call API
-
-Customer – Mail services for activation account, forget password, change password
-3.7.1	Description and Priority
-The function use google gmail to send activation link, forget password link , change password link to gmail of end user.                                                                                                
-
-
-3.7.3	Functional Requirements
-REQ-1:	When the user Create new account/send forget password request/send change password. The link to set a new password/activation will be sent to the email of the user.
-REQ-2:	When the user clicks the link, the new password(activation end redirect user to mainpage) form will be display.
-REQ-3:	The new password must match with password conditions of the system.
-
-
+Turn all request Approve to realtime

@@ -1,0 +1,171 @@
+{
+  "project": "Online Auction System",
+  "last_updated": "2026-10-22",
+  "scope": "Round 7. Only the requirements in SRS.txt: System - Security Functional (log out and clear the refresh token of a user inactive for 30 minutes, with a React custom hook that tracks mousedown/keydown/scroll/touchstart/mousemove and a notification first) and Staff - request Approve (turn all approval requests realtime). Builds on rounds 1-6 (archived in progress-feature-list/). SRS 'All delete mean soft delete' applies to every delete in this round.",
+  "conventions": {
+    "tests": "Playwright e2e specs go in e2e/ as <id>-<slug>.spec.ts. Unit and API/integration tests use the existing vitest setup in be/tests/ as <area>.<topic>.test.ts; frontend unit tests sit next to the code (fe/src/**/*.test.ts). fe vitest has no DOM: keep logic in plain modules that run under Node (EventTarget, fake timers) and cover the React wiring in e2e. Every feature needs both kinds unless its verification list says otherwise.",
+    "change_docs": "Each feature writes docs/changes/<id>.md listing the files it added or changed and why. Features with design decisions also add or update a topic doc under docs/, as named in their verification list.",
+    "soft_delete": "Delete never removes rows. Refresh tokens are revoked (revoked_at + reason), never deleted.",
+    "timeouts_in_tests": "The 30-minute idle limit and the warning lead time are configurable (server IDLE_TIMEOUT_MS; client VITE_IDLE_TIMEOUT_MS and VITE_IDLE_WARNING_MS) so e2e can use seconds. Defaults stay 30 minutes.",
+    "run_all": "./init.sh (npm install + npm run verify = vitest + fe build + Playwright) must exit 0 before a feature moves to passing. Stop running Docker containers / dev servers first (CLAUDE.md), otherwise prisma generate hits EPERM.",
+    "existing_tests": "When a feature changes behaviour that an older test or spec checks (login cookie, logout, 401 handling, SSE streams), update that test or its fixtures to check the new behaviour. Do not delete or weaken it."
+  },
+  "rules": {
+    "single_active_feature": true,
+    "passing_requires_evidence": true,
+    "do_not_skip_verification": true
+  },
+  "status_legend": {
+    "not_started": "Work has not begun.",
+    "in_progress": "The feature is the current active task.",
+    "blocked": "Work cannot continue until a documented blocker is resolved.",
+    "passing": "Required verification has passed and evidence is recorded."
+  },
+  "roles": {
+    "customer": "A signed-in user who bids, sells goods and requests credit top-ups/withdrawals.",
+    "staff": "users.role 'staff'. Reviews goods (goods.manage) and credit requests (credit.manage).",
+    "admin": "users.role 'admin'. Has every staff permission."
+  },
+  "features": [
+    {
+      "id": "sec-003",
+      "priority": 1,
+      "role": "system",
+      "area": "session-tokens",
+      "srs_ref": "System - Security Functional (prerequisite: 'clear refreshToken')",
+      "title": "Short access token plus a stored, rotating refresh token; logout revokes it",
+      "user_visible_behavior": "Signing in works as before, but the session is now an access cookie (15 minutes) plus a refresh cookie. When the access cookie expires the app renews it in the background, so an active user is never sent to the login page. Logging out, a password change/reset, and an admin lock or delete revoke the refresh token, so the old session cannot be renewed.",
+      "acceptance": [
+        "New table refresh_tokens (id, user_id, token_hash unique, created_at, last_used_at, expires_at, revoked_at null, revoke_reason null, replaced_by_id null); Prisma migration; docs/ERD_edited.md updated. Only the SHA-256 hash is stored.",
+        "POST /api/auth/login sets an httpOnly access cookie (JWT, ACCESS_TOKEN_TTL default 15 min) and an httpOnly refresh cookie (random token, path /api/auth, absolute lifetime REFRESH_TOKEN_TTL default 7 days).",
+        "POST /api/auth/refresh: valid refresh cookie -> revokes it (reason 'rotated', replaced_by_id set), issues a new pair, 200 with the user. Missing, unknown, expired, revoked, idle (last_used_at older than IDLE_TIMEOUT_MS, default 30 min) or blocked user -> 401 and both cookies cleared.",
+        "Reuse of an already-rotated refresh token revokes every open refresh token of that user (reason 'reuse') and answers 401.",
+        "POST /api/auth/logout revokes the current refresh token (reason 'logout', or the body reason 'idle' when sent by sec-005) and clears both cookies; works even if the access token already expired.",
+        "Password change, password reset, admin set-password, admin lock and admin soft delete revoke all of the user's refresh tokens.",
+        "Email activation sign-in (mail-002) issues the same pair as login.",
+        "fe api client: a 401 from a non-/auth call triggers one POST /auth/refresh (shared by concurrent calls) and retries the call once; only if refresh fails does the existing sys-004 sign-out run. On load AuthProvider tries /auth/me, then refresh, before treating the visitor as a guest.",
+        "SSE streams (/api/me/events, staff streams): when EventSource errors, the client refreshes the session before it reconnects, so streams survive the access-token expiry."
+      ],
+      "verification": [
+        "be/tests/auth.refresh.test.ts: login sets both cookies and stores a hash; refresh rotates; old token reuse revokes all; expired, idle and revoked tokens 401 and clear cookies; locked/deleted user 401",
+        "be/tests/auth.logout.test.ts: logout revokes and clears cookies, also with an expired access token; reason 'idle' is stored",
+        "be/tests/auth.revoke.test.ts: password change, reset, admin set-password, lock and delete revoke all refresh tokens",
+        "fe/src/api.test.ts: one refresh for concurrent 401s, the call is retried once, refresh failure calls the unauthorized handler, /auth calls are not retried",
+        "e2e/sec-003-refresh-token.spec.ts: with ACCESS_TOKEN_TTL a few seconds, a signed-in user keeps working after the access cookie expires; after logout the old refresh cookie replayed via the API gets 401",
+        "Existing auth, sys-004 and adm-* tests still pass (updated for the two cookies, not weakened)",
+        "docs/session-tokens.md (token model, lifetimes, rotation, reuse, revocation reasons) and docs/changes/sec-003.md"
+      ],
+      "notes": "Assumptions to confirm with the product owner: access 15 min / refresh 7 days absolute; the server also enforces the 30-minute idle limit on refresh (last_used_at) so a closed or hidden tab cannot be renewed later. Existing 7-day auction_token cookies stop working after deploy (users sign in once more).",
+      "status": "not_started",
+      "evidence": []
+    },
+    {
+      "id": "sec-004",
+      "priority": 2,
+      "role": "system",
+      "area": "idle-tracking",
+      "srs_ref": "System - Security Functional, REQ-1",
+      "title": "React custom hook useIdleTimer tracking mousedown, keydown, scroll, touchstart, mousemove",
+      "user_visible_behavior": "None by itself. Gives the app one place that knows when the signed-in user last interacted with any open tab.",
+      "acceptance": [
+        "fe/src/idle.ts: createIdleTracker({ timeoutMs, warningMs, target, storage, now, onWarning, onIdle, onActive }) - plain module, no React, testable under Node.",
+        "Listens to exactly mousedown, keydown, scroll, touchstart, mousemove (passive, capture so scroll in inner panes counts); removes every listener on stop().",
+        "Activity is throttled (at most one timer reset per second) so mousemove does not reset timers on every pixel.",
+        "Fires onWarning(remainingMs) once at timeoutMs - warningMs of no activity, and onIdle() once at timeoutMs. Activity after a warning (but before idle) fires onActive() and restarts the countdown.",
+        "Cross-tab: the last activity time is shared through localStorage key 'auction:lastActivity' and the 'storage' event, so activity in one tab keeps every tab signed in; storage errors (private mode) fall back to per-tab tracking.",
+        "fe/src/useIdleTimer.ts: useIdleTimer({ enabled, timeoutMs, warningMs, onWarning, onIdle, onActive }) wraps the tracker with useEffect; starts only when enabled, stops on unmount or when disabled; latest callbacks used without restarting the tracker.",
+        "Defaults read VITE_IDLE_TIMEOUT_MS (1800000) and VITE_IDLE_WARNING_MS (60000)."
+      ],
+      "verification": [
+        "fe/src/idle.test.ts (vitest fake timers + Node EventTarget + fake storage): each of the 5 events resets the timer; other events (click, wheel) do not; warning then idle fire once each at the right times; activity after warning fires onActive and restarts; throttling; activity written by another tab (storage event) postpones idle; stop() removes all listeners and timers; storage that throws still works",
+        "e2e/sec-004-idle-hook.spec.ts: the e2e web server runs with VITE_IDLE_TIMEOUT_MS of a few seconds; the hook writes 'auction:lastActivity' and each of mouse move, key press, scroll and touch (Playwright hasTouch context) advances it, while a page with no input does not; stopping (logout) removes the listeners (no further writes)",
+        "docs/idle-logout.md (events, throttling, cross-tab rule) and docs/changes/sec-004.md"
+      ],
+      "notes": "Applies to every signed-in role (customer, staff, admin), not only customers: the SRS heading is a system security function. Confirm with the product owner.",
+      "status": "not_started",
+      "evidence": []
+    },
+    {
+      "id": "sec-005",
+      "priority": 3,
+      "role": "system",
+      "area": "idle-logout",
+      "srs_ref": "System - Security Functional, description and REQ-2",
+      "title": "After 30 minutes without activity: show a notification first, then log out and clear the refresh token",
+      "user_visible_behavior": "A signed-in user who does nothing for 29 minutes sees a notification 'You will be signed out in 60 s because of inactivity' with a live countdown and a 'Stay signed in' button. Any activity (or the button) closes it and keeps the session. If the countdown reaches zero the app logs out in every open tab, the refresh token is revoked on the server, and the login page says 'You were signed out after 30 minutes of inactivity'. Guests never see it.",
+      "acceptance": [
+        "AuthProvider mounts useIdleTimer only while a user is signed in.",
+        "Warning: an accessible dialog/notification (role='alertdialog', focus moved to 'Stay signed in') with a countdown updated every second; data-testid='idle-warning'.",
+        "Activity or 'Stay signed in' closes the warning; while the user is active the client renews the session at most every 5 minutes (POST /auth/refresh) so the server idle limit (sec-003) never cuts off an active user who makes no API calls.",
+        "At the idle limit: POST /auth/logout { reason: 'idle' } (server revokes the refresh token with reason 'idle' and clears cookies), clear the Redux stores (auction, credit) and close SSE streams, navigate to /login with state { idle: true }; the login page shows data-testid='idle-signed-out' message.",
+        "Other tabs follow: the logging-out tab writes 'auction:logout' to localStorage; other tabs drop their user and go to /login with the same message without a second logout call.",
+        "If the logout call fails (offline), the client still clears its state and goes to the login page; the server idle limit rejects the refresh token later anyway.",
+        "Return to the page after sign-in again: login after an idle logout returns the user to the page they were on (existing 'from' state)."
+      ],
+      "verification": [
+        "fe/src/idle.test.ts or fe/src/idleSession.test.ts: countdown text, cross-tab logout message handling, heartbeat throttle (unit, fake timers)",
+        "be/tests/auth.logout.test.ts covers reason 'idle' (shared with sec-003)",
+        "e2e/sec-005-idle-logout.spec.ts (VITE_IDLE_TIMEOUT_MS ~6 s, VITE_IDLE_WARNING_MS ~3 s on the e2e web server): warning appears, mouse move dismisses it and session stays; with no activity the user lands on /login with the idle message; replaying the old refresh cookie gets 401 (token cleared); a second page in the same context is also signed out; staff user also covered",
+        "Manual: npm run dev with VITE_IDLE_TIMEOUT_MS=120000 - warning, stay signed in, idle logout seen in a real browser; record in evidence",
+        "docs/idle-logout.md updated (timeline, cross-tab logout, heartbeat) and docs/changes/sec-005.md"
+      ],
+      "notes": "Reading of 'Show notification at first, then log them out': the notification is a warning shown before the logout (default 60 s before), plus a message on the login page after it. Confirm the 60 s lead time with the product owner.",
+      "status": "not_started",
+      "evidence": []
+    },
+    {
+      "id": "stf-009",
+      "priority": 4,
+      "role": "staff",
+      "area": "approval-realtime",
+      "srs_ref": "Staff - request Approve: 'Turn all request Approve to realtime' (staff side)",
+      "title": "Staff approval queues (goods review and credit requests) update in real time",
+      "user_visible_behavior": "Staff with the Goods or Credit page open see new requests appear without reloading, see a row change to Approved/Rejected the moment another staff member decides it, and see live pending counts on the 'Goods' and 'Credit' nav links. If a request was decided by someone else while it is open, its detail view says so and the Approve/Reject buttons are disabled instead of failing with 400.",
+      "acceptance": [
+        "GET /api/staff/events (Server-Sent Events, same helpers as rt-001): 401 for guests, 403 for users with neither goods.manage nor credit.manage. Each stream only receives the channels the user holds permission for, checked at connect time.",
+        "Goods channel events 'goods-request' with { id, action: 'created'|'resubmitted'|'approved'|'rejected'|'deleted', status, name, seller, reviewedBy?, pendingCount }: published after commit by customer add (POST /api/goods), customer edit of rejected goods (back to pending), staff approve/reject, and customer/staff soft delete of pending goods.",
+        "Credit channel events 'credit-request' with { id, action: 'created'|'approved'|'rejected'|'cancelled', status, type, amount, customer, reviewedBy?, pendingCount }: published after commit by customer top-up/withdraw requests, staff approve/reject, and any customer cancel or staff soft delete of a pending request.",
+        "GET /api/staff/pending-counts { goods, credit } for the initial badge values (each only with its permission).",
+        "fe: useStaffEvents hook (one EventSource per signed-in staff/admin session) feeding a Redux 'approvals' slice { goodsPending, creditPending, lastEvent }; nav badges data-testid='badge-goods-pending' / 'badge-credit-pending'.",
+        "StaffGoods and StaffCredit lists: a created/resubmitted event inserts or refreshes the row when it matches the current filters (else shows a 'N new requests - show' notice), a decision event updates the row's status in place; current page and filters are kept.",
+        "Detail pages: a decision by another staff member shows data-testid='decided-elsewhere' ('Approved by <staff> just now') and disables Approve/Reject.",
+        "On reconnect after a drop the client reloads the counts and the open list once (events are not replayed)."
+      ],
+      "verification": [
+        "be/tests/staff.events.test.ts: stream auth (401/403), permission-scoped channels, each action publishes exactly one event after commit with the right pendingCount, a rejected (400) approve publishes nothing",
+        "be/tests/staff.pending-counts.test.ts",
+        "fe/src/store/approvalsSlice.test.ts: counts and lastEvent from each action, ignore duplicates by id+action",
+        "e2e/stf-009-approval-realtime.spec.ts: two browser contexts (staff A on /staff/goods, customer adds goods) -> row and badge appear without reload; staff B approves -> A's row shows Approved and the badge drops; same for a credit top-up request on /staff/credit; A's open detail shows decided-elsewhere",
+        "docs/realtime.md updated (staff stream, channels, event formats) and docs/changes/stf-009.md"
+      ],
+      "notes": "'All request Approve' = the two approval flows that exist: goods review (stf-005) and credit top-up/withdraw requests (stf-007). Auctions have no approval step. One API process (same limit as rt-001).",
+      "status": "not_started",
+      "evidence": []
+    },
+    {
+      "id": "stf-010",
+      "priority": 5,
+      "role": "customer",
+      "area": "approval-realtime",
+      "srs_ref": "Staff - request Approve: 'Turn all request Approve to realtime' (requester side)",
+      "title": "Customers see approval decisions on their goods and credit requests in real time",
+      "user_visible_behavior": "When staff approve or reject goods, the seller's My Goods page updates the row (pending -> approved / rejected with the reason) without reloading, the 'Auction it' button appears for approved goods, and a toast says 'Your goods \"<name>\" were approved' (or rejected with the reason) on whatever page they are on. Credit requests already update /credit live (stf-007); they now also show the same kind of toast.",
+      "acceptance": [
+        "Goods approve/reject publish a user event 'goods-reviewed' { id, name, status, reason? } on the seller's existing /api/me/events stream, after commit.",
+        "useUserEvents handles 'goods-reviewed': pushes a toast and dispatches a window event the My Goods page listens to, updating that row and its actions in place.",
+        "'credit-request' user events (already sent) also show a toast ('Your top-up of $X was approved' / '... was rejected: <reason>').",
+        "The create-auction goods dropdown reloads its options when a goods-reviewed 'approved' event arrives while it is open.",
+        "Staff and admin users are not affected (they have no own goods/credit requests in the UI)."
+      ],
+      "verification": [
+        "be/tests/goods.review-events.test.ts: approve and reject publish one goods-reviewed event to the seller only, after commit; a 400 review publishes nothing",
+        "e2e/stf-010-requester-realtime.spec.ts: customer has My Goods open, staff approves in another context -> row shows approved and 'Auction it' appears without reload, toast seen; reject shows the reason; credit top-up approval shows the toast and the new credit",
+        "Existing stf-005/stf-007/crd-003 specs still pass",
+        "docs/realtime.md and docs/goods-approval.md updated; docs/changes/stf-010.md"
+      ],
+      "notes": "Depends on stf-009 only for shared helpers; can be built after it.",
+      "status": "not_started",
+      "evidence": []
+    }
+  ]
+}
