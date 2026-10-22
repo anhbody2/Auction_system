@@ -4,6 +4,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db';
 import { HttpError, asyncHandler } from '../lib/http';
+import { revokeAllSessions } from '../lib/session';
 import { emailField, fullNameField, passwordField, phoneField, usernameField } from '../lib/validation';
 import { ROLES, requirePermission } from '../middleware/auth';
 
@@ -149,15 +150,19 @@ adminUsersRouter.patch(
       throw new HttpError(409, 'Email is already registered', { email: 'Email is already registered' });
     }
     const info = { fullName: data.fullName, phone: data.phone, address: data.address };
-    await prisma.user.update({
-      where: { id },
-      data: {
-        email: data.email,
-        role: data.role,
-        status: data.status,
-        info: { upsert: { create: info, update: info } },
-      },
-    });
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id },
+        data: {
+          email: data.email,
+          role: data.role,
+          status: data.status,
+          info: { upsert: { create: info, update: info } },
+        },
+      }),
+      // sec-003: a locked user cannot renew a session.
+      ...(data.status === 'locked' && user.status !== 'locked' ? [revokeAllSessions(id, 'locked')] : []),
+    ]);
     res.json({ user: await userDetail(id) });
   }),
 );
@@ -186,7 +191,7 @@ adminUsersRouter.delete(
     if (reasons.length) {
       throw new HttpError(409, `Cannot delete ${user.username}: they have ${reasons.join(' and ')}`);
     }
-    await prisma.user.update({ where: { id }, data: { status: 'deleted' } });
+    await prisma.$transaction([prisma.user.update({ where: { id }, data: { status: 'deleted' } }), revokeAllSessions(id, 'deleted')]);
     res.json({ message: `User ${user.username} deleted` });
   }),
 );
@@ -206,6 +211,7 @@ adminUsersRouter.put(
     await prisma.$transaction([
       prisma.user.update({ where: { id }, data: { passwordHash: await bcrypt.hash(newPassword, 10) } }),
       prisma.passwordResetToken.updateMany({ where: { userId: id, usedAt: null }, data: { usedAt: new Date() } }),
+      revokeAllSessions(id, 'password'),
     ]);
     res.json({ message: `Password updated for ${user.username}` });
   }),

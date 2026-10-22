@@ -10,7 +10,7 @@ export async function resetDb() {
   await prisma.$executeRawUnsafe(`
     TRUNCATE auction_messages, auction_settlements, credit_transactions, bid_tickets, auctions,
       goods_images, goods, categories, bid_increment_rules, password_reset_tokens,
-      email_verification_tokens, user_info, users, role_permissions RESTART IDENTITY CASCADE`);
+      email_verification_tokens, refresh_tokens, user_info, users, role_permissions RESTART IDENTITY CASCADE`);
   await seed(prisma);
 }
 
@@ -107,6 +107,22 @@ export async function loginAs(identifier: string, password = PASSWORD) {
   if (res.status !== 200) throw new Error(`login failed for ${identifier}: ${res.status}`);
   return agent;
 }
+
+/** sec-003: the value of a cookie set by a response ('' when it was cleared), or undefined when not set. */
+export function setCookie(res: request.Response, name: string) {
+  const all = ([] as string[]).concat(res.headers['set-cookie'] ?? []);
+  const line = all.find((c) => c.startsWith(`${name}=`));
+  return line === undefined ? undefined : { value: decodeURIComponent(line.slice(name.length + 1).split(';')[0]), line };
+}
+
+/** sec-003: logs in without an agent and returns the raw access and refresh cookie values. */
+export async function loginTokens(identifier: string) {
+  const res = await request(app).post('/api/auth/login').send({ identifier, password: PASSWORD });
+  if (res.status !== 200) throw new Error(`login failed for ${identifier}: ${res.status}`);
+  return { access: setCookie(res, 'auction_token')!.value, refresh: setCookie(res, 'auction_refresh')!.value, res };
+}
+
+export const refreshWith = (token: string) => request(app).post('/api/auth/refresh').set('Cookie', `auction_refresh=${token}`);
 
 /**
  * Inserts an auction row directly (any dates, any stored status) for reporting tests.

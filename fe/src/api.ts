@@ -1,4 +1,4 @@
-import axios, { AxiosError, type AxiosRequestConfig } from 'axios';
+import axios, { AxiosError, type AxiosRequestConfig, type InternalAxiosRequestConfig } from 'axios';
 
 export class ApiError extends Error {
   constructor(public status: number, message: string, public fields: Record<string, string> = {}) {
@@ -25,6 +25,26 @@ export function setUnauthorizedHandler(handler: (() => void) | null) {
 
 /** /auth/* answer 401 as part of their normal flow (wrong password, guest probe), so they never sign anyone out. */
 const isAuthCall = (url = '') => /^\/?auth\//.test(url);
+/** sec-003: login answers 401 for a wrong password and refresh/logout end the session themselves: never refreshed. */
+const isSessionCall = (url = '') => /^\/?auth\/(login|refresh|logout)\b/.test(url);
+
+let refreshing: Promise<boolean> | null = null;
+/**
+ * sec-003: renews the short-lived access cookie with the refresh cookie (docs/session-tokens.md).
+ * Concurrent callers share one request; resolves false when the session cannot be renewed.
+ */
+export function refreshSession(): Promise<boolean> {
+  refreshing ??= http
+    .post('/auth/refresh')
+    .then(
+      () => true,
+      () => false,
+    )
+    .finally(() => {
+      refreshing = null;
+    });
+  return refreshing;
+}
 
 /** Every error leaves the client as the existing ApiError (status, server message, field errors). */
 export function toApiError(err: unknown): ApiError {
@@ -37,9 +57,17 @@ export function toApiError(err: unknown): ApiError {
   return new ApiError(0, err instanceof Error ? err.message : 'Request failed');
 }
 
-http.interceptors.response.use(undefined, (err: unknown) => {
+http.interceptors.response.use(undefined, async (err: unknown) => {
   const apiError = toApiError(err);
-  if (apiError.status === 401 && err instanceof AxiosError && !isAuthCall(err.config?.url)) onUnauthorized?.();
+  if (apiError.status === 401 && err instanceof AxiosError && err.config) {
+    // sec-003: an expired access cookie is renewed once and the call retried; only then does the user count as signed out.
+    const config = err.config as InternalAxiosRequestConfig & { _retried?: boolean };
+    if (!config._retried && !isSessionCall(config.url) && (await refreshSession())) {
+      config._retried = true;
+      return http.request(config);
+    }
+    if (!isAuthCall(config.url)) onUnauthorized?.();
+  }
   return Promise.reject(apiError);
 });
 

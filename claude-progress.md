@@ -394,3 +394,13 @@
 - Last automated run: npm run verify exit 0 -> be vitest 288, fe vitest 35, fe build ok, Playwright 55/55
 - Open product-owner points carried over: pending accounts can still log in; sold goods on auction create 403 (gds-003); staff API prefix /api/staff/manage/auctions
 - Next best step: new SRS round -> create a fresh feature_list.json at the root
+
+### Session 012 sec-003 (round 7)
+
+- Startup: Docker Desktop was not running (started it; no containers or dev servers to stop). Round 7 feature_list.json from SRS (sec-003..005, stf-009, stf-010); sec-003 code was already in the working tree, uncommitted and unverified
+- Completed: refresh_tokens table (hash only, revoke reasons), 15 min access JWT + 7 day rotating refresh cookie (path /api/auth), POST /api/auth/refresh (rotation, reuse -> revoke all, 10 s two-tab grace, 30 min idle limit on last_used_at), logout revokes (reason logout/idle), password change/reset/admin set-password/lock/delete revoke all; fe axios 401 -> one shared refresh -> retry once; openAuthedStream reopens /api/me/events after a 401 reconnect
+- First ./init.sh: unit tests green but Playwright 14 failed. The e2e server ran ACCESS_TOKEN_TTL_MS=5000 and Playwright API contexts (staffApi, page.request) cannot refresh. Fixed by keeping the default TTL in e2e; sec-003 spec now drops the access cookie to simulate expiry (recorded as a deviation in evidence)
+- Verification: npm run verify exit 0 -> be vitest 62 files / 309 tests, fe vitest 7 files / 45 tests, fe build ok, Playwright 56/56
+- Noise seen (not failures): '[WebServer] job ... failed: table auctions does not exist' while e2e setup resets the DB under the running scheduler
+- Not mine, left uncommitted: fe/src/pages/AuctionDetail.tsx removes the Reserve row (no test depends on it; ask the user)
+- Next best step: sec-004 (useIdleTimer + fe/src/idle.ts)

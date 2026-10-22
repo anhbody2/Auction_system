@@ -1,6 +1,6 @@
 import { AxiosError, AxiosHeaders, type AxiosAdapter, type InternalAxiosRequestConfig } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiError, NETWORK_ERROR, api, http, setUnauthorizedHandler } from './api';
+import { ApiError, NETWORK_ERROR, api, http, refreshSession, setUnauthorizedHandler } from './api';
 
 /** Stub adapter: records each request and answers with the given status/body (>= 400 rejects like axios does). */
 function stub(status: number, data: unknown = {}) {
@@ -87,11 +87,88 @@ describe('sys-004 shared axios client', () => {
       expect(handler).not.toHaveBeenCalled();
     });
 
+    it('a retried call that is 401 again signs the user out without a second refresh', async () => {
+      const seen = stub(401, {});
+      await expect(api('/me/goods')).rejects.toMatchObject({ status: 401 });
+      expect(seen.map((c) => c.url)).toEqual(['/me/goods', '/auth/refresh']);
+      expect(handler).toHaveBeenCalledTimes(1);
+    });
+
     it('unregistering removes the handler', async () => {
       unregister();
       stub(401, {});
       await expect(api('/me/goods')).rejects.toBeInstanceOf(ApiError);
       expect(handler).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('sec-003 refresh on 401', () => {
+    const handler = vi.fn();
+    let unregister: () => void;
+    beforeEach(() => {
+      handler.mockReset();
+      unregister = setUnauthorizedHandler(handler);
+    });
+    afterEach(() => unregister());
+
+    /** Answers by URL: /auth/refresh with refreshStatus; other calls 401 until the session is refreshed, then 200. */
+    function session(refreshStatus: number) {
+      const seen: string[] = [];
+      let renewed = false;
+      http.defaults.adapter = async (config) => {
+        seen.push(config.url!);
+        await new Promise((r) => setTimeout(r, 5));
+        let status = renewed ? 200 : 401;
+        if (config.url === '/auth/refresh') {
+          status = refreshStatus;
+          renewed = status === 200;
+        }
+        const response = { data: { url: config.url }, status, statusText: '', headers: {}, config, request: {} };
+        if (status >= 400) throw new AxiosError('failed', 'ERR_BAD_RESPONSE', config, {}, response);
+        return response;
+      };
+      return seen;
+    }
+
+    it('an expired access cookie is renewed once and the call retried transparently', async () => {
+      const seen = session(200);
+      await expect(api('/me/goods')).resolves.toEqual({ url: '/me/goods' });
+      expect(seen).toEqual(['/me/goods', '/auth/refresh', '/me/goods']);
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it('concurrent 401s share one refresh, and each call is retried', async () => {
+      const seen = session(200);
+      const results = await Promise.all([api('/me/goods'), api('/credit'), api('/me/auctions')]);
+      expect(results.map((r) => (r as { url: string }).url)).toEqual(['/me/goods', '/credit', '/me/auctions']);
+      expect(seen.filter((u) => u === '/auth/refresh')).toHaveLength(1);
+      expect(seen).toHaveLength(7);
+    });
+
+    it('a failed refresh signs the user out and rejects with the original 401', async () => {
+      session(401);
+      await expect(api('/me/goods')).rejects.toMatchObject({ status: 401 });
+      expect(handler).toHaveBeenCalledTimes(1);
+    });
+
+    it('login, refresh and logout are never refreshed; /auth/me is (page load after the access cookie expired)', async () => {
+      let seen = session(200);
+      await expect(api('/auth/login', { body: { identifier: 'x', password: 'y' } })).rejects.toMatchObject({ status: 401 });
+      expect(seen).toEqual(['/auth/login']);
+      seen = session(401);
+      await expect(api('/auth/logout', { method: 'POST' })).rejects.toMatchObject({ status: 401 });
+      expect(seen).toEqual(['/auth/logout']);
+      seen = session(200);
+      await expect(api('/auth/me')).resolves.toEqual({ url: '/auth/me' });
+      expect(seen).toEqual(['/auth/me', '/auth/refresh', '/auth/me']);
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it('refreshSession resolves true or false and can run again after finishing', async () => {
+      session(200);
+      await expect(refreshSession()).resolves.toBe(true);
+      session(401);
+      await expect(refreshSession()).resolves.toBe(false);
     });
   });
 });

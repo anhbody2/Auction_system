@@ -7,6 +7,7 @@ import { streamUser } from '../lib/events';
 import { HttpError, asyncHandler } from '../lib/http';
 import { sendAccountMail } from '../lib/mailer';
 import { changePasswordMail } from '../lib/mailTemplates';
+import { revokeAllSessions, startSession } from '../lib/session';
 import { newToken } from '../lib/tokens';
 import { getPublicUser } from '../lib/users';
 import { emailField, fullNameField, passwordField, phoneField } from '../lib/validation';
@@ -45,7 +46,12 @@ meRouter.put(
     if (!(await bcrypt.compare(data.currentPassword, user.passwordHash))) {
       throw new HttpError(400, 'Current password is incorrect', { currentPassword: 'Current password is incorrect' });
     }
-    await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(data.newPassword, 10) } });
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(data.newPassword, 10) } }),
+      // sec-003: every session ends, then this one starts again so the user stays signed in here.
+      revokeAllSessions(user.id, 'password'),
+    ]);
+    await startSession(res, user);
     res.json({ message: 'Password changed' });
   }),
 );

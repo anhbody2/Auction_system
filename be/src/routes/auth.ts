@@ -9,19 +9,13 @@ import { activationMail, resetPasswordMail } from '../lib/mailTemplates';
 import { hashToken, newToken } from '../lib/tokens';
 import { getPublicUser } from '../lib/users';
 import { emailField, fullNameField, passwordField, phoneField, usernameField } from '../lib/validation';
-import { optionalAuth, requireAuth, signToken } from '../middleware/auth';
+import { RefreshError, clearSessionCookies, endSession, revokeAllSessions, rotateSession, startSession } from '../lib/session';
+import { optionalAuth, requireAuth } from '../middleware/auth';
 
 export const authRouter = Router();
 
 export const ACTIVATION_LINK_MESSAGE = 'This activation link is invalid or has expired';
 export const ACTIVATED_MESSAGE = 'Your account is activated';
-
-const cookieOptions = {
-  httpOnly: true,
-  sameSite: 'lax' as const,
-  secure: false,
-  maxAge: 7 * 24 * 3600 * 1000,
-};
 
 const loginSchema = z.object({
   identifier: z.string().trim().min(1, 'Username or email is required'),
@@ -40,7 +34,7 @@ authRouter.post(
     if (!user || !ok || user.status === 'deleted') throw new HttpError(401, 'Invalid username/email or password');
     if (user.status === 'disabled') throw new HttpError(403, 'This account is disabled');
     if (user.status === 'locked') throw new HttpError(403, 'This account is locked. Contact an administrator.');
-    res.cookie(config.cookieName, signToken(user), cookieOptions);
+    await startSession(res, user);
     res.json({ user: await getPublicUser(user.id) });
   }),
 );
@@ -103,7 +97,7 @@ authRouter.post(
       }),
     ]);
     // mail-002: the link also signs the user in, so the page can take them straight to the main page.
-    if (user.status === 'active') res.cookie(config.cookieName, signToken(user), cookieOptions);
+    if (user.status === 'active') await startSession(res, user);
     res.json({ message: ACTIVATED_MESSAGE, user: await getPublicUser(user.id) });
   }),
 );
@@ -174,6 +168,8 @@ authRouter.post(
       // mail-003: this link and every older one (reset or change) stop working.
       prisma.passwordResetToken.updateMany({ where: { userId: record.userId, usedAt: null }, data: { usedAt: new Date() } }),
       prisma.user.update({ where: { id: record.userId }, data: { passwordHash: await bcrypt.hash(data.newPassword, 10) } }),
+      // sec-003: sessions opened with the old password cannot be renewed.
+      revokeAllSessions(record.userId, 'password'),
     ]);
     // The page sends a forgot-password user to log in, and a change-password user back to their profile.
     const purpose = record.purpose === 'change' ? 'change' : 'reset';
@@ -181,10 +177,31 @@ authRouter.post(
   }),
 );
 
-authRouter.post('/logout', (_req, res) => {
-  res.clearCookie(config.cookieName, { httpOnly: true, sameSite: 'lax' });
-  res.json({ ok: true });
-});
+/** sec-003: a new access cookie and a rotated refresh token; 401 (cookies cleared) when the session cannot be renewed. */
+authRouter.post(
+  '/refresh',
+  asyncHandler(async (req, res) => {
+    try {
+      const user = await rotateSession(res, req.cookies?.[config.refreshCookieName]);
+      res.json({ user: await getPublicUser(user.id) });
+    } catch (err) {
+      if (!(err instanceof RefreshError)) throw err;
+      clearSessionCookies(res);
+      throw new HttpError(401, 'Session expired, please log in again');
+    }
+  }),
+);
+
+/** Revokes the refresh token (sec-005 sends reason 'idle') and clears both cookies, even if the access token expired. */
+authRouter.post(
+  '/logout',
+  asyncHandler(async (req, res) => {
+    const { reason } = z.object({ reason: z.enum(['logout', 'idle']).default('logout') }).parse(req.body ?? {});
+    await endSession(req.cookies?.[config.refreshCookieName], reason);
+    clearSessionCookies(res);
+    res.json({ ok: true });
+  }),
+);
 
 authRouter.get(
   '/me',

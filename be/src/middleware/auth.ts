@@ -23,8 +23,9 @@ declare global {
 }
 
 export function signToken(user: { id: bigint; username: string; role: string }) {
+  // sec-003: short-lived; the refresh cookie renews it (lib/session.ts).
   return jwt.sign({ sub: user.id.toString(), username: user.username, role: user.role }, config.jwtSecret, {
-    expiresIn: '7d',
+    expiresIn: Math.max(1, Math.round(config.accessTokenTtlMs / 1000)),
   });
 }
 

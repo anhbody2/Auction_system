@@ -23,6 +23,8 @@
 
 | CREDIT_TRANSACTIONS: added `status`, `rejection_reason`, `reviewed_at`, `reviewed_by` (FK USERS) | stf-007 top-up/withdrawal requests approved by staff (docs/credit-model.md) |
 
+| new REFRESH_TOKENS | sec-003 stored, rotating refresh tokens (hash only), revoked on logout / 30 min idle / password change / lock / delete (docs/session-tokens.md) |
+
 Goods ownership (gds-003): the current owner is `buyer_id` when set, otherwise `seller_id`. When an auction ends
 with a winner, settlement sets `goods.seller_id` = that auction's seller and `goods.buyer_id` = the winner, in the
 same transaction. On a first sale the seller is unchanged; on a resale the previous buyer (the reseller) becomes the
@@ -188,6 +190,18 @@ erDiagram
         timestamp created_at
     }
 
+    REFRESH_TOKENS {
+        bigint id PK
+        bigint user_id FK
+        varchar token_hash UK
+        timestamp created_at
+        timestamp last_used_at
+        timestamp expires_at
+        timestamp revoked_at
+        varchar revoke_reason
+        bigint replaced_by_id
+    }
+
     USERS ||--|| USER_INFO : has
     USERS ||--o{ GOODS : sells
     USERS ||--o{ GOODS : buys
@@ -199,6 +213,7 @@ erDiagram
     USERS ||--o{ AUCTION_MESSAGES : writes
     USERS ||--o{ PASSWORD_RESET_TOKENS : requests
     USERS ||--o{ EMAIL_VERIFICATION_TOKENS : receives
+    USERS ||--o{ REFRESH_TOKENS : signs_in_with
 
     CATEGORIES ||--o{ GOODS : categorizes
 

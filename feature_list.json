@@ -56,8 +56,12 @@
         "docs/session-tokens.md (token model, lifetimes, rotation, reuse, revocation reasons) and docs/changes/sec-003.md"
       ],
       "notes": "Assumptions to confirm with the product owner: access 15 min / refresh 7 days absolute; the server also enforces the 30-minute idle limit on refresh (last_used_at) so a closed or hidden tab cannot be renewed later. Existing 7-day auction_token cookies stop working after deploy (users sign in once more).",
-      "status": "not_started",
-      "evidence": []
+      "status": "passing",
+      "evidence": [
+        "2026-10-22 npm run verify exit 0 (after ./init.sh install step): be vitest 62 files / 309 tests (auth.refresh 11, auth.logout 5, auth.revoke 5), fe vitest 7 files / 45 tests (api.test refresh/retry, authedStream.test), fe build ok, Playwright 56/56 incl. sec-003-refresh-token",
+        "2026-10-22 Deviation from the verification text: the e2e API keeps the default 15 min ACCESS_TOKEN_TTL. A 5 s TTL failed 14 unrelated specs because Playwright API contexts (staffApi, page.request) cannot refresh. The sec-003 spec simulates expiry by dropping the access cookie as the browser does at Max-Age; a really expired JWT -> 401 -> refresh is covered by be/tests/auth.refresh.test.ts",
+        "2026-10-22 Staff SSE streams do not exist yet (stf-009); openAuthedStream is ready for them. Only /api/me/events uses it now"
+      ]
     },
     {
       "id": "sec-004",
