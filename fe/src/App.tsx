@@ -3,7 +3,7 @@ import { Route, Routes } from 'react-router-dom';
 import { RequireAuth } from './auth';
 import { Layout } from './components/Layout';
 import { AuctionDetailPage } from './pages/AuctionDetail';
-import { ChangePasswordPage } from './pages/ChangePassword';
+import { CHECK_EMAIL_PATH, ChangePasswordPage, CheckEmailPage } from './pages/ChangePassword';
 import { CreateAuctionPage } from './pages/CreateAuction';
 import { CreditPage } from './pages/Credit';
 import { AddGoodsPage, EditGoodsPage, MyGoodsPage } from './pages/MyGoods';
@@ -48,6 +48,9 @@ export function App() {
         <Route path="/dashboard" element={authed(<DashboardPage />)} />
         <Route path="/profile" element={authed(<ProfilePage />)} />
         <Route path="/change-password" element={authed(<ChangePasswordPage />)} />
+        <Route path={CHECK_EMAIL_PATH} element={authed(<CheckEmailPage />)} />
+        {/* mail-004: the mailed change link; may be opened signed out on another device. */}
+        <Route path="/change-password/new" element={<ResetPasswordPage mode="change" />} />
         <Route path="/credit" element={authed(<CreditPage />)} />
         <Route path="/staff/statistics" element={<RequireAuth permission="report.view"><StaffStatisticsPage /></RequireAuth>} />
         <Route path="/staff/auctions" element={<RequireAuth permission="auction.manage"><StaffAuctionsPage /></RequireAuth>} />

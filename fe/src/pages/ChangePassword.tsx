@@ -1,93 +1,94 @@
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ApiError, api } from '../api';
-import { Field } from '../components/Field';
-import { PasswordRules } from '../components/PasswordRules';
+import { useAuth } from '../auth';
+import { maskEmail } from '../maskEmail';
 import { useToast } from '../toast';
-import { required, rules, validate } from '../validate';
 
-const empty = { currentPassword: '', newPassword: '', confirmPassword: '' };
-const passwordRules = {
-  currentPassword: [required('Current password is required')],
-  newPassword: rules.password,
-  confirmPassword: [(v: string, all: Record<string, string>) => (v && v === all.newPassword ? undefined : 'Passwords do not match')],
-};
+export const CHECK_EMAIL_PATH = '/change-password/check-email';
 
-export function ChangePasswordPage() {
+/**
+ * mail-004 (SRS: Flow of change password): changing the password always goes through an emailed link.
+ * send() mails the signed-in user a link to the change-password page; failures (429 resend limit, 502 mail)
+ * become an error toast.
+ */
+export function useSendChangeLink() {
   const toast = useToast();
-  const [values, setValues] = useState(empty);
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
-  const [linkSent, setLinkSent] = useState('');
-  const [linkBusy, setLinkBusy] = useState(false);
-
-  // mail-003: the SRS way: a link to the new-password form is mailed to the user's own address.
-  const sendLink = async () => {
-    setLinkBusy(true);
-    try {
-      const res = await api<{ message: string }>('/me/password/link', { method: 'POST' });
-      setLinkSent(res.message);
-    } catch (err) {
-      toast(err instanceof ApiError ? err.message : 'Could not send the email', 'error');
-    } finally {
-      setLinkBusy(false);
-    }
-  };
-
-  const bind = (name: keyof typeof empty) => ({
-    name,
-    type: 'password',
-    value: values[name],
-    error: errors[name],
-    onChange: (e: { target: { value: string } }) => {
-      setValues((v) => ({ ...v, [name]: e.target.value }));
-      setErrors(({ [name]: _, ...rest }) => rest);
-    },
-  });
-
-  const onSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    const clientErrors = validate(values, passwordRules);
-    setErrors(clientErrors);
-    if (Object.keys(clientErrors).length) return;
+  const send = async () => {
     setBusy(true);
     try {
-      await api('/me/password', { method: 'PUT', body: values });
-      setValues(empty);
-      toast('Password changed', 'success');
+      await api<{ message: string }>('/me/password/link', { method: 'POST' });
+      return true;
     } catch (err) {
-      if (err instanceof ApiError) {
-        setErrors(err.fields);
-        toast(err.message, 'error');
-      }
+      toast(err instanceof ApiError ? err.message : 'Could not send the email', 'error');
+      return false;
     } finally {
       setBusy(false);
     }
   };
+  return { send, busy };
+}
 
+/** The 'Change password' action (profile, old /change-password route): sends the mail, then the check-mail screen. */
+export function ChangePasswordButton({ label = 'Change password' }: { label?: string }) {
+  const navigate = useNavigate();
+  const { send, busy } = useSendChangeLink();
+  const onClick = async () => {
+    if (await send()) navigate(CHECK_EMAIL_PATH, { state: { sent: true } });
+  };
+  return (
+    <button className="btn btn-primary" type="button" onClick={onClick} disabled={busy}>
+      {busy ? 'Sending...' : label}
+    </button>
+  );
+}
+
+/** Old route and bookmarks: one explicit action, so opening or reloading the page never sends mail by itself. */
+export function ChangePasswordPage() {
   return (
     <div className="card narrow">
       <h1>Change password</h1>
-      <div className="link-box">
-        <p className="muted small">We email you a link to a form where you choose the new password.</p>
-        <button className="btn btn-primary" type="button" onClick={sendLink} disabled={linkBusy}>
-          {linkBusy ? 'Sending...' : 'Send me a change-password link'}
+      <p className="muted">We email you a link to a page where you choose the new password.</p>
+      <ChangePasswordButton label="Send me the change-password email" />
+    </div>
+  );
+}
+
+/** Req-1: the check-mail screen. It never sends by itself; Resend does (once a minute, server-enforced). */
+export function CheckEmailPage() {
+  const { user } = useAuth();
+  const toast = useToast();
+  const location = useLocation();
+  const [sent, setSent] = useState(Boolean((location.state as { sent?: boolean } | null)?.sent));
+  const { send, busy } = useSendChangeLink();
+  const email = maskEmail(user?.email ?? '');
+
+  const resend = async () => {
+    if (!(await send())) return;
+    setSent(true);
+    toast(`We sent a new email to ${email}`, 'success');
+  };
+
+  return (
+    <div className="card narrow" data-testid="check-mail-screen">
+      <h1>Check your email</h1>
+      {sent ? (
+        <p data-testid="check-mail-text">
+          We sent a link to change your password to <strong>{email}</strong>. Open it to choose a new password.
+        </p>
+      ) : (
+        <p data-testid="check-mail-text">
+          Send a link to change your password to <strong>{email}</strong>, then open it to choose a new password.
+        </p>
+      )}
+      <p className="muted small">The link works for 1 hour. Asking for a new email makes the older links stop working.</p>
+      <div className="check-mail-actions">
+        <button className="btn" type="button" onClick={resend} disabled={busy}>
+          {busy ? 'Sending...' : sent ? 'Resend email' : 'Send email'}
         </button>
-        {linkSent && (
-          <p className="notice notice-success" role="status" data-testid="link-sent">
-            {linkSent}
-          </p>
-        )}
+        <Link to="/profile">Back to profile</Link>
       </div>
-      <h2>Or change it now</h2>
-      <form onSubmit={onSubmit} noValidate>
-        <Field label="Current password" autoComplete="current-password" {...bind('currentPassword')} />
-        <Field label="New password" autoComplete="new-password" {...bind('newPassword')} />
-        <PasswordRules value={values.newPassword} />
-        <Field label="Confirm new password" autoComplete="new-password" {...bind('confirmPassword')} />
-        <button className="btn btn-primary" type="submit" disabled={busy}>
-          {busy ? 'Saving...' : 'Change password'}
-        </button>
-      </form>
     </div>
   );
 }

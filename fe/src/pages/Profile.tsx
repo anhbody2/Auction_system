@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
 import { ApiError, api, type User } from '../api';
 import { useAuth } from '../auth';
 import { Field } from '../components/Field';
+import { ChangePasswordButton } from './ChangePassword';
 import { useToast } from '../toast';
 import { rules, validate } from '../validate';
 
@@ -66,9 +66,9 @@ export function ProfilePage() {
           {busy ? 'Saving...' : 'Save changes'}
         </button>
       </form>
-      <p className="small">
-        <Link to="/change-password">Change password</Link>
-      </p>
+      {/* mail-004: one click mails the change-password link and shows the check-mail screen. */}
+      <h2>Password</h2>
+      <ChangePasswordButton />
     </div>
   );
 }

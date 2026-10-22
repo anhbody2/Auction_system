@@ -411,3 +411,12 @@
 - Added mail-004 (priority 6, not_started) to the round 7 feature_list.json; readings to confirm are in its notes (current-password form removed from the UI, shared mail layout + shared new-password form, resend once a minute, masked email)
 - User confirmed the AuctionDetail Reserve row removal was intentional; committed separately
 - Next best step: sec-004 (round order), or mail-004 if the user wants it first
+
+### Session 012 (cont.) mail-004 change password flow
+
+- User chose mail-004 before sec-004 and confirmed removing the current-password form
+- Completed: Profile 'Change password' button -> POST /api/me/password/link -> /change-password/check-email (masked email, Resend once a minute = 429, never sends on load); link /change-password/new opens the shared ResetPassword form in 'change' mode; reset/change mails from one passwordLinkMail builder; reset-password answers `next` (own signed-in browser -> new session + /profile, else /login)
+- Tests: new be/tests/password.change-flow.test.ts, fe/src/maskEmail.test.ts, e2e/mail-004-change-password-flow.spec.ts; cust-003 and mail-003 specs and password.change-link.test.ts updated to the new flow (not weakened: old/new password checks kept)
+- Verification: npm run verify exit 0 -> be vitest 63 files / 317 tests, fe vitest 8 / 48, fe build ok, Playwright 57/57. ./init.sh hit Prisma DLL EPERM at npm install because the user's npm run dev is running (left running); schema unchanged
+- Round 7 status: sec-003 and mail-004 passing; sec-004, sec-005, stf-009, stf-010 not started
+- Next best step: sec-004 (useIdleTimer + fe/src/idle.ts)

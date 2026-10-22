@@ -36,4 +36,8 @@ export const config = {
   get activationResendMs() {
     return Number(process.env.ACTIVATION_RESEND_INTERVAL_MS ?? 60_000);
   },
+  /** mail-004: a change-password email at most once a minute per user. */
+  get passwordLinkIntervalMs() {
+    return Number(process.env.PASSWORD_LINK_INTERVAL_MS ?? 60_000);
+  },
 };

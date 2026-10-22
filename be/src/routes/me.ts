@@ -38,6 +38,7 @@ const passwordSchema = z
     message: 'New password must be different from the current one',
   });
 
+/** Deprecated (mail-004): the UI changes passwords only by emailed link; kept for API clients. */
 meRouter.put(
   '/password',
   asyncHandler(async (req, res) => {
@@ -64,12 +65,18 @@ meRouter.post(
   '/password/link',
   asyncHandler(async (req, res) => {
     const user = await prisma.user.findUniqueOrThrow({ where: { id: req.user!.id } });
+    // mail-004: the check-mail screen offers a resend; once a minute is enough.
+    const last = await prisma.passwordResetToken.findFirst({ where: { userId: user.id, purpose: 'change' }, orderBy: { createdAt: 'desc' } });
+    if (last && Date.now() - last.createdAt.getTime() < config.passwordLinkIntervalMs) {
+      throw new HttpError(429, 'Please wait a minute before asking for another email');
+    }
     const { token, tokenHash } = newToken();
     await prisma.$transaction([
       prisma.passwordResetToken.updateMany({ where: { userId: user.id, usedAt: null }, data: { usedAt: new Date() } }),
       prisma.passwordResetToken.create({ data: { userId: user.id, tokenHash, purpose: 'change', expiresAt: new Date(Date.now() + 3600 * 1000) } }),
     ]);
-    await sendAccountMail(user.email, changePasswordMail(user.username, `${config.appUrl}/reset-password?token=${token}`));
+    // mail-004: the link opens the change-password page (same new-password form as forgot password).
+    await sendAccountMail(user.email, changePasswordMail(user.username, `${config.appUrl}/change-password/new?token=${token}`));
     res.json({ message: `We sent a link to change your password to ${user.email}` });
   }),
 );

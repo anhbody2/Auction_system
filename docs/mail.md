@@ -73,20 +73,35 @@ Notification mails (goods review, credit requests) are best effort: a failure is
 Open question kept from the feature notes: pending accounts can still log in (only the banner differs). The SRS
 does not ask to block them, so it was not changed.
 
-## Password links (mail-003)
+## Password links (mail-003, mail-004)
 
-Both flows mail a 1-hour link to the same new-password form (`/reset-password?token=...`):
+Both flows mail a 1-hour link to the same new-password form (fe/src/pages/ResetPassword.tsx). The two mails are
+one template, `passwordLinkMail('reset' | 'change', ...)` in be/src/lib/mailTemplates.ts: same layout, wording
+pattern and footer, only the action words differ.
 
-| Flow | Asked from | Token purpose | After saving |
-|---|---|---|---|
-| Forgot password | /forgot-password (`POST /api/auth/forgot-password {email}`) | `reset` | Log in page, "Password has been reset. You can now log in." |
-| Change password | /change-password, "Send me a change-password link" (`POST /api/me/password/link`, signed in; mailed to the user's own address) | `change` | Profile page, "Your password has been changed" |
+| Flow | Asked from | Link | Token purpose | After saving |
+|---|---|---|---|---|
+| Forgot password | /forgot-password (`POST /api/auth/forgot-password {email}`) | `/reset-password?token=...` ("Set a new password") | `reset` | /login, "Password has been reset. You can now log in." |
+| Change password | Profile "Change password" button, or /change-password "Send me the change-password email" (`POST /api/me/password/link`, signed in; mailed to the user's own address) | `/change-password/new?token=...` ("Change your password") | `change` | Saved in the user's own signed-in browser: /profile, "Your password has been changed" (a fresh session is started there). Anywhere else: /login, "Your password has been changed, please log in". |
 
-Tokens live in `password_reset_tokens` (new column `purpose`). Asking for a new link, and saving a new password,
+`POST /api/auth/reset-password` answers `{ message, purpose, next }`; the page navigates to `next`. Older
+`/reset-password?token=` change links still work: the token's purpose, not the URL, decides the outcome.
+
+Change password flow (mail-004, SRS "Flow of change password function"):
+
+1. The user clicks "Change password". The mail goes at once and the app shows /change-password/check-email
+   ("Check your email", masked address such as `b**@example.com`, link valid 1 hour, "Resend email", "Back to profile").
+2. The screen never sends mail by itself (reloading it, or opening it directly, sends nothing). Resend is limited to
+   once a minute per user: 429 "Please wait a minute before asking for another email" (`PASSWORD_LINK_INTERVAL_MS`,
+   default 60000, 0 in e2e). Forgot-password requests do not count toward it.
+3. The link opens the change-password page; saving revokes every session (sec-003) and every older link.
+
+Tokens live in `password_reset_tokens` (column `purpose`). Asking for a new link, and saving a new password,
 mark every unused link of that user as used, so only the newest link works and none survive a change.
 The form lists the password conditions (at least 8 characters, a letter, a number) and ticks them as the user
 types; the server checks them again with the same messages (`passwordField` in be/src/lib/validation.ts;
 fe/src/validate.ts `PASSWORD_RULES`, checked against the server text by fe/src/validate.test.ts).
 
-Decision: the old "current password + new password" form stays on /change-password under the link button
-("Or change it now"). The SRS only requires the link; keeping the form costs nothing and cust-003 still covers it.
+Decision (mail-004, confirmed by the user on 2026-10-22): the old "current password + new password" form is gone
+from the UI; changing the password always goes through the emailed link. `PUT /api/me/password` stays in the API,
+deprecated, still covered by be/tests/password.change.test.ts.

@@ -6,7 +6,12 @@ import { PasswordRules } from '../components/PasswordRules';
 import { useToast } from '../toast';
 import { rules, validate } from '../validate';
 
-export function ResetPasswordPage() {
+/**
+ * The new-password form behind both mailed links (mail-003). mail-004: the change link opens it at
+ * /change-password/new (mode 'change'), the forgot-password link at /reset-password; only the words differ.
+ * The server decides where the user goes next (profile when saved in their own signed-in browser, else login).
+ */
+export function ResetPasswordPage({ mode = 'reset' }: { mode?: 'reset' | 'change' }) {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const toast = useToast();
@@ -26,10 +31,9 @@ export function ResetPasswordPage() {
     if (Object.keys(errs).length) return;
     setBusy(true);
     try {
-      const res = await api<{ message: string; purpose: 'reset' | 'change' }>('/auth/reset-password', { body: { ...values, token: params.get('token') ?? '' } });
+      const res = await api<{ message: string; next: '/profile' | '/login' }>('/auth/reset-password', { body: { ...values, token: params.get('token') ?? '' } });
       toast(res.message, 'success');
-      // mail-003: forgot password -> log in; change password (from the profile) -> back to the profile.
-      navigate(res.purpose === 'change' ? '/profile' : '/login', { state: { notice: res.message } });
+      navigate(res.next, { state: { notice: res.message } });
     } catch (err) {
       if (err instanceof ApiError) {
         setErrors(err.fields);
@@ -50,7 +54,7 @@ export function ResetPasswordPage() {
 
   return (
     <div className="card narrow">
-      <h1>Set a new password</h1>
+      <h1>{mode === 'change' ? 'Change your password' : 'Set a new password'}</h1>
       <form onSubmit={onSubmit} noValidate>
         <Field label="New password" autoComplete="new-password" {...bind('newPassword')} />
         <PasswordRules value={values.newPassword} />
@@ -61,7 +65,7 @@ export function ResetPasswordPage() {
           </p>
         )}
         <button className="btn btn-primary" type="submit" disabled={busy}>
-          {busy ? 'Saving...' : 'Reset password'}
+          {busy ? 'Saving...' : mode === 'change' ? 'Change password' : 'Reset password'}
         </button>
       </form>
     </div>

@@ -53,6 +53,18 @@ export async function createAuctionViaApi(request: APIRequestContext, overrides:
   return (await res.json()).auction as { id: number; name: string };
 }
 
+/** How many mails the dev outbox holds for `email`. */
+export async function outboxCount(request: APIRequestContext, email: string) {
+  return ((await (await request.get(`/api/dev/outbox?to=${encodeURIComponent(email)}`)).json()) as { mails: unknown[] }).mails.length;
+}
+
+/** Path + query of the newest password link mailed to `email`: /reset-password (forgot) or /change-password/new (mail-004). */
+export async function latestPasswordLink(page: Page, email: string) {
+  const { mails } = (await (await page.request.get(`/api/dev/outbox?to=${encodeURIComponent(email)}`)).json()) as { mails: { text: string }[] };
+  const url = new URL(mails.at(-1)!.text.match(/https?:\/\/\S+(?:reset-password|change-password\/new)\?token=\w+/)![0]);
+  return url.pathname + url.search;
+}
+
 export async function logout(page: Page) {
   await page.getByRole('button', { name: 'Log out' }).click();
   await expect(page).toHaveURL(/\/login$/);

@@ -158,6 +158,7 @@ const resetSchema = z
 
 authRouter.post(
   '/reset-password',
+  optionalAuth,
   asyncHandler(async (req, res) => {
     const data = resetSchema.parse(req.body);
     const record = await prisma.passwordResetToken.findUnique({ where: { tokenHash: hashToken(data.token) } });
@@ -173,7 +174,18 @@ authRouter.post(
     ]);
     // The page sends a forgot-password user to log in, and a change-password user back to their profile.
     const purpose = record.purpose === 'change' ? 'change' : 'reset';
-    res.json({ message: purpose === 'change' ? 'Your password has been changed' : 'Password has been reset. You can now log in.', purpose });
+    if (purpose === 'reset') {
+      res.json({ message: 'Password has been reset. You can now log in.', purpose, next: '/login' });
+      return;
+    }
+    // mail-004: opened in the browser where the user is signed in -> a fresh session there (the old one was
+    // revoked above) and back to the profile. Opened elsewhere (signed out, or as someone else) -> log in.
+    if (req.user?.id === record.userId) {
+      await startSession(res, await prisma.user.findUniqueOrThrow({ where: { id: record.userId } }));
+      res.json({ message: 'Your password has been changed', purpose, next: '/profile' });
+      return;
+    }
+    res.json({ message: 'Your password has been changed, please log in', purpose, next: '/login' });
   }),
 );
 

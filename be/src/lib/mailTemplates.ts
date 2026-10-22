@@ -34,20 +34,41 @@ export function activationMail(name: string, link: string): MailContent {
   };
 }
 
-export function resetPasswordMail(username: string, link: string): MailContent {
-  const footer = "The link expires in 1 hour. Ignore this email if it wasn't you.";
-  return {
+/**
+ * mail-004: forgot-password and change-password mails are one template (same layout, wording pattern and
+ * footer); only the words that name the action differ.
+ */
+const PASSWORD_LINK_WORDING = {
+  reset: {
     subject: 'Reset your BidHouse password',
-    text: `Someone asked to reset the password for ${username}.\n\nSet a new password here:\n${link}\n\n${footer}`,
-    html: layout({ heading: 'Reset your password', intro: `Someone asked to reset the password for ${username}.`, button: 'Set a new password', link, footer }),
+    heading: 'Reset your password',
+    intro: (username: string) => `Someone asked to reset the password for ${username}.`,
+    button: 'Set a new password',
+    footer: "The link expires in 1 hour. Ignore this email if it wasn't you.",
+  },
+  change: {
+    subject: 'Change your BidHouse password',
+    heading: 'Change your password',
+    intro: (username: string) => `Hi ${username}, you asked to change your password.`,
+    button: 'Choose a new password',
+    footer: "The link expires in 1 hour. Ignore this email if you didn't ask for it.",
+  },
+};
+
+export function passwordLinkMail(kind: keyof typeof PASSWORD_LINK_WORDING, username: string, link: string): MailContent {
+  const w = PASSWORD_LINK_WORDING[kind];
+  const intro = w.intro(username);
+  return {
+    subject: w.subject,
+    text: `${intro}
+
+${w.button} here:
+${link}
+
+${w.footer}`,
+    html: layout({ heading: w.heading, intro, button: w.button, link, footer: w.footer }),
   };
 }
 
-export function changePasswordMail(username: string, link: string): MailContent {
-  const footer = "The link expires in 1 hour. Ignore this email if you didn't ask for it.";
-  return {
-    subject: 'Change your BidHouse password',
-    text: `Hi ${username},\n\nYou asked to change your password. Set a new one here:\n${link}\n\n${footer}`,
-    html: layout({ heading: 'Change your password', intro: `Hi ${username}, you asked to change your password.`, button: 'Choose a new password', link, footer }),
-  };
-}
+export const resetPasswordMail = (username: string, link: string) => passwordLinkMail('reset', username, link);
+export const changePasswordMail = (username: string, link: string) => passwordLinkMail('change', username, link);

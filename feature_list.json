@@ -198,8 +198,14 @@
         "docs/mail.md 'Password links' updated, docs/changes/mail-004.md"
       ],
       "notes": "Builds on mail-003 (link flow already exists) and sec-003 (session revocation). Readings to confirm with the product owner: (1) the in-page current-password form is removed from the UI because the SRS flow is click -> check mail; (2) 'redirect them to change password page (use same template with forget password)' = the link opens a change-password page that reuses the forgot-password new-password form, and the mail uses the same layout as the forgot-password mail; (3) resend limited to once a minute; (4) masked email on the check-mail screen.",
-      "status": "not_started",
-      "evidence": []
+      "status": "passing",
+      "evidence": [
+        "2026-10-22 User confirmed (2026-10-22): remove the current-password form from the UI; build mail-004 before sec-004",
+        "2026-10-22 npm run verify exit 0: be vitest 63 files / 317 tests (new password.change-flow 8: /change-password/new link in the shared template, 429 resend limit, older link dies, session per browser, one-template check), fe vitest 8 files / 48 tests (maskEmail 3), fe build ok, Playwright 57/57 incl. mail-004-change-password-flow, updated cust-003 and mail-003, cust-004 unchanged",
+        "2026-10-22 ./init.sh stopped at npm install with Prisma DLL EPERM because the user's npm run dev was running (not stopped); schema unchanged, so npm run verify is the same check",
+        "2026-10-22 Current-password form removed from the UI (user confirmed); PUT /api/me/password kept, deprecated, covered by be/tests/password.change.test.ts",
+        "2026-10-22 Interpretation of 'redirect them to change password page': saved in the owner's signed-in browser -> new session + /profile; elsewhere -> /login 'please log in'. Docs: docs/mail.md, docs/session-tokens.md, docs/changes/mail-004.md"
+      ]
     }
   ]
 }

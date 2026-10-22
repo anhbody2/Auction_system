@@ -51,7 +51,9 @@ Every 401 clears both cookies; the message is "Session expired, please log in ag
 cookies. It needs no valid access token. Other sessions of the user stay open.
 
 `PUT /api/me/password` (change with the current password) revokes every session and then starts a new one for
-the request's browser, so the user stays signed in there and is signed out everywhere else.
+the request's browser, so the user stays signed in there and is signed out everywhere else. mail-004: the UI uses
+the emailed change link instead; `POST /api/auth/reset-password` with a `change` token does the same (new session)
+when the request carries that user's own access cookie, and starts no session otherwise.
 
 ## Client (fe/src/api.ts)
 

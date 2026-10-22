@@ -5,7 +5,8 @@ import { getOutbox } from '../src/lib/mailer';
 import { app, loginAs, registerUser, resetDb } from './helpers';
 
 const NEW = 'Brandnew42';
-const tokenIn = (text: string) => text.match(/reset-password\?token=([a-f0-9]+)/)![1];
+// mail-004: change links open /change-password/new, reset links /reset-password.
+const tokenIn = (text: string) => text.match(/(?:reset-password|change-password\/new)\?token=([a-f0-9]+)/)![1];
 const reset = (token: string, password = NEW) => request(app).post('/api/auth/reset-password').send({ token, newPassword: password, confirmPassword: password });
 
 /** Each case breaks one rule; the message is passwordField's in be/src/lib/validation.ts. */
@@ -28,13 +29,14 @@ describe('mail-003 change password by emailed link', () => {
     expect(res.body.message).toBe('We sent a link to change your password to linky@example.com');
     const mail = getOutbox('linky@example.com').at(-1)!;
     expect(mail.subject).toBe('Change your BidHouse password');
-    expect(mail.html).toContain('/reset-password?token=');
+    expect(mail.html).toContain('/change-password/new?token=');
     const token = tokenIn(mail.text);
     expect((await prisma.passwordResetToken.findFirstOrThrow({ where: { user: { username: 'linky' }, usedAt: null } })).purpose).toBe('change');
 
     const ok = await reset(token);
     expect(ok.status).toBe(200);
-    expect(ok.body).toMatchObject({ message: 'Your password has been changed', purpose: 'change' });
+    // Saved without this user's session (mail-004): sent to log in.
+    expect(ok.body).toMatchObject({ message: 'Your password has been changed, please log in', purpose: 'change', next: '/login' });
     expect((await request(app).post('/api/auth/login').send({ identifier: 'linky', password: NEW })).status).toBe(200);
     // Reused -> 400
     expect((await reset(token, 'Another123')).status).toBe(400);
