@@ -1,7 +1,7 @@
 {
   "project": "Online Auction System",
   "last_updated": "2026-10-22",
-  "scope": "Round 7. Only the requirements in SRS.txt: System - Security Functional (log out and clear the refresh token of a user inactive for 30 minutes, with a React custom hook that tracks mousedown/keydown/scroll/touchstart/mousemove and a notification first) and Staff - request Approve (turn all approval requests realtime). Builds on rounds 1-6 (archived in progress-feature-list/). SRS 'All delete mean soft delete' applies to every delete in this round.",
+  "scope": "Round 7. Only the requirements in SRS.txt: System - Security Functional (log out and clear the refresh token of a user inactive for 30 minutes, with a React custom hook that tracks mousedown/keydown/scroll/touchstart/mousemove and a notification first), Staff - request Approve (turn all approval requests realtime) and System - Flow of change password function (click Change password -> check-mail screen; emailed link -> change password page on the forgot-password template). Builds on rounds 1-6 (archived in progress-feature-list/). SRS 'All delete mean soft delete' applies to every delete in this round.",
   "conventions": {
     "tests": "Playwright e2e specs go in e2e/ as <id>-<slug>.spec.ts. Unit and API/integration tests use the existing vitest setup in be/tests/ as <area>.<topic>.test.ts; frontend unit tests sit next to the code (fe/src/**/*.test.ts). fe vitest has no DOM: keep logic in plain modules that run under Node (EventTarget, fake timers) and cover the React wiring in e2e. Every feature needs both kinds unless its verification list says otherwise.",
     "change_docs": "Each feature writes docs/changes/<id>.md listing the files it added or changed and why. Features with design decisions also add or update a topic doc under docs/, as named in their verification list.",
@@ -168,6 +168,36 @@
         "docs/realtime.md and docs/goods-approval.md updated; docs/changes/stf-010.md"
       ],
       "notes": "Depends on stf-009 only for shared helpers; can be built after it.",
+      "status": "not_started",
+      "evidence": []
+    },
+    {
+      "id": "mail-004",
+      "priority": 6,
+      "role": "customer",
+      "area": "mail-password",
+      "srs_ref": "System - Flow of change password function, Req-1 and Req-2",
+      "title": "Change password = one click that emails a link and shows a 'check your mail' screen; the link opens the change-password page on the forgot-password template",
+      "user_visible_behavior": "On the profile (and anywhere 'Change password' is offered) the user clicks 'Change password'. The app sends the mail at once and shows a full 'Check your email' screen: 'We sent a link to change your password to b***@example.com. Open it to choose a new password.', with 'Resend email' (once a minute) and 'Back to profile'. The mail looks like the forgot-password mail (same layout, same button style), worded for a change. Its link opens the change-password page, which is the same new-password form as forgot password (password rules checklist, confirm field), titled 'Change your password'. Saving takes the user back to /profile with 'Your password has been changed'. The old in-page current-password form is no longer shown.",
+      "acceptance": [
+        "Profile 'Change password' is a button (not a plain link to a form): it POSTs /api/me/password/link and, on success, navigates to /change-password/check-email with the masked address. While sending it is disabled ('Sending...'); a mail failure (502 from mail-001) shows the error toast and stays on the profile.",
+        "Req-1: /change-password/check-email (signed-in only) shows data-testid='check-mail-screen' with heading 'Check your email', the masked email, the 1-hour link lifetime, a 'Resend email' button and 'Back to profile'. Reloading the screen does not send another mail. Opening it directly without having just requested a link shows the same screen with only the Resend button enabled (no automatic send).",
+        "/change-password (old route, bookmarks) no longer shows the current-password form: it shows a single 'Send me the change-password email' action that leads to the same check-mail screen, so a page refresh never sends mail by itself.",
+        "Resend: POST /api/me/password/link again; older change/reset links stop working (existing mail-003 rule). Server limits it to once per minute per user (429 'Please wait a minute before asking for another email'; PASSWORD_LINK_INTERVAL_MS, 0 in e2e like ACTIVATION_RESEND_INTERVAL_MS).",
+        "Req-2 mail: changePasswordMail uses the same layout and wording pattern as resetPasswordMail (one shared builder; heading 'Change your password', button 'Choose a new password', same footer and plain-text fallback). Sent to the signed-in user's own email only.",
+        "Req-2 redirect: the mailed link is ${APP_URL}/change-password/new?token=... ; that route renders the same ResetPassword form component as /reset-password (shared template), titled 'Change your password'. A 'reset' token opened there, or a 'change' token opened at /reset-password, still works (purpose decides only the title and where the user lands after saving). Old mailed links of the form /reset-password?token= keep working.",
+        "After saving: all of the user's links die (mail-003) and all refresh tokens are revoked (sec-003) except a new session for this browser if it is the signed-in user's own browser; the user lands on /profile with data-testid='password-changed' 'Your password has been changed'. If the link is opened while signed out (another device) the user lands on /login with 'Your password has been changed, please log in'.",
+        "PUT /api/me/password (current-password change) stays in the API for compatibility but is no longer used by the UI; documented as deprecated."
+      ],
+      "verification": [
+        "be/tests/password.change-flow.test.ts: link request mails the user's own address with the /change-password/new?token= URL and the shared layout (subject, heading, button text, plain-text link); second request within the interval -> 429 and no mail; with interval 0 the older link stops working; saving via the change token -> 200 and the response says where to land; mail failure -> 502",
+        "be/tests/mail.templates.test.ts (or the existing template test): reset and change mails come from one builder and differ only in subject/heading/intro/button",
+        "fe unit (fe/src/maskEmail.test.ts or similar): email masking ('bob@example.com' -> 'b**@example.com', short local parts)",
+        "e2e/mail-004-change-password-flow.spec.ts: fresh user on /profile clicks 'Change password' -> check-mail screen with masked email; reload sends no second mail (outbox count); link from the dev outbox opens /change-password/new, the same form as forgot password (rules checklist), weak password shows rule error, valid one -> /profile 'Your password has been changed'; log out and log in with the new password; resend makes the first link invalid",
+        "Existing cust-003 and mail-003 specs updated to the new flow (the current-password form path is replaced by the emailed-link path, not deleted without replacement); cust-004 forgot-password still passes unchanged",
+        "docs/mail.md 'Password links' updated, docs/changes/mail-004.md"
+      ],
+      "notes": "Builds on mail-003 (link flow already exists) and sec-003 (session revocation). Readings to confirm with the product owner: (1) the in-page current-password form is removed from the UI because the SRS flow is click -> check mail; (2) 'redirect them to change password page (use same template with forget password)' = the link opens a change-password page that reuses the forgot-password new-password form, and the mail uses the same layout as the forgot-password mail; (3) resend limited to once a minute; (4) masked email on the check-mail screen.",
       "status": "not_started",
       "evidence": []
     }

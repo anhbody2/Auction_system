@@ -404,3 +404,10 @@
 - Noise seen (not failures): '[WebServer] job ... failed: table auctions does not exist' while e2e setup resets the DB under the running scheduler
 - Not mine, left uncommitted: fe/src/pages/AuctionDetail.tsx removes the Reserve row (no test depends on it; ask the user)
 - Next best step: sec-004 (useIdleTimer + fe/src/idle.ts)
+
+### Session 012 (cont.) SRS update: change password flow
+
+- SRS.txt gained "system - Flow of change password function" (Req-1 check-mail screen, Req-2 mail + redirect to change password page on the forgot-password template)
+- Added mail-004 (priority 6, not_started) to the round 7 feature_list.json; readings to confirm are in its notes (current-password form removed from the UI, shared mail layout + shared new-password form, resend once a minute, masked email)
+- User confirmed the AuctionDetail Reserve row removal was intentional; committed separately
+- Next best step: sec-004 (round order), or mail-004 if the user wants it first

@@ -17,3 +17,11 @@ REQ-2: Show notification at first, then log them out, clear their refreshToken
 Staff - request Approve
 Description and Priority
 Turn all request Approve to realtime
+
+
+system - Flow of change password function
+Description and Priority
+When customer hit change password, show them a notification screen about check their mail
+
+Req-1: Show check mail screen 
+Req-2: On backend sent a mail to end customer to let them click to their, redirect them to change password page(use same template with forget password)
