@@ -420,3 +420,12 @@
 - Verification: npm run verify exit 0 -> be vitest 63 files / 317 tests, fe vitest 8 / 48, fe build ok, Playwright 57/57. ./init.sh hit Prisma DLL EPERM at npm install because the user's npm run dev is running (left running); schema unchanged
 - Round 7 status: sec-003 and mail-004 passing; sec-004, sec-005, stf-009, stf-010 not started
 - Next best step: sec-004 (useIdleTimer + fe/src/idle.ts)
+
+### Session 013 sec-004 (2026-10-23)
+
+- Completed: fe/src/idle.ts createIdleTracker (five SRS events on window, capture + passive, 1 s throttle, onWarning/onIdle/onActive, cross-tab 'auction:lastActivity' + storage event, storage errors tolerated, stop()); idleSettings (VITE_IDLE_TIMEOUT_MS / VITE_IDLE_WARNING_MS, defaults 30 min / 60 s, dev-only localStorage override 'auction:idleSettings'); fe/src/useIdleTimer.ts hook; AuthProvider runs it for any signed-in user (no callbacks yet, sec-005 adds them)
+- Verification: npm run verify -> be 317, fe 69, build ok, Playwright 56/57. The one failure (stf-008) comes from the user's uncommitted StaffCredit.tsx edit (Reason -> Context; API still reads `reason`), not committed by me
+- Environment: two earlier runs hit "Can't reach database server at localhost:5436" after the DB container restarted (Docker port forward); cleared by itself
+- Deviation recorded: no global short idle limit in e2e (would break unrelated specs once sec-005 logs out); sec-005 notes tell the spec to use the override
+- Left uncommitted (user's): fe/src/pages/StaffCredit.tsx, fe/src/pages/ChangePassword.tsx (whitespace)
+- Next best step: sec-005 (warning dialog + idle logout using useIdleTimer and POST /auth/logout { reason: 'idle' })

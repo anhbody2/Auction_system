@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { api, setUnauthorizedHandler, type User } from './api';
+import { useIdleTimer } from './useIdleTimer';
 
 interface AuthState {
   user: User | null;
@@ -60,6 +61,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await api('/auth/logout', { method: 'POST' });
     setUser(null);
   };
+
+  // sec-004: activity tracking for every signed-in role; sec-005 adds the warning and the idle logout.
+  useIdleTimer({ enabled: !!user });
 
   return <AuthContext.Provider value={{ user, loading, login, logout, refresh }}>{children}</AuthContext.Provider>;
 }

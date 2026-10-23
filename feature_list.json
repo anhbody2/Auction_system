@@ -1,6 +1,6 @@
 {
   "project": "Online Auction System",
-  "last_updated": "2026-10-22",
+  "last_updated": "2026-10-23",
   "scope": "Round 7. Only the requirements in SRS.txt: System - Security Functional (log out and clear the refresh token of a user inactive for 30 minutes, with a React custom hook that tracks mousedown/keydown/scroll/touchstart/mousemove and a notification first), Staff - request Approve (turn all approval requests realtime) and System - Flow of change password function (click Change password -> check-mail screen; emailed link -> change password page on the forgot-password template). Builds on rounds 1-6 (archived in progress-feature-list/). SRS 'All delete mean soft delete' applies to every delete in this round.",
   "conventions": {
     "tests": "Playwright e2e specs go in e2e/ as <id>-<slug>.spec.ts. Unit and API/integration tests use the existing vitest setup in be/tests/ as <area>.<topic>.test.ts; frontend unit tests sit next to the code (fe/src/**/*.test.ts). fe vitest has no DOM: keep logic in plain modules that run under Node (EventTarget, fake timers) and cover the React wiring in e2e. Every feature needs both kinds unless its verification list says otherwise.",
@@ -86,8 +86,13 @@
         "docs/idle-logout.md (events, throttling, cross-tab rule) and docs/changes/sec-004.md"
       ],
       "notes": "Applies to every signed-in role (customer, staff, admin), not only customers: the SRS heading is a system security function. Confirm with the product owner.",
-      "status": "not_started",
-      "evidence": []
+      "status": "passing",
+      "evidence": [
+        "2026-10-23 npm run verify: be vitest 63 files / 317 tests, fe vitest 9 files / 69 tests (idle.test 21: five events reset, click/wheel/focus/keyup do not, warning then idle once, onActive after warning, 1 s throttle, storage event + read before deadline, stop() removes listeners/timers, throwing/missing storage, settings + dev-only override), fe build ok, Playwright 56/57 incl. sec-004-idle-hook (hasTouch: mousemove, mousedown, keydown, scroll, touch advance auction:lastActivity; no input does not; logout stops writes)",
+        "2026-10-23 The 1 Playwright failure is stf-008: the user's uncommitted fe/src/pages/StaffCredit.tsx edit renames the adjustment field 'Reason' -> 'Context' (spec looks for 'Reason'; API still reads body.reason). Not a sec-004 file; left for the user",
+        "2026-10-23 Earlier runs on 2026-10-23 failed with 'Can't reach database server at localhost:5436' (Docker port forward dropped after the DB container restarted); Postgres itself logged no errors; the next run was clean",
+        "2026-10-23 Deviation: e2e keeps default idle limits; short limits via dev-only localStorage 'auction:idleSettings' (docs/idle-logout.md); sec-005 notes updated. Docs: docs/idle-logout.md, docs/changes/sec-004.md"
+      ]
     },
     {
       "id": "sec-005",
@@ -113,7 +118,7 @@
         "Manual: npm run dev with VITE_IDLE_TIMEOUT_MS=120000 - warning, stay signed in, idle logout seen in a real browser; record in evidence",
         "docs/idle-logout.md updated (timeline, cross-tab logout, heartbeat) and docs/changes/sec-005.md"
       ],
-      "notes": "Reading of 'Show notification at first, then log them out': the notification is a warning shown before the logout (default 60 s before), plus a message on the login page after it. Confirm the 60 s lead time with the product owner.",
+      "notes": "Reading of 'Show notification at first, then log them out': the notification is a warning shown before the logout (default 60 s before), plus a message on the login page after it. Confirm the 60 s lead time with the product owner. Implementation note from sec-004 (2026-10-23): do not shorten VITE_IDLE_TIMEOUT_MS for the whole e2e web server (it would sign users out inside unrelated specs); the sec-005 spec sets the dev-only localStorage override 'auction:idleSettings' ({ timeoutMs: ~6000, warningMs: ~3000 }) with page.addInitScript. See docs/idle-logout.md.",
       "status": "not_started",
       "evidence": []
     },
