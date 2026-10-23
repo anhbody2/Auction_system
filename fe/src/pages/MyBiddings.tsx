@@ -1,16 +1,23 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { api, money } from '../api';
-import { CREDIT_LABELS, RESULT, winRate, type BidHistoryItem, type BidTotals, type MyStatus } from '../bidHistory';
-import { Pill } from '../components/ui';
-
-const FILTERS: ('all' | MyStatus)[] = ['all', 'winning', 'outbid', 'won', 'lost', 'cancelled'];
+import { CREDIT_LABELS, RESULT, winRate, type BidHistoryItem, type BidTotals } from '../bidHistory';
+import { HISTORY_TABS, filterHistory, isHistoryTab, tabCounts, type HistoryTab } from '../bidHistoryFilter';
+import { Pill, SearchInput, SegmentedTabs } from '../components/ui';
 
 /** ui-3a.1: 'Bid history' from the 3a mockup: totals, then one row per lot with my bid, credit state and result. */
 export function MyBiddingsPage() {
   const [items, setItems] = useState<BidHistoryItem[] | null>(null);
   const [totals, setTotals] = useState<BidTotals | null>(null);
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]>('all');
+  // ui-3a.2: tab and lot search live in the URL; a tab change is a history step, typing replaces the entry.
+  const [params, setParams] = useSearchParams();
+  const tab: HistoryTab = isHistoryTab(params.get('tab')) ? (params.get('tab') as HistoryTab) : 'all';
+  const q = params.get('q') ?? '';
+  const update = (next: { tab?: HistoryTab; q?: string }, replace = false) => {
+    const t = next.tab ?? tab;
+    const text = next.q ?? q;
+    setParams({ ...(t !== 'all' ? { tab: t } : {}), ...(text ? { q: text } : {}) }, { replace });
+  };
 
   useEffect(() => {
     api<{ items: BidHistoryItem[]; totals: BidTotals }>('/me/bids').then((r) => {
@@ -19,8 +26,8 @@ export function MyBiddingsPage() {
     });
   }, []);
 
-  const shown = items?.filter((i) => filter === 'all' || i.myStatus === filter) ?? [];
-  const count = (f: (typeof FILTERS)[number]) => items?.filter((i) => f === 'all' || i.myStatus === f).length ?? 0;
+  const shown = items ? filterHistory(items, tab, q) : [];
+  const counts = items ? tabCounts(items, q) : null;
 
   return (
     <div>
@@ -42,12 +49,17 @@ export function MyBiddingsPage() {
           </dl>
         )}
       </div>
-      <div className="tabs" role="tablist" aria-label="Filter by outcome">
-        {FILTERS.map((f) => (
-          <button key={f} role="tab" aria-selected={filter === f} className={filter === f ? 'tab active' : 'tab'} onClick={() => setFilter(f)}>
-            {f === 'all' ? 'All' : RESULT[f].label} ({count(f)})
-          </button>
-        ))}
+      <div className="history-tools">
+        <SegmentedTabs
+          tabs={HISTORY_TABS.map((t) => ({ ...t, count: counts?.[t.value] }))}
+          value={tab}
+          onChange={(v) => update({ tab: v })}
+          label="Filter by result"
+          testId="history-tabs"
+        />
+        <div className="history-search">
+          <SearchInput value={q} onChange={(v) => update({ q: v }, true)} placeholder="Search lots" label="Search lots" testId="history-search" />
+        </div>
       </div>
       {!items ? (
         <p className="muted">Loading...</p>
@@ -58,7 +70,7 @@ export function MyBiddingsPage() {
               You haven't bid on anything yet. <Link to="/">Browse auctions</Link>
             </>
           ) : (
-            'Nothing here.'
+            <span data-testid="no-match">No bids match.</span>
           )}
         </p>
       ) : (

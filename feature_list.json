@@ -397,7 +397,11 @@
         "docs/changes/ui-3a.2.md"
       ],
       "notes": "Mockup shows 4 tabs while the old page has 6 (all, winning, outbid, won, lost, cancelled). The 4-tab version is built; existing specs that click 'Winning'/'Outbid'/'Cancelled' tabs are updated to the new tabs, not removed.",
-      "status": "not_started"
+      "evidence": [
+        "2026-10-23 ./init.sh exit 0: be vitest 71 files / 348 tests, fe vitest 24 files / 152 tests (bidHistoryFilter 6), fe build ok, Playwright 92/92 incl. ui-3a-2-bid-filters (All 5 / Active 2 with counts, Active = Leading + Outbid, Won, Lost without the cancelled lot, Back restores the tab, name search updates counts, #id and bare id search, combined tab + search survive reload, 'No bids match.', 375px) and cust-007 (its 'Won' tab still exists)",
+        "2026-10-23 Decision: the 4 mockup tabs replace the old 6; cancelled lots are under All only"
+      ],
+      "status": "passing"
     },
     {
       "id": "ui-3b.1",
