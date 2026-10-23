@@ -162,7 +162,9 @@ auctionsRouter.get(
         take: 100,
       }),
     ]);
-    const views = await Promise.all([...open, ...completed].map((a) => auctionView(a, req.user?.id)));
+    const all = [...open, ...completed];
+    const myBids = await viewerBids(req.user?.id, all);
+    const views = await Promise.all(all.map(async (a) => ({ ...(await auctionView(a, req.user?.id)), myBid: myBids.get(a.id) ?? null })));
     res.json({ auctions: views, justCompletedDays: JUST_COMPLETED_DAYS });
   }),
 );
@@ -179,6 +181,31 @@ auctionsRouter.get(
     res.json({ auctions: await Promise.all(auctions.map((a) => auctionView(a, req.user!.id))) });
   }),
 );
+
+/**
+ * ui-1a.1: the viewer's own position on each listed auction, in one query: their latest bid and whether
+ * they hold the active (leading) ticket. Guests, sellers and auctions without their bids get nothing.
+ */
+/** Ticket states that mean the viewer is (or finished as) the top bidder; settlement turns 'active' into 'won'. */
+const LEADING = new Set(['active', 'won']);
+
+async function viewerBids(viewerId: bigint | undefined, auctions: { id: bigint; sellerId: bigint }[]) {
+  const result = new Map<bigint, { amount: Prisma.Decimal; status: 'leading' | 'outbid' }>();
+  if (viewerId === undefined) return result;
+  const ids = auctions.filter((a) => a.sellerId !== viewerId).map((a) => a.id);
+  if (!ids.length) return result;
+  const tickets = await prisma.bidTicket.findMany({
+    where: { bidderId: viewerId, auctionId: { in: ids } },
+    select: { auctionId: true, amount: true, status: true },
+    orderBy: { id: 'desc' },
+  });
+  for (const t of tickets) {
+    const seen = result.get(t.auctionId);
+    if (!seen) result.set(t.auctionId, { amount: t.amount, status: LEADING.has(t.status) ? 'leading' : 'outbid' });
+    else if (LEADING.has(t.status)) seen.status = 'leading';
+  }
+  return result;
+}
 
 export function parseId(raw: string) {
   if (!/^\d{1,18}$/.test(raw)) throw new HttpError(404, 'Not found');

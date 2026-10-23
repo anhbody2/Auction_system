@@ -125,6 +125,8 @@ export interface Auction {
   cancelledAt: string | null;
   closedAt: string | null;
   createdAt: string;
+  /** ui-1a.1: the viewer's own latest bid on this auction (list endpoint only); null for guests and sellers. */
+  myBid?: { amount: number; status: 'leading' | 'outbid' } | null;
 }
 
 export interface Bid {

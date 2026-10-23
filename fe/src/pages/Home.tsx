@@ -14,7 +14,7 @@ function Section({ id, title, empty, auctions, onElapsed }: { id: string; title:
       {auctions.length === 0 ? (
         <p className="muted">{empty}</p>
       ) : (
-        <div className="grid">
+        <div className="lot-grid">
           {auctions.map((a) => (
             <AuctionCard key={a.id} auction={a} onElapsed={onElapsed} />
           ))}
@@ -53,6 +53,11 @@ export function HomePage() {
     <div>
       <div className="hero">
         <h1>Find something worth bidding on</h1>
+        {auctions && (
+          <p className="muted small" data-testid="live-count">
+            {by('active').length.toLocaleString('en-US')} live auction{by('active').length === 1 ? '' : 's'}
+          </p>
+        )}
         <p className="muted">
           {user ? (
             <>

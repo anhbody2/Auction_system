@@ -73,7 +73,7 @@ h2 { font-size: 1.2rem; margin: 1.5rem 0 0.75rem; font-weight: 800; }
   .topbar nav a.active { border: none; text-decoration: underline; text-underline-offset: 4px; }
 }
 @media (max-width: 420px) { .topbar .btn { padding: 0.4rem 0.7rem; } .bid-limit-label { font-size: 0.65rem; } }
-.container { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+.container { max-width: 1240px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
 
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
 .narrow { max-width: 440px; margin: 2rem auto; }
@@ -296,3 +296,24 @@ th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: u
 .ui-money-xl { font-size: 2.2rem; font-weight: 900; letter-spacing: -0.02em; }
 .ui-money-plus { color: var(--steel-ink); }
 .ui-money-minus { color: var(--crimson); }
+
+/* ui-1a.1 browse lot cards */
+.lot-grid { display: grid; gap: 1.1rem; grid-template-columns: 1fr; }
+@media (min-width: 640px) { .lot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1200px) { .lot-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.lot-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; transition: transform 0.15s, box-shadow 0.15s; min-width: 0; }
+.lot-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0, 48, 73, 0.1); }
+.lot-thumb { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; display: block; background: var(--steel-lighter); }
+.lot-thumb-empty { background: repeating-linear-gradient(135deg, var(--steel-lighter) 0 12px, var(--steel-light) 12px 24px); }
+.lot-body { padding: 0.9rem 1rem 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+.lot-body h3 { margin: 0.15rem 0 0; font-size: 1rem; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lot-pills { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
+.ui-pill .error, .ui-pill .muted { color: inherit; }
+.lot-price { margin-top: 0.2rem; }
+.lot-price-label { font-size: 0.72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.lot-price-value { font-size: 1.45rem; font-weight: 900; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.my-bid-strip { display: flex; justify-content: space-between; gap: 0.5rem; align-items: center; border-radius: 10px; padding: 0.5rem 0.7rem; font-size: 0.82rem; margin-top: 0.3rem; }
+.my-bid-strip.is-leading { background: var(--steel-light); color: var(--steel-ink); }
+.my-bid-strip.is-outbid { background: var(--cream); color: var(--crimson); }
+.my-bid-strip.is-none { border: 1px dashed var(--border); color: var(--muted); justify-content: center; }
+.my-bid-state { font-weight: 800; white-space: nowrap; }

@@ -26,7 +26,7 @@ export function NewTag({ status, startTime }: { status: string; startTime: strin
   );
 }
 
-function useNow(intervalMs = 1000) {
+export function useNow(intervalMs = 1000) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), intervalMs);

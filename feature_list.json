@@ -109,7 +109,11 @@
         "docs/changes/ui-1a.1.md"
       ],
       "notes": "The mockup's '1,284 live auctions · bids update in real time' subtitle shows the real count of active auctions. Cards refresh with the existing 30 s poll; per-card live updates are not part of this feature.",
-      "status": "not_started"
+      "evidence": [
+        "2026-10-23 ./init.sh exit 0: be vitest 67 files / 334 tests (auctions.list-mybid 5: guest null, leading, outbid, re-lead with latest amount, seller null, search variant), fe vitest 14 files / 97 tests (auctionCardState 5), fe build ok, Playwright 69/69 incl. ui-1a-1-browse-cards (guest no strip, ending-soon pill vs 2 h lot, none -> Leading -> Outbid after reload, seller no strip, 375px single column, 4/2 grid columns)",
+        "2026-10-23 myBid is computed with one bid_tickets query per list request; 'won' tickets count as leading so a finished winner is not shown as outbid. The strip is only rendered on live cards"
+      ],
+      "status": "passing"
     },
     {
       "id": "ui-1a.2",
