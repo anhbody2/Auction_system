@@ -8,9 +8,15 @@ Round 7 is passing and archived to `progress-feature-list/feature_list_7.json`: 
 docs/session-tokens.md), idle tracking hook and 30-minute idle logout with a warning (sec-004/005,
 docs/idle-logout.md), real-time approval queues for staff and requesters (stf-009/010, docs/realtime.md), change
 password by emailed link + check-mail screen (mail-004, docs/mail.md).
+Round 8 is passing and archived to `progress-feature-list/feature_list_8.json`: the customer UI redesign from the
+'Auction Mockups' design (14 features ui-0.1 .. ui-3b.2): tokens / Mulish / new top bar, browse cards + chips/sort +
+quick bid, lot page layout + bid panel + chart/live history, dashboard credit cards + goods owned + My auctions, bid
+history totals + tabs/search, credit request form + transactions panel. Design system: docs/design-system.md;
+per-feature notes: docs/changes/ui-*.md. Defaults applied without user confirmation are listed in each feature's
+evidence (brand stays BidHouse, quick bid keeps a confirm, 'Pending payout' card shows pending requests).
 Mail: real Gmail settings live only in be/.env (docs/mail.md); vitest and Playwright blank them so tests use the dev outbox.
 Note: root package.json `overrides` pin is-generator-function/is-async-function so tsx can load exceljs on Node 20.19+ (see claude-progress Session 005 stf-002).
-`./init.sh` exits 0 (152 vitest + fe build + 29 Playwright). Stop any running `npm run dev` first (Prisma DLL lock on Windows).
+`./init.sh` exits 0 (be 353 + fe 159 vitest, fe build, 96 Playwright; 2026-10-23). Stop any running `npm run dev` first (Prisma DLL lock on Windows).
 
 ## Restart path
 

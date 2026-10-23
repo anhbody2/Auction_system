@@ -470,3 +470,15 @@
 - No code changed; ./init.sh not run this session (planning only). Stopped the auction_db container per CLAUDE.md
 - Left uncommitted (user's): ChangePassword.tsx whitespace, claude-2.md
 - Next best step: confirm the readings in ui-0.1 / ui-1a.3 / ui-2a.1 / ui-3b.1 notes with the user, then start ui-0.1
+
+### Session 015 round 8: UI redesign built (2026-10-23)
+
+- Startup: Docker Desktop was not running (started it; no containers to stop); baseline ./init.sh green
+- Completed all 14 round 8 features, one at a time, each committed after its own gate: ui-0.1, ui-1a.1-3, ui-1b.1-3, ui-2a.1-3, ui-3a.1-2, ui-3b.1-2. feature_list.json archived as progress-feature-list/feature_list_8.json
+- New API: /api/auctions myBid + category/endingSoon/sort; /api/me/summary; /api/me/goods/owned; /api/me/bids bidCount/creditState/totals; transaction filter q/type. No schema change
+- Final verification: ./init.sh exit 0 -> be vitest 72 files / 353 tests, fe vitest 25 files / 159 tests, fe build ok, Playwright 96/96
+- Readings applied as defaults without user confirmation (recorded per feature): brand name stays BidHouse (mark only); My goods / My Auctions stay in the nav; quick bid keeps a confirm dialog; dashboard third card = pending credit requests (no payout state); bid history has 4 tabs (cancelled under All); credit stays staff-approved requests (no card row)
+- Older specs updated to the new UI, never weakened (listed in each docs/changes/ui-*.md): nav labels, avatar menu logout, greeting, worded status/type labels, crd-002 now checks available credit (the round 8 design shows it), crd-003 credit-refetch filter lists the three credit endpoints, trx-001 opens More filters. Two timing races fixed with expect.poll (sec-003)
+- Environment: ui-1b.2 .. ui-2a.3 ran npm run verify instead of ./init.sh because the user's npm run dev held the Prisma DLL (install step EPERM; deps/schema unchanged). One verify hung ~20 min in be unit tests and was lost to a session restart; reruns were clean
+- Left uncommitted (user's): fe/src/pages/ChangePassword.tsx whitespace, claude-2.md; fe/tsconfig.tsbuildinfo (build output)
+- Next best step: ask the user to confirm the defaults above; a new SRS/design round needs a fresh feature_list.json at the root
