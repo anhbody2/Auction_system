@@ -196,7 +196,11 @@
         "docs/changes/ui-1b.1.md"
       ],
       "notes": "Not built (no data in the system): 'Verified authentic' pill, seller rating / sales count, 'Ships' fact. The seller's completed-sales count could replace the rating later if the user asks.",
-      "status": "not_started"
+      "evidence": [
+        "2026-10-23 ./init.sh exit 0: be vitest 68 files / 340 tests, fe vitest 17 files / 107 tests (galleryTiles 4), fe build ok, Playwright 79/79 incl. ui-1b-1-lot-layout (7-image lot: thumbnail swaps hero + aria-pressed, '+3' opens lightbox at 5/7, arrows wrap, Escape closes; info card pills/facts; aside right of the gallery and sticky; breadcrumb category -> filtered browse; single image no thumbs; reserve lot no 'No reserve'; 375px order gallery -> aside -> info; placeholder via stubbed response) and the older detail specs (sell-002/003/004, bid-002, upl-001, rt-001)",
+        "2026-10-23 The goods form requires at least one image, so the placeholder case strips images from the API response in the spec"
+      ],
+      "status": "passing"
     },
     {
       "id": "ui-1b.2",

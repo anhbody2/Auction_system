@@ -1,10 +1,12 @@
 import { useCallback, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { CONDITION_LABELS, money } from '../api';
 import { Countdown, NewTag, StatusBadge } from '../components/AuctionBits';
 import { BidHistory, BidPanel } from '../components/BidPanel';
 import { CancelAuction } from '../components/CancelAuction';
+import { Gallery } from '../components/Gallery';
 import { Messages } from '../components/Messages';
+import { Pill } from '../components/ui';
 import { useAppDispatch, useAppSelector } from '../store';
 import { loadAuction } from '../store/auctionSlice';
 import { useAuctionEvents } from '../store/useAuctionEvents';
@@ -31,58 +33,94 @@ export function AuctionDetailPage() {
   if (error && !auction) return <p className="error">{error}</p>;
   if (!auction) return <p className="muted">Loading...</p>;
 
+  const category = auction.goods.category;
+  const condition = auction.goods.condition && (CONDITION_LABELS[auction.goods.condition] ?? auction.goods.condition);
+
+  // ui-1b.1: two columns (content | sticky bid aside); on narrow screens the aside follows the gallery.
   return (
-    <div className="detail">
-      <div>
-        {auction.goods.images[0] ? (
-          <img className="hero-img" src={auction.goods.images[0]} alt={auction.name} />
-        ) : (
-          <div className="hero-img placeholder">No image</div>
+    <div className="lot-detail">
+      <nav className="breadcrumb" aria-label="Breadcrumb">
+        <Link to="/">Browse</Link>
+        {category && (
+          <>
+            <span aria-hidden="true">/</span>
+            <Link to={`/?category=${category.id}`}>{category.name}</Link>
+          </>
         )}
-        <h2>Description</h2>
-        <p style={{ whiteSpace: 'pre-wrap' }}>{auction.description}</p>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">Lot #{auction.id}</span>
+      </nav>
+      <div className="lot-gallery">
+        <Gallery images={auction.goods.images} name={auction.name} />
+      </div>
+      <aside className="lot-aside">
+        <div className="ui-card">
+          <div className="row spread">
+            <Countdown status={auction.status} startTime={auction.startTime} endTime={auction.endTime} onElapsed={load} />
+          </div>
+          <dl className="facts">
+            <dt>{auction.currentPrice ? 'Current bid' : 'Starting price'}</dt>
+            <dd className="big" data-testid="current-price">
+              {money(auction.currentPrice ?? auction.initialPrice)}
+            </dd>
+            <dt>Bids</dt>
+            <dd data-testid="bid-count">{auction.bidCount}</dd>
+            {auction.nextMinBid != null && (
+              <>
+                <dt>Minimum next bid</dt>
+                <dd data-testid="next-min-bid">{money(auction.nextMinBid)}</dd>
+              </>
+            )}
+          </dl>
+          <BidPanel auction={auction} bids={bids} onReload={load} />
+          <CancelAuction auction={auction} onDone={load} />
+        </div>
+      </aside>
+      <div className="lot-main">
+        <section className="ui-card lot-info" data-testid="lot-info">
+          <div className="lot-pills">
+            <StatusBadge status={auction.status} />
+            <NewTag status={auction.status} startTime={auction.startTime} />
+            {!auction.hasReserve && <Pill tone="muted">No reserve</Pill>}
+          </div>
+          <h1>{auction.name}</h1>
+          <p className="muted small">
+            Sold by <strong>{auction.seller.username}</strong>
+          </p>
+          {auction.description && <p className="lot-description">{auction.description}</p>}
+          <dl className="lot-facts" data-testid="lot-facts">
+            {condition && (
+              <div>
+                <dt>Condition</dt>
+                <dd>{condition}</dd>
+              </div>
+            )}
+            {category && (
+              <div>
+                <dt>Category</dt>
+                <dd>{category.name}</dd>
+              </div>
+            )}
+            <div>
+              <dt>Starts</dt>
+              <dd>{new Date(auction.startTime).toLocaleString()}</dd>
+            </div>
+            <div>
+              <dt>Ends</dt>
+              <dd data-testid="end-time">{new Date(auction.endTime).toLocaleString()}</dd>
+            </div>
+            {auction.winner && (
+              <div>
+                <dt>Winner</dt>
+                <dd data-testid="winner">{auction.winner.username}</dd>
+              </div>
+            )}
+          </dl>
+        </section>
         <h2>Bid history</h2>
         <BidHistory bids={bids} />
         <Messages auctionId={auction.id} sellerId={auction.seller.id} closed={auction.status === 'ended' || auction.status === 'cancelled'} onClosed={load} />
       </div>
-      <aside className="card">
-        <div className="row spread">
-          <StatusBadge status={auction.status} /> <NewTag status={auction.status} startTime={auction.startTime} />
-          <Countdown status={auction.status} startTime={auction.startTime} endTime={auction.endTime} onElapsed={load} />
-        </div>
-        <h1 style={{ marginTop: '0.75rem' }}>{auction.name}</h1>
-        <p className="muted small">
-          Sold by <strong>{auction.seller.username}</strong>
-          {auction.goods.category && ` · ${auction.goods.category.name}`}
-          {auction.goods.condition && ` · ${CONDITION_LABELS[auction.goods.condition] ?? auction.goods.condition}`}
-        </p>
-        <dl className="facts">
-          <dt>{auction.currentPrice ? 'Current bid' : 'Starting price'}</dt>
-          <dd className="big" data-testid="current-price">
-            {money(auction.currentPrice ?? auction.initialPrice)}
-          </dd>
-          <dt>Bids</dt>
-          <dd data-testid="bid-count">{auction.bidCount}</dd>
-          {auction.nextMinBid != null && (
-            <>
-              <dt>Minimum next bid</dt>
-              <dd data-testid="next-min-bid">{money(auction.nextMinBid)}</dd>
-            </>
-          )}
-          <dt>Starts</dt>
-          <dd>{new Date(auction.startTime).toLocaleString()}</dd>
-          <dt>Ends</dt>
-          <dd data-testid="end-time">{new Date(auction.endTime).toLocaleString()}</dd>
-          {auction.winner && (
-            <>
-              <dt>Winner</dt>
-              <dd data-testid="winner">{auction.winner.username}</dd>
-            </>
-          )}
-        </dl>
-        <BidPanel auction={auction} bids={bids} onReload={load} />
-        <CancelAuction auction={auction} onDone={load} />
-      </aside>
     </div>
   );
 }

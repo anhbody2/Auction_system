@@ -40,6 +40,7 @@ the nav folds behind a menu button (`data-testid="nav-toggle"`).
 | `SearchInput` | Rounded search box with icon; visually hidden label. |
 | `MoneyText` | Tabular figures; `signed` adds +/- with steel/crimson; `size` lg/xl. |
 | `ConfirmDialog` | (ui-1a.3) role=dialog, aria-modal; focus on confirm, Escape / Cancel / backdrop close. |
+| `Gallery` (components/Gallery.tsx) | (ui-1b.1) hero + thumbnails + '+N' lightbox. |
 | `initials()` | First letters of the first two words of fullName, else first two letters of username. |
 
 Buttons: `.btn-primary` (navy), `.btn-danger` (crimson, dark red hover), `.btn-steel` (steel-light quick buttons), `.btn-ghost`.
