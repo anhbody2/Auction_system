@@ -33,7 +33,7 @@ test('rt-001: two viewers see each other\'s bids without reloading', async ({ pa
   // carol bids; bob's page updates
   await carol.getByRole('button', { name: 'Place bid' }).click();
   await expectState(carol, '$100.00', '$110.00', '1', 'carol');
-  await expect(carol.getByTestId('my-standing')).toHaveText('You are the leading bidder');
+  await expect(carol.getByTestId('my-standing')).toHaveText("You're the highest bidder.");
   await expectState(bob, '$100.00', '$110.00', '1', 'carol');
   await expect(bob.getByLabel('Your bid')).toHaveValue('110');
   await expect(bob.getByTestId('my-standing')).toHaveCount(0);
@@ -41,16 +41,16 @@ test('rt-001: two viewers see each other\'s bids without reloading', async ({ pa
   // bob bids; carol's page updates and shows she is outbid
   await bob.getByRole('button', { name: 'Place bid' }).click();
   await expectState(bob, '$110.00', '$120.00', '2', 'bob');
-  await expect(bob.getByTestId('my-standing')).toHaveText('You are the leading bidder');
+  await expect(bob.getByTestId('my-standing')).toHaveText("You're the highest bidder.");
   await expectState(carol, '$110.00', '$120.00', '2', 'bob');
-  await expect(carol.getByTestId('my-standing')).toHaveText('You have been outbid');
+  await expect(carol.getByTestId('my-standing')).toHaveText("You've been outbid.");
   await expect(carol.getByTestId('bid-history').getByRole('row').nth(2)).toContainText('outbid');
   await expect(carol.getByLabel('Your bid')).toHaveValue('120');
 
   // A bid from outside any page (the API) is pushed to both
   expect((await carol.request.post(`/api/auctions/${auction.id}/bids`, { data: { amount: 150 } })).status()).toBe(201);
   await expectState(bob, '$150.00', '$160.00', '3', 'carol');
-  await expect(bob.getByTestId('my-standing')).toHaveText('You have been outbid');
+  await expect(bob.getByTestId('my-standing')).toHaveText("You've been outbid.");
   await expectState(carol, '$150.00', '$160.00', '3', 'carol');
 
   // bob's stale bid of the old minimum is refused and the panel shows the current minimum

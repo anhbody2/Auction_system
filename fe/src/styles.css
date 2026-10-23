@@ -369,3 +369,22 @@ th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: u
 .lot-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.75rem; margin: 1rem 0 0; padding: 1rem 0 0; border-top: 1px solid var(--border); }
 .lot-facts dt { font-size: 0.72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
 .lot-facts dd { margin: 0.15rem 0 0; font-weight: 700; }
+
+/* ui-1b.2 bid panel */
+.bid-panel { display: flex; flex-direction: column; gap: 0.9rem; }
+.bid-panel-price .row { align-items: baseline; gap: 0.6rem; }
+.bid-change { font-weight: 800; color: var(--steel-ink); background: var(--steel-light); border-radius: 999px; padding: 0.1rem 0.5rem; font-size: 0.85rem; }
+.bid-form { gap: 0.75rem; }
+.money-input { display: flex; align-items: center; border: 1px solid var(--border); border-radius: 12px; background: var(--steel-lighter); padding: 0 0.8rem; }
+.money-input:focus-within { outline: 2px solid var(--navy); outline-offset: -1px; background: #fff; }
+.money-input span { font-weight: 900; font-size: 1.3rem; color: var(--muted); }
+.money-input input { border: none; background: transparent; font-size: 1.3rem; font-weight: 900; padding: 0.6rem 0.4rem; width: 100%; min-width: 0; outline: none; }
+.money-input input[aria-invalid='true'] { color: var(--crimson); }
+.quick-bids { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+.quick-bids .btn { padding: 0.5rem 0.3rem; font-size: 0.88rem; }
+.bid-error { margin: 0; background: var(--cream); color: var(--crimson); border-radius: 10px; padding: 0.55rem 0.75rem; font-weight: 700; font-size: 0.9rem; }
+.bid-submit { width: 100%; padding: 0.8rem 1rem; font-size: 1rem; }
+.bid-standing { margin: 0; border-radius: 10px; padding: 0.5rem 0.75rem; font-weight: 800; font-size: 0.9rem; }
+.bid-standing.is-leading { background: var(--steel-light); color: var(--steel-ink); }
+.bid-standing.is-outbid { background: var(--cream); color: var(--crimson); }
+.bid-footnote { margin: 0; text-align: center; }

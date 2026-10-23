@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { CONDITION_LABELS, money } from '../api';
-import { Countdown, NewTag, StatusBadge } from '../components/AuctionBits';
+import { CONDITION_LABELS } from '../api';
+import { NewTag, StatusBadge } from '../components/AuctionBits';
 import { BidHistory, BidPanel } from '../components/BidPanel';
 import { CancelAuction } from '../components/CancelAuction';
 import { Gallery } from '../components/Gallery';
@@ -55,23 +55,6 @@ export function AuctionDetailPage() {
       </div>
       <aside className="lot-aside">
         <div className="ui-card">
-          <div className="row spread">
-            <Countdown status={auction.status} startTime={auction.startTime} endTime={auction.endTime} onElapsed={load} />
-          </div>
-          <dl className="facts">
-            <dt>{auction.currentPrice ? 'Current bid' : 'Starting price'}</dt>
-            <dd className="big" data-testid="current-price">
-              {money(auction.currentPrice ?? auction.initialPrice)}
-            </dd>
-            <dt>Bids</dt>
-            <dd data-testid="bid-count">{auction.bidCount}</dd>
-            {auction.nextMinBid != null && (
-              <>
-                <dt>Minimum next bid</dt>
-                <dd data-testid="next-min-bid">{money(auction.nextMinBid)}</dd>
-              </>
-            )}
-          </dl>
           <BidPanel auction={auction} bids={bids} onReload={load} />
           <CancelAuction auction={auction} onDone={load} />
         </div>
