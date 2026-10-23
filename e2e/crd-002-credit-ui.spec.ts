@@ -44,7 +44,7 @@ test('crd-002: a bid changes Locked credit but not Credit; Credit drops only whe
   await expect(page.getByTestId('header-credit')).toHaveText('$1,000.00');
   await expectCreditEverywhere(page, '$1,000.00', '$100.00');
   // The ledger's hold row leaves Credit after unchanged.
-  await expect(page.getByTestId('transactions').getByRole('row').nth(1)).toContainText('hold');
+  await expect(page.getByTestId('transactions').getByRole('row').nth(1)).toContainText('Hold');
   await expect(page.getByTestId('transactions').getByRole('row').nth(1).getByRole('cell').last()).toHaveText('$1,000.00');
 
   // Close with this bidder as winner.
@@ -52,6 +52,6 @@ test('crd-002: a bid changes Locked credit but not Credit; Credit drops only whe
   const raw = async () => (await (await page.request.get(`/api/dev/auctions/${auction.id}/raw`)).json()).status;
   await expect.poll(raw, { timeout: 15_000 }).toBe('ended');
   await expectCreditEverywhere(page, '$900.00', '$0.00');
-  await expect(page.getByTestId('transactions').getByRole('row').nth(1)).toContainText('payment');
+  await expect(page.getByTestId('transactions').getByRole('row').nth(1)).toContainText('Purchase');
   await expect(page.getByTestId('transactions').getByRole('row').nth(1).getByRole('cell').last()).toHaveText('$900.00');
 });

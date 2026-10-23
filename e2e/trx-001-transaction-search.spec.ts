@@ -11,9 +11,17 @@ const daysAgo = (n: number) => {
   return localDay(d);
 };
 
-const rowIds = (page: Page) => page.locator('[data-testid^="tx-"] td:first-child').allTextContents();
+// ui-3b.2: the id sits under each row's description as '#<id>'.
+const rowIds = async (page: Page) => (await page.getByTestId('transactions').getByTestId('tx-id').allTextContents()).map((s) => s.replace('#', ''));
+
+/** ui-3b.2: the date / name / id / amount fields sit behind 'More filters' on the Credit page. */
+async function openMoreFilters(page: Page) {
+  const more = page.locator('details.more-filters');
+  if (!(await more.evaluate((el) => (el as HTMLDetailsElement).open))) await more.locator('summary').click();
+}
 
 async function search(page: Page, fields: Partial<Record<'Name' | 'Transaction ID' | 'Min amount' | 'Max amount' | 'From', string>>) {
+  await openMoreFilters(page);
   const form = page.getByRole('search', { name: 'Search transactions' });
   await form.getByRole('button', { name: 'Clear' }).click();
   for (const [label, value] of Object.entries(fields)) await form.getByLabel(label, { exact: true }).fill(value);
@@ -38,6 +46,7 @@ test('trx-001: a customer searches transactions by id, name, amount range and al
   expect((await page.request.post(`/api/auctions/${auction.id}/bids`, { data: { amount: 40 } })).status()).toBe(201);
 
   await page.goto('/credit');
+  await openMoreFilters(page);
   // Default: last 30 days, all 4 rows (3 top-ups + the bid hold)
   await expect(page.getByTestId('tx-total')).toHaveText('4 transactions · page 1 of 1');
   const form = page.getByRole('search', { name: 'Search transactions' });
@@ -52,7 +61,7 @@ test('trx-001: a customer searches transactions by id, name, amount range and al
   // By name (auction name)
   await search(page, { Name: lamp });
   await expect(page.getByTestId('tx-total')).toHaveText('1 transaction · page 1 of 1');
-  await expect(page.getByTestId('transactions')).toContainText('hold');
+  await expect(page.getByTestId('transactions')).toContainText('Hold');
 
   // By amount range: $60 - $250 -> the 200 and 75 top-ups
   await search(page, { 'Min amount': '60', 'Max amount': '250' });

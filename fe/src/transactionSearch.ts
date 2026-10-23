@@ -14,6 +14,9 @@ export interface TransactionFilterValues {
   id: string;
   min: string;
   max: string;
+  /** ui-3b.2: one text box (lot name, transaction id or amount) and a transaction type ('' = all). */
+  q: string;
+  type: string;
 }
 
 /** Local calendar day (YYYY-MM-DD) of a date. */
@@ -30,7 +33,25 @@ export function earliestDay(today: Date) {
 }
 
 export function defaultFilter(today = new Date()): TransactionFilterValues {
-  return { from: earliestDay(today), to: localDay(today), name: '', id: '', min: '', max: '' };
+  return { from: earliestDay(today), to: localDay(today), name: '', id: '', min: '', max: '', q: '', type: '' };
+}
+
+/**
+ * ui-3b.2: date range presets for the transactions panel, derived from the search window (never longer than
+ * it): the last 7, 14 and SEARCH_WINDOW_DAYS days, each ending today.
+ */
+export function datePresets(today = new Date()) {
+  const days = [...new Set([7, 14, SEARCH_WINDOW_DAYS])].filter((d) => d <= SEARCH_WINDOW_DAYS).sort((a, b) => a - b);
+  return days.map((d) => {
+    const from = new Date(today);
+    from.setDate(from.getDate() - d);
+    return { days: d, label: `Last ${d} days`, from: localDay(from), to: localDay(today) };
+  });
+}
+
+/** Which preset a from/to pair is, or 'custom'. */
+export function presetFor(v: Pick<TransactionFilterValues, 'from' | 'to'>, today = new Date()) {
+  return datePresets(today).find((p) => p.from === v.from && p.to === v.to)?.days ?? 'custom';
 }
 
 export type FilterErrors = Partial<Record<keyof TransactionFilterValues, string>>;

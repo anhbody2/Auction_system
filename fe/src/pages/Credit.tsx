@@ -3,14 +3,16 @@ import { useSearchParams } from 'react-router-dom';
 import { ApiError, api, money } from '../api';
 import { cleanAmount, formatTyping } from '../bidMath';
 import { QUICK_AMOUNTS, checkCreditRequest, isCreditMode, quickText, submitLabel, type CreditMode } from '../creditForm';
-import { Card, SegmentedTabs } from '../components/ui';
+import { Card, SearchInput, SegmentedTabs } from '../components/ui';
+import { TYPE_ORDER, typeLabel } from '../transactionTypes';
 import { TransactionSearch } from '../components/TransactionSearch';
-import { Pager, TransactionTable, type Tx, type TxPage } from '../components/TransactionTable';
+import { TransactionList } from '../components/TransactionList';
+import { Pager, type Tx, type TxPage } from '../components/TransactionTable';
 import { useAuth } from '../auth';
 import { useAppDispatch } from '../store';
 import { creditLoaded } from '../store/creditSlice';
 import { useToast } from '../toast';
-import { defaultFilter, filterQuery, type FilterErrors, type TransactionFilterValues } from '../transactionSearch';
+import { datePresets, defaultFilter, filterQuery, presetFor, type FilterErrors, type TransactionFilterValues } from '../transactionSearch';
 
 interface Summary {
   balance: number;
@@ -124,6 +126,16 @@ export function CreditPage() {
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<TxPage | null>(null);
   const [serverErrors, setServerErrors] = useState<FilterErrors>({});
+  // ui-3b.2: the search box applies 300 ms after typing stops.
+  const [qText, setQText] = useState('');
+  const [moreOpen, setMoreOpen] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setFilter((f) => (f.q === qText.trim() ? f : { ...f, q: qText.trim() }));
+      setPage((p) => (p === 1 ? p : 1));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [qText]);
 
   const loadSummary = useCallback(() => {
     api<Summary>('/credit').then(setData);
@@ -195,25 +207,73 @@ export function CreditPage() {
         </div>
         <div className="credit-main">
       <h2>Transaction history</h2>
-      <TransactionSearch
-        serverErrors={serverErrors}
-        onSearch={(f) => {
-          setFilter(f);
-          setPage(1);
-        }}
-      />
-      {!result ? (
-        <p className="muted">Loading...</p>
-      ) : result.transactions.length === 0 ? (
-        <p className="muted" data-testid="tx-empty">
-          {JSON.stringify(filter) === JSON.stringify(defaultFilter()) ? 'No transactions yet.' : 'No transactions match.'}
-        </p>
-      ) : (
-        <>
-          <TransactionTable rows={result.transactions} />
-          <Pager page={result.page} pageSize={result.pageSize} total={result.total} onPage={setPage} />
-        </>
-      )}
+      <div className="ui-card tx-panel">
+        <div className="tx-controls">
+          <div className="tx-q">
+            <SearchInput value={qText} onChange={setQText} placeholder="Search by lot, ID or amount" label="Search by lot, ID or amount" testId="tx-q" />
+          </div>
+          <label className="tx-range">
+            <span className="sr-only">Date range</span>
+            <select
+              value={String(presetFor(filter))}
+              onChange={(e) => {
+                const preset = datePresets().find((p) => String(p.days) === e.target.value);
+                if (preset) {
+                  setFilter((f) => ({ ...f, from: preset.from, to: preset.to }));
+                  setPage(1);
+                } else setMoreOpen(true);
+              }}
+              data-testid="tx-range"
+            >
+              {datePresets().map((p) => (
+                <option key={p.days} value={p.days}>
+                  {p.label}
+                </option>
+              ))}
+              <option value="custom">Custom dates</option>
+            </select>
+          </label>
+        </div>
+        <div className="chip-bar">
+          <SegmentedTabs
+            tabs={[{ value: '', label: 'All' }, ...TYPE_ORDER.map((t) => ({ value: t, label: typeLabel(t) }))]}
+            value={filter.type}
+            onChange={(t) => {
+              setFilter((f) => ({ ...f, type: t }));
+              setPage(1);
+            }}
+            label="Transaction type"
+            testId="tx-types"
+          />
+        </div>
+        <details className="more-filters" open={moreOpen} onToggle={(e) => setMoreOpen((e.target as HTMLDetailsElement).open)}>
+          <summary>More filters</summary>
+          <TransactionSearch
+            serverErrors={serverErrors}
+            onSearch={(f) => {
+              // The form owns dates, name, id and amounts; the search box and chip keep their values.
+              setFilter((cur) => ({ ...f, q: cur.q, type: cur.type }));
+              setPage(1);
+            }}
+            onClear={() => {
+              setQText('');
+              setFilter(defaultFilter());
+            }}
+          />
+        </details>
+        {!result ? (
+          <p className="muted">Loading...</p>
+        ) : result.transactions.length === 0 ? (
+          <p className="muted" data-testid="tx-empty">
+            {JSON.stringify(filter) === JSON.stringify(defaultFilter()) ? 'No transactions yet.' : 'No transactions match.'}
+          </p>
+        ) : (
+          <>
+            <TransactionList rows={result.transactions} />
+            <Pager page={result.page} pageSize={result.pageSize} total={result.total} onPage={setPage} />
+          </>
+        )}
+      </div>
         </div>
       </div>
     </div>

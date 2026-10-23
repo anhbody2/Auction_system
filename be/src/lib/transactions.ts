@@ -9,6 +9,9 @@ export const WINDOW_MESSAGE = `Date must be within the last ${SEARCH_WINDOW_DAYS
 export const MIN_AMOUNT_MESSAGE = 'Minimum amount must be at least $1';
 export const MAX_AMOUNT_MESSAGE = 'Maximum amount must be at least the minimum';
 const DAY_MS = 24 * 3600 * 1000;
+/** ui-3b.2: the type chips (every credit transaction type, lib/credit.ts CreditType). */
+export const TRANSACTION_TYPES = ['topup', 'withdraw', 'hold', 'release', 'payment', 'payout', 'adjustment'] as const;
+export const TYPE_MESSAGE = 'Unknown transaction type';
 
 const optionalText = z
   .string()
@@ -45,6 +48,15 @@ export function transactionFilterSchema(now = new Date()) {
         .refine((s) => s === undefined || /^\d{1,18}$/.test(s), 'Transaction id must be a number'),
       min: optionalAmount(MIN_AMOUNT_MESSAGE),
       max: optionalAmount(MAX_AMOUNT_MESSAGE),
+      // ui-3b.2: one text box (name or description; also the id or the amount when it is a number) and a
+      // comma-separated list of types. The fields above keep working for other callers (staff list stf-008).
+      q: optionalText,
+      type: z
+        .string()
+        .trim()
+        .optional()
+        .transform((s) => (s ? s.split(',').map((t) => t.trim()).filter(Boolean) : undefined))
+        .refine((list) => list === undefined || list.every((t) => (TRANSACTION_TYPES as readonly string[]).includes(t)), TYPE_MESSAGE),
       page: z.coerce.number().int().min(1).default(1),
       pageSize: z.coerce.number().int().min(1).max(100).default(20),
     })
@@ -69,6 +81,17 @@ export function transactionWhere(f: TransactionFilter, extra: Prisma.CreditTrans
   if (has) and.push({ OR: [{ auction: { name: has } }, { description: has }] });
   if (f.id) and.push({ id: BigInt(f.id) });
   if (f.min !== undefined || f.max !== undefined) and.push({ amount: { gte: f.min, lte: f.max } });
+  if (f.type?.length) and.push({ transactionType: { in: f.type } });
+  if (f.q) {
+    const text = { contains: f.q, mode: 'insensitive' as const };
+    const any: Prisma.CreditTransactionWhereInput[] = [{ auction: { name: text } }, { description: text }];
+    // '#123' is a transaction id only; a bare number is an id or an amount ('$' and ',' allowed).
+    const idOnly = f.q.startsWith('#');
+    const number = f.q.replace(/^#|[$,]/g, '');
+    if (/^\d{1,18}$/.test(number)) any.push({ id: BigInt(number) });
+    if (!idOnly && /^\d+(\.\d{1,2})?$/.test(number)) any.push({ amount: Number(number) });
+    and.push({ OR: any });
+  }
   return { AND: and };
 }
 

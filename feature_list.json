@@ -456,7 +456,11 @@
         "docs/changes/ui-3b.2.md"
       ],
       "notes": "Mockup chips are All / Top up / Withdraw / Hold / Purchase; the system has more types, so all real types get a chip. 'Last 90 days ▾' becomes presets bounded by the SRS search window.",
-      "status": "not_started"
+      "evidence": [
+        "2026-10-23 ./init.sh exit 0: be vitest 72 files / 353 tests (credit.transactions-q 5: q by name, id with/without #, amount incl. $ and decimals, '#120' id only, type list and 400, combined with dates, window and user scope enforced, old params unchanged), fe vitest 25 files / 159 tests (TransactionSearch 9: q/type sent only when set, presets from the 30-day window, presetFor), fe build ok, Playwright 96/96 incl. ui-3b-2-transactions (signed coloured amounts, balance after, #id, 8 type chips filtering, search by lot / #id / amount, chip + search combined, presets 7/14/30 + Custom dates, 21 rows paginate 20 + 1, 375px) and trx-001, crd-001/002, cust-005, stf-007, stf-008, sys-003",
+        "2026-10-23 Found while testing: '#40' also matched a $40 amount; '#' now means transaction id only. Older specs updated: trx-001 opens 'More filters' and reads ids from tx-id; type text is the shared label (Hold, Purchase, Withdraw) in trx-001, crd-002, cust-005"
+      ],
+      "status": "passing"
     }
   ]
 }

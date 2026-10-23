@@ -44,7 +44,7 @@ test('cust-005: customer views balance/history, tops up, and withdraws', async (
   await expect(page.getByTestId('credit-balance')).toHaveText('$179.75');
   const rows = page.getByTestId('transactions').getByRole('row');
   await expect(rows).toHaveCount(3);
-  await expect(rows.nth(1)).toContainText('withdraw');
+  await expect(rows.nth(1)).toContainText('Withdraw');
   await expect(rows.nth(1)).toContainText('-$120.25');
 
   // Persisted

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { money } from '../api';
+import { typeLabel } from '../transactionTypes';
 
 export interface Tx {
   id: number;
@@ -64,7 +65,7 @@ export function TransactionTable<T extends Tx>({
               <td>{t.id}</td>
               <td>{new Date(t.createdAt).toLocaleString()}</td>
               <td>
-                <span className="badge">{t.transactionType}</span>
+                <span className="badge">{typeLabel(t.transactionType)}</span>
                 {t.status && t.status !== 'posted' && (
                   <>
                     {' '}
