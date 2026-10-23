@@ -33,3 +33,15 @@ edited and deleted, have no "Auction it" button, and are left out of the create-
 
 Customers get 403 on every route. UI: /staff/goods (list), /staff/goods/:id (view, approve/reject, edit, delete),
 /staff/goods/new (add for a seller); nav link "Goods".
+
+## Real time (stf-009, stf-010)
+
+Every change to the approval queue is pushed to staff (docs/realtime.md "Staff approval stream"): new and
+resubmitted goods appear on /staff/goods without a reload, decisions update rows in place, the "Goods" nav link
+shows the pending count, and an open detail page says when someone else decided it ("Approved by admin just now")
+and disables Approve/Reject.
+
+The seller hears about the decision on their own stream (`goods-reviewed` on /api/me/events, sent after the review
+commits): My goods replaces that row (status, rejection reason, "Auction it" for approved goods), a toast says
+'Your goods "<name>" were approved' or '... were rejected: <reason>' on any page, and an open create-auction form
+reloads its goods list when goods are approved. The email (stf-005) is still sent.

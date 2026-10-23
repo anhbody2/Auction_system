@@ -4,6 +4,10 @@ State: round 1 (14 features) and round 2 (bid-003, sys-001, sys-002, sys-003) ar
 `progress-feature-list/feature_list_1.json` and `feature_list_2.json`.
 Round 3 (SRS 3.19-3.21: staff statistics, admin users, security; 11 features) is passing and archived to `progress-feature-list/feature_list_3.json`.
 Rounds 4-6 are passing and archived to `progress-feature-list/feature_list_4.json` .. `feature_list_6.json` (round 6: buyer column, transaction search, new tag, staff auctions/goods/credit, Axios, Gmail OAuth2 mail).
+Round 7 is passing and archived to `progress-feature-list/feature_list_7.json`: rotating refresh tokens (sec-003,
+docs/session-tokens.md), idle tracking hook and 30-minute idle logout with a warning (sec-004/005,
+docs/idle-logout.md), real-time approval queues for staff and requesters (stf-009/010, docs/realtime.md), change
+password by emailed link + check-mail screen (mail-004, docs/mail.md).
 Mail: real Gmail settings live only in be/.env (docs/mail.md); vitest and Playwright blank them so tests use the dev outbox.
 Note: root package.json `overrides` pin is-generator-function/is-async-function so tsx can load exceljs on Node 20.19+ (see claude-progress Session 005 stf-002).
 `./init.sh` exits 0 (152 vitest + fe build + 29 Playwright). Stop any running `npm run dev` first (Prisma DLL lock on Windows).
@@ -31,6 +35,9 @@ Note: root package.json `overrides` pin is-generator-function/is-async-function 
 | Permissions (sec-002) | be/src/lib/permissions.ts, middleware/auth.ts requirePermission, routes/admin.ts | auth.tsx can(); pages/AdminPermissions | sec.permissions, e2e sec-002 |
 | Admin users (adm-*) | be/src/routes/adminUsers.ts | pages/AdminUsers, AdminUserDetail | admin.users.*, e2e adm-* |
 | Staff statistics (stf-*) | be/src/lib/statistics.ts, routes/staff.ts | pages/StaffStatistics | staff.*, e2e stf-* |
+| Sessions, refresh tokens (sec-003) | be/src/lib/session.ts, routes/auth.ts | api.ts refreshSession, store/authedStream.ts | auth.refresh/logout/revoke, e2e sec-003 |
+| Idle logout (sec-004/005) | (logout reason 'idle') | idle.ts, useIdleTimer.ts, idleSession.ts, components/IdleWarning.tsx, auth.tsx | idle.test, idleSession.test, e2e sec-004/005 |
+| Approval realtime (stf-009/010) | lib/approvalEvents.ts, routes/staffApprovals.ts | store/approvalsSlice.ts, useStaffEvents.ts, useUserEvents.ts, requestToasts.ts | staff.events, staff.pending-counts, goods.review-events, e2e stf-009/010 |
 | Dev helpers | be/src/routes/dev.ts (outbox, expire auction) | n/a | used by e2e |
 
 To start new work, create a fresh `feature_list.json` at the root (CLAUDE.md startup expects it) and record progress with `node scripts/feature.js <id> <status> "evidence..."`.

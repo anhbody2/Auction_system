@@ -1,5 +1,5 @@
 import { prisma } from '../db';
-import { publishStaffEvent } from './events';
+import { publishStaffEvent, publishUserEvent } from './events';
 
 /**
  * stf-009 (SRS Staff - request Approve: "Turn all request Approve to realtime"): the two approval queues, goods
@@ -62,4 +62,17 @@ export async function publishCreditRequest(
   } catch (err) {
     console.error('credit-request event failed', err);
   }
+}
+
+/**
+ * stf-010: the requester's side. The seller hears about the decision on their own stream (/api/me/events):
+ * My Goods updates the row and a toast says what happened, on whatever page they are.
+ */
+export function publishGoodsReviewed(goods: { id: bigint; name: string; status: string; rejectionReason: string | null; seller: { id: bigint } }) {
+  const status = goods.status === 'active' ? 'approved' : 'rejected';
+  publishUserEvent(goods.seller.id, {
+    type: 'goods-reviewed',
+    id: eventId('goods-reviewed', goods.id, status),
+    data: { id: goods.id, name: goods.name, status, reason: status === 'rejected' ? goods.rejectionReason : null },
+  });
 }

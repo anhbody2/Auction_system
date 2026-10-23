@@ -181,8 +181,11 @@
         "docs/realtime.md and docs/goods-approval.md updated; docs/changes/stf-010.md"
       ],
       "notes": "Depends on stf-009 only for shared helpers; can be built after it.",
-      "status": "not_started",
-      "evidence": []
+      "status": "passing",
+      "evidence": [
+        "2026-10-23 be vitest 66 files: 327/329; new goods.review-events (3: approve and reject each send one goods-reviewed to the seller only after commit, a 400 review sends nothing, rejected credit event carries the reason) passes; the 2 failures are staff.credit.crud from the user's uncommitted reason->context rename",
+        "2026-10-23 fe vitest 12 files / 88 tests (requestToasts.test 3); fe build ok; Playwright 61/62 incl. stf-010-requester-realtime: My Goods row pending -> available with 'Auction it' and the approval toast, rejected row with 'Reason: Blurry photo' and toast, create-auction dropdown gains goods approved while open, top-up approval toast + header credit change, withdrawal rejection toast with reason, page never reloaded; existing stf-005, stf-007, crd-003 pass. Only failure: stf-008 (user WIP)"
+      ]
     },
     {
       "id": "mail-004",

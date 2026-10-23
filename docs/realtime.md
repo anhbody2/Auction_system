@@ -143,4 +143,16 @@ Pages:
 - /staff/credit pending requests: `created` reloads the queue; a decision by someone else replaces the row's
   buttons with `decided-elsewhere`; the transaction table refreshes. /staff/credit/:id shows the same note.
 
+### Requester side (stf-010)
+
+The customer who made the request hears about the decision on their own stream (`/api/me/events`):
+
+| Event | Data | Client |
+|---|---|---|
+| `goods-reviewed` (new) | `{ id, name, status: 'approved' \| 'rejected', reason }` | `useUserEvents`: toast, then window event `goods-reviewed`; My goods reloads that one row (`GET /api/goods/:id`), the create-auction form reloads its available goods on `approved`. |
+| `credit-request` (stf-007, now with `reason`) | `{ id, status, type, amount, reason, balance, held }` | Credit figures and /credit as before; plus a toast "Your top-up of $25.00 was approved" / "Your withdrawal of $5.00 was rejected: <reason>" (only for approved or rejected top-ups and withdrawals). |
+
+Toast wording lives in fe/src/requestToasts.ts. Staff and admin have no own goods or credit requests in the UI,
+so their user stream is not opened (it is customer-only, as before).
+
 Store slices now: `auction`, `credit` and `approvals`.

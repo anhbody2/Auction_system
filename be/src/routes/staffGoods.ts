@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db';
-import { publishGoodsRequest } from '../lib/approvalEvents';
+import { publishGoodsRequest, publishGoodsReviewed } from '../lib/approvalEvents';
 import { effectiveStatus } from '../lib/auctions';
 import { GOODS_STATUSES, IN_AUCTION_MESSAGE, checkGoodsRefs, goodsSchema } from '../lib/goods';
 import { HttpError, asyncHandler } from '../lib/http';
@@ -192,6 +192,7 @@ async function review(id: bigint, staffId: bigint, decision: 'active' | 'rejecte
   });
   // After commit: other staff see the decision at once (stf-009); the decision stands even if the mail fails.
   await publishGoodsRequest(decision === 'active' ? 'approved' : 'rejected', goods, goods.reviewedBy);
+  publishGoodsReviewed(goods);
   const subject = decision === 'active' ? `Your goods "${goods.name}" were approved` : `Your goods "${goods.name}" were not approved`;
   const text =
     decision === 'active'

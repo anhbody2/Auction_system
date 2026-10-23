@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApiError, CONDITION_LABELS, GOODS_STATUS_LABELS, api, type Goods } from '../api';
 import { EMPTY_GOODS, GoodsForm, type GoodsValues } from '../components/GoodsForm';
+import type { GoodsReviewedEvent } from '../requestToasts';
 import { useToast } from '../toast';
 
 export function GoodsStatusBadge({ status, bought = false }: { status: Goods['status']; bought?: boolean }) {
@@ -22,6 +23,18 @@ export function MyGoodsPage() {
     api<{ goods: Goods[] }>('/me/goods').then((r) => setGoods(r.goods));
   }, []);
   useEffect(load, [load]);
+
+  // stf-010: staff decided one of these goods; that row (status, reason, 'Auction it') updates in place.
+  useEffect(() => {
+    const onReviewed = (e: Event) => {
+      const { id } = (e as CustomEvent<GoodsReviewedEvent>).detail;
+      api<{ goods: Goods }>(`/goods/${id}`)
+        .then((r) => setGoods((list) => list && list.map((g) => (g.id === id ? r.goods : g))))
+        .catch(() => load());
+    };
+    window.addEventListener('goods-reviewed', onReviewed);
+    return () => window.removeEventListener('goods-reviewed', onReviewed);
+  }, [load]);
 
   return (
     <div>

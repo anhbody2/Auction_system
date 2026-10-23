@@ -444,3 +444,12 @@
 - Commit note: be/src/routes/staffCredit.ts and fe/src/pages/StaffCredit.tsx were staged without the user's in-progress reason->context rename (working tree untouched)
 - Untracked user files left alone: SRS-2.txt, claude-2.md
 - Next best step: stf-010 (requester-side realtime: goods-reviewed user event, toasts, My Goods live update)
+
+### Session 013 (cont.) stf-010 and round 7 status
+
+- Completed stf-010: goods-reviewed user event (after commit) -> toast on any page + My Goods row replaced in place + create-auction dropdown reload on approval; credit-request user event now carries the rejection reason and shows a toast for approved/rejected top-ups and withdrawals
+- Verification: be 327/329, fe 88, build ok, Playwright 61/62. All failures (staff.credit.crud x2, stf-008) come from the user's uncommitted reason->context rename in be/src/routes/staffCredit.ts + fe/src/pages/StaffCredit.tsx; nothing from round 7
+- Round 7: 6/6 passing (sec-003, sec-004, sec-005, stf-009, stf-010, mail-004). feature_list.json archived as progress-feature-list/feature_list_7.json
+- Environment note: Docker's port 5436 forward dropped connections a few times on 2026-10-23 ("Can't reach database server"); reruns were clean
+- Left for the user (uncommitted / untracked): staffCredit.ts + StaffCredit.tsx rename (also needs be/tests/staff.credit.crud.test.ts and e2e/stf-008-staff-credit.spec.ts updated to 'context'), ChangePassword.tsx whitespace, SRS-2.txt, claude-2.md
+- Next best step: new SRS round -> create a fresh feature_list.json at the root (SRS-2.txt may hold the next requirements)

@@ -73,7 +73,8 @@ export async function reviewCredit(id: bigint, staffId: bigint, decision: 'appro
   publishUserEvent(u.id, {
     type: 'credit-request',
     id: `${row.id}-${row.status}`,
-    data: { id: row.id, status: row.status, type: row.transactionType, amount: row.amount, balance: u.creditBalance, held: u.heldBalance },
+    // stf-010: the reason goes with a rejection so the customer's toast can say why.
+    data: { id: row.id, status: row.status, type: row.transactionType, amount: row.amount, reason: row.rejectionReason, balance: u.creditBalance, held: u.heldBalance },
   });
   const what = `${LABEL[row.transactionType as RequestType].toLowerCase()} request of $${row.amount.toFixed(2)}`;
   const text =

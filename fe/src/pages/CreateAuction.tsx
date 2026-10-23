@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ApiError, CONDITION_LABELS, api, type Auction, type Goods } from '../api';
 import { Field } from '../components/Field';
+import type { GoodsReviewedEvent } from '../requestToasts';
 import { useToast } from '../toast';
 
 type DurationUnit = 'hours' | 'days';
@@ -59,6 +60,16 @@ export function CreateAuctionPage() {
   }));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+
+  // stf-010: goods approved while the form is open become choosable without a reload.
+  useEffect(() => {
+    const onReviewed = (e: Event) => {
+      if ((e as CustomEvent<GoodsReviewedEvent>).detail.status !== 'approved') return;
+      api<{ goods: Goods[] }>('/me/goods?status=available').then((r) => setAvailable(r.goods));
+    };
+    window.addEventListener('goods-reviewed', onReviewed);
+    return () => window.removeEventListener('goods-reviewed', onReviewed);
+  }, []);
 
   useEffect(() => {
     api<{ goods: Goods[] }>('/me/goods?status=available').then(async (r) => {
