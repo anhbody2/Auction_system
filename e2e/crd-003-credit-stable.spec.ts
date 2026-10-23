@@ -4,6 +4,8 @@ import { createAuctionViaApi, login, logout, registerViaApi, topUpViaApi } from 
 /** Credit refetches the page could make: the user (/api/auth/me) or the credit summary. Streams are not counted. */
 const isCreditFetch = (r: Request) => {
   const path = new URL(r.url()).pathname;
+  // ui-2a.1: /api/me/summary (leading-bid count, pending request totals) carries no credit figures.
+  if (path === '/api/me/summary') return false;
   return r.method() === 'GET' && !path.endsWith('/events') && (path === '/api/auth/me' || path.startsWith('/api/me') || path === '/api/credit');
 };
 

@@ -19,6 +19,27 @@ meRouter.use(requireAuth);
 /** crd-003: the signed-in user's own events ('outbid', 'auction-finished') as Server-Sent Events. */
 meRouter.get('/events', (req, res) => streamUser(req, res, req.user!.id));
 
+/**
+ * ui-2a.1: dashboard figures beyond the credit balances: bids where the user holds the leading (active)
+ * ticket, and top-up / withdrawal requests still waiting for staff.
+ */
+meRouter.get(
+  '/summary',
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.id;
+    const [leadingBids, pending] = await Promise.all([
+      prisma.bidTicket.count({ where: { bidderId: userId, status: 'active', auction: { deletedAt: null } } }),
+      prisma.creditTransaction.groupBy({
+        by: ['transactionType'],
+        where: { userId, status: 'pending', transactionType: { in: ['topup', 'withdraw'] } },
+        _sum: { amount: true },
+      }),
+    ]);
+    const sum = (type: string) => Number(pending.find((p) => p.transactionType === type)?._sum.amount ?? 0);
+    res.json({ leadingBids, pendingTopup: sum('topup'), pendingWithdraw: sum('withdraw') });
+  }),
+);
+
 meRouter.get(
   '/profile',
   asyncHandler(async (req, res) => {

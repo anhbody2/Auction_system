@@ -12,7 +12,7 @@ test('cust-001: customer logs in, logs out, and is rejected with a wrong passwor
   await page.getByRole('button', { name: 'Log in' }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByTestId('current-user')).toHaveText('alice');
-  await expect(page.getByRole('heading', { name: /Welcome, Alice Seller/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Welcome back, Alice' })).toBeVisible();
 
   // 4. Log out, then wrong password
   await logout(page);

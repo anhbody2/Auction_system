@@ -33,7 +33,7 @@ test('sec-001: customer, staff and admin use one login page and land on their ow
   // Customer -> existing dashboard, no Staff or Admin links
   await loginOnPage(page, 'carol');
   await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(page.getByRole('heading', { name: /^Welcome, / })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Welcome back, / })).toBeVisible();
   await expect(nav.getByRole('link', { name: 'Dashboard' })).toBeVisible();
   await expect(nav.getByRole('link', { name: 'Statistics' })).toHaveCount(0);
   await expect(nav.getByRole('link', { name: 'Users' })).toHaveCount(0);

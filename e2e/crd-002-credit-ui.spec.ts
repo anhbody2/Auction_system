@@ -1,7 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
 import { createAuctionViaApi, login, logout, registerViaApi, topUpViaApi } from './helpers';
 
-/** Header pill, dashboard and /credit all show Credit and Locked credit, never 'Available credit'. */
+/**
+ * Header menu, dashboard and /credit all show Credit and Locked credit. ui-2a.1: the dashboard now also shows
+ * available credit (= credit - locked) as its headline, per the round 8 design; /credit still does not.
+ */
 async function expectCreditEverywhere(page: Page, credit: string, locked: string) {
   await page.goto('/dashboard');
   await expect(page.getByTestId('header-credit')).toHaveText(credit);
@@ -9,7 +12,9 @@ async function expectCreditEverywhere(page: Page, credit: string, locked: string
   await expect(page.getByTestId('dashboard-credit')).toHaveText(credit);
   await expect(page.getByTestId('dashboard-locked')).toHaveText(locked);
   await expect(page.getByText('Locked credit', { exact: true })).toBeVisible();
-  await expect(page.getByText(/available credit/i)).toHaveCount(0);
+  const toNumber = (s: string) => Number(s.replace(/[$,]/g, ''));
+  const available = toNumber(credit) - toNumber(locked);
+  await expect(page.getByTestId('dashboard-available')).toHaveText(`$${available.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
 
   await page.goto('/credit');
   await expect(page.getByTestId('credit-balance')).toHaveText(credit);

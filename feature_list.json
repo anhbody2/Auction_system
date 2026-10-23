@@ -286,7 +286,12 @@
         "docs/changes/ui-2a.1.md"
       ],
       "notes": "Reading to confirm: the mockup's third card is 'Pending payout' (seller money released after delivery). In this system the seller is credited when the auction closes (settlement), so there is never a pending payout. Pending credit requests are the closest real 'waiting' money; ask the user before building something else.",
-      "status": "not_started"
+      "evidence": [
+        "2026-10-23 npm run verify exit 0: be vitest 69 files / 343 tests (me.summary 3), fe vitest 21 files / 138 tests (creditBar 2), fe build ok, Playwright 85/85 incl. ui-2a-1-dashboard-credit (values vs Credit page, bid -> locked/available/leading count and 90/10 bar, outbid releases live, top-up pending then staff approval clears it and updates totals without reload, Add credit / Withdraw open /credit?mode=..., first-name greeting, empty bar, 375px)",
+        "2026-10-23 Older specs updated to the new dashboard: cust-001/sec-001 greeting 'Welcome back, <first name>'; crd-002 now checks the dashboard's available credit (= credit - locked) instead of its absence (round 8 design overrides the crd-002 wording rule on the dashboard only); crd-003 excludes /api/me/summary from its credit-refetch filter (it has no credit figures); cust-005 clicks the nav 'Credit' link exactly",
+        "2026-10-23 Decision applied without user confirmation: the 'Pending payout' card shows pending top-up/withdrawal requests (no payout state exists). ./init.sh install step skipped again (user's npm run dev holds the Prisma DLL)"
+      ],
+      "status": "passing"
     },
     {
       "id": "ui-2a.2",

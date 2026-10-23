@@ -11,7 +11,7 @@ async function approvePending(page: Page) {
 test('cust-005: customer views balance/history, tops up, and withdraws', async ({ page }) => {
   await registerViaApi(page.request, 'hank');
   await login(page, 'hank');
-  await page.getByRole('link', { name: 'Credit' }).click();
+  await page.locator('header nav').getByRole('link', { name: 'Credit', exact: true }).click();
 
   // Balance + history displayed
   await expect(page.getByTestId('credit-balance')).toHaveText('$0.00');
