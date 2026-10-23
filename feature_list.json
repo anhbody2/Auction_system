@@ -341,7 +341,11 @@
         "docs/changes/ui-2a.3.md"
       ],
       "notes": "Uses existing endpoints only; if a combined endpoint turns out to be needed for the Ended tab, add it with a be test and record it.",
-      "status": "not_started"
+      "evidence": [
+        "2026-10-23 npm run verify exit 0: be vitest 70 files / 346 tests, fe vitest 22 files / 143 tests (myAuctionsTabs 5), fe build ok, Playwright 89/89 incl. ui-2a-3-dashboard-auctions (bid -> Bidding Leading, carol outbids -> Outbid · Rebid without reload, Rebid focuses the input, own listing under Selling, ?tab=selling survives reload; createSoldAuction -> bob Ended 'Won' newest first, alice 'Sold' / 'Your lot' at 375px)",
+        "2026-10-23 Existing endpoints only (/api/me/bids, /api/me/auctions); no combined endpoint needed"
+      ],
+      "status": "passing"
     },
     {
       "id": "ui-3a.1",

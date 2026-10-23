@@ -4,6 +4,7 @@ import { api, money } from '../api';
 import { useAuth } from '../auth';
 import { share } from '../creditBar';
 import { GoodsOwned } from '../components/GoodsOwned';
+import { MyAuctionsCard } from '../components/MyAuctionsCard';
 import { Card } from '../components/ui';
 import { useCredit } from '../store/useCredit';
 import { CREDIT_REQUEST_EVENT } from './Credit';
@@ -89,6 +90,7 @@ export function DashboardPage() {
       </div>
       <div className="dash-lower">
         <GoodsOwned />
+        <MyAuctionsCard />
       </div>
     </div>
   );
