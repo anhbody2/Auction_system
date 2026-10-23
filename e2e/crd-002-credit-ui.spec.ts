@@ -3,7 +3,7 @@ import { createAuctionViaApi, login, logout, registerViaApi, topUpViaApi } from 
 
 /**
  * Header menu, dashboard and /credit all show Credit and Locked credit. ui-2a.1: the dashboard now also shows
- * available credit (= credit - locked) as its headline, per the round 8 design; /credit still does not.
+ * available credit (= credit - locked) as its headline, per the round 8 design; so does /credit (ui-3b.1).
  */
 async function expectCreditEverywhere(page: Page, credit: string, locked: string) {
   await page.goto('/dashboard');
@@ -19,8 +19,8 @@ async function expectCreditEverywhere(page: Page, credit: string, locked: string
   await page.goto('/credit');
   await expect(page.getByTestId('credit-balance')).toHaveText(credit);
   await expect(page.getByTestId('credit-held')).toHaveText(locked);
-  await expect(page.getByTestId('credit-available')).toHaveCount(0);
-  await expect(page.getByText(/available credit/i)).toHaveCount(0);
+  // ui-3b.1: the Credit page's balance card leads with available credit (= credit - locked).
+  await expect(page.getByTestId('credit-available')).toHaveText(`$${available.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
 }
 
 test('crd-002: a bid changes Locked credit but not Credit; Credit drops only when the auction closes', async ({ page }) => {

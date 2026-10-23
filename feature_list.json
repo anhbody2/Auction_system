@@ -426,7 +426,11 @@
         "docs/changes/ui-3b.1.md"
       ],
       "notes": "The mockup credits the balance instantly and shows 'Pay with Visa •• 4412' / '1-2 business days'. The system has no payment methods and every top-up/withdrawal is a staff-approved request (stf-007), so the button says 'Request', no card row is shown, and the balance waits for approval.",
-      "status": "not_started"
+      "evidence": [
+        "2026-10-23 ./init.sh exit 0: be vitest 71 files / 348 tests, fe vitest 25 files / 156 tests (creditForm 4), fe build ok, Playwright 94/94 incl. ui-3b-1-credit-form (empty amount refused inline, quick $1,000 fills input and button label, top-up pending with balance unchanged, staff approval updates balance and clears pending without reload, Withdraw tab in ?mode=withdraw with crimson button, over-available withdrawal refused inline, valid withdrawal pending, dashboard Withdraw opens the Withdraw tab, 375px stacked) and cust-005 / stf-007 / crd-002 / stf-010 / trx-001",
+        "2026-10-23 Older specs updated: cust-005 switches to the Withdraw tab and expects the inline over-credit message; crd-002 now checks /credit's available credit (= credit - locked) instead of its absence. Found while testing: the inline error now clears when the amount changes"
+      ],
+      "status": "passing"
     },
     {
       "id": "ui-3b.2",

@@ -29,10 +29,11 @@ test('cust-005: customer views balance/history, tops up, and withdraws', async (
   await expect(page.getByTestId('header-credit')).toHaveText('$300.00');
   await expect(page.getByTestId('header-locked')).toHaveText('$0.00');
 
-  // Withdraw too much -> rejected
+  // Withdraw too much -> rejected (ui-3b.1: one form with a Top up / Withdraw switch; checked inline first)
+  await page.getByTestId('credit-mode').getByRole('tab', { name: 'Withdraw' }).click();
   await page.getByLabel('Withdraw amount').fill('500');
   await page.getByRole('button', { name: 'Withdraw' }).click();
-  await expect(page.getByText('Amount exceeds your available credit')).toBeVisible();
+  await expect(page.getByTestId('credit-error')).toHaveText('Exceeds available credit of $300.00.');
   await expect(page.getByTestId('credit-balance')).toHaveText('$300.00');
 
   // Valid withdraw -> balance decreases, transaction recorded
