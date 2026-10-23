@@ -119,8 +119,12 @@
         "docs/idle-logout.md updated (timeline, cross-tab logout, heartbeat) and docs/changes/sec-005.md"
       ],
       "notes": "Reading of 'Show notification at first, then log them out': the notification is a warning shown before the logout (default 60 s before), plus a message on the login page after it. Confirm the 60 s lead time with the product owner. Implementation note from sec-004 (2026-10-23): do not shorten VITE_IDLE_TIMEOUT_MS for the whole e2e web server (it would sign users out inside unrelated specs); the sec-005 spec sets the dev-only localStorage override 'auction:idleSettings' ({ timeoutMs: ~6000, warningMs: ~3000 }) with page.addInitScript. See docs/idle-logout.md.",
-      "status": "not_started",
-      "evidence": []
+      "status": "passing",
+      "evidence": [
+        "2026-10-23 be vitest 63 files: 315/317 (both failures in staff.credit.crud from the user's uncommitted reason->context rename in staffCredit.ts); fe vitest 10 files / 79 tests (idleSession.test 9: countdown text, login wording, heartbeat throttle, logout signal, broken storage, Web Lock single winner; idle.test markActive); fe build ok; Playwright 59/60 incl. sec-005-idle-logout (2 tests, also 3x --repeat-each): warning alertdialog with focus + countdown, mouse move and Stay signed in dismiss, idle -> both tabs on /login with the idle message, exactly one POST /auth/logout {reason:'idle'}, refresh cookie gone, replayed token 401, login returns to the page, staff covered, guest never warned. Only failure: stf-008 (same user WIP)",
+        "2026-10-23 Manual-check equivalent run in real Chromium with Vite env VITE_IDLE_TIMEOUT_MS=120000 / VITE_IDLE_WARNING_MS=60000 (temporary Playwright config, removed): warning at 61 s showing 60 s, Stay signed in, next warning 60.5 s later, logout at 120 s, login page 'You were signed out after 2 minutes of inactivity' (screenshots checked). A human look is still welcome",
+        "2026-10-23 Found and fixed in e2e: two tabs reached the limit together and both called logout (localStorage too slow across tabs); now a cross-tab Web Lock picks one caller"
+      ]
     },
     {
       "id": "stf-009",

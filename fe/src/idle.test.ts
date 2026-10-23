@@ -119,6 +119,22 @@ describe('sec-004 createIdleTracker', () => {
     expect(calls.idle).toBe(1);
   });
 
+  it('markActive() (sec-005 Stay signed in) resets at once, even inside the throttle window', () => {
+    const activity: number[] = [];
+    const { tracker, calls } = track({ onActivity: (at) => activity.push(at) });
+    vi.advanceTimersByTime(TIMEOUT - WARNING + 10);
+    target.fire('mousemove');
+    expect(calls.active).toBe(1);
+    vi.advanceTimersByTime(TIMEOUT - WARNING + 10);
+    expect(calls.warning).toHaveLength(2);
+    tracker.markActive();
+    expect(calls.active).toBe(2);
+    tracker.markActive();
+    expect(activity).toHaveLength(4);
+    vi.advanceTimersByTime(TIMEOUT - WARNING - 1);
+    expect(calls.warning).toHaveLength(2);
+  });
+
   it('throttles: at most one reset per second', () => {
     track();
     const start = Date.now();

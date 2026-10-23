@@ -28,10 +28,14 @@ export interface IdleTrackerOptions {
   onWarning?: (remainingMs: number) => void;
   onIdle?: () => void;
   onActive?: () => void;
+  /** sec-005: this tab's own (throttled) activity, e.g. to renew the session while the user is active. */
+  onActivity?: (at: number) => void;
 }
 
 export interface IdleTracker {
   stop: () => void;
+  /** Counts as activity now, without waiting for an input event (sec-005 'Stay signed in'). */
+  markActive: () => void;
   /** The last activity seen by this tab or shared by another one. */
   lastActivity: () => number;
 }
@@ -45,7 +49,7 @@ function defaultStorage(): StorageLike | null {
 }
 
 export function createIdleTracker(options: IdleTrackerOptions): IdleTracker {
-  const { timeoutMs, onWarning, onIdle, onActive } = options;
+  const { timeoutMs, onWarning, onIdle, onActive, onActivity: notifyActivity } = options;
   const warningMs = Math.min(Math.max(options.warningMs, 0), timeoutMs);
   const target = options.target ?? window;
   const storage = options.storage === undefined ? defaultStorage() : options.storage;
@@ -108,15 +112,16 @@ export function createIdleTracker(options: IdleTrackerOptions): IdleTracker {
     timer = setTimeout(check, Math.max(due - idleFor, 0));
   };
 
-  const onActivity = () => {
+  const onActivity = (force = false) => {
     if (stopped) return;
     const t = now();
-    if (t - lastReset < ACTIVITY_THROTTLE_MS) return;
+    if (!force && t - lastReset < ACTIVITY_THROTTLE_MS) return;
     lastReset = t;
     last = t;
     writeShared(t);
     becameActive();
     schedule();
+    notifyActivity?.(t);
   };
 
   const onStorage = (event: Event) => {
@@ -130,20 +135,21 @@ export function createIdleTracker(options: IdleTrackerOptions): IdleTracker {
   };
 
   const listenerOptions = { capture: true, passive: true };
-  for (const name of IDLE_EVENTS) target.addEventListener(name, onActivity, listenerOptions);
+  const onEvent = () => onActivity();
+  for (const name of IDLE_EVENTS) target.addEventListener(name, onEvent, listenerOptions);
   target.addEventListener('storage', onStorage);
 
   function stop() {
     if (stopped) return;
     stopped = true;
     clearTimeout(timer);
-    for (const name of IDLE_EVENTS) target.removeEventListener(name, onActivity, listenerOptions);
+    for (const name of IDLE_EVENTS) target.removeEventListener(name, onEvent, listenerOptions);
     target.removeEventListener('storage', onStorage);
   }
 
   // Starting (signing in) counts as activity.
   onActivity();
-  return { stop, lastActivity: () => last };
+  return { stop, markActive: () => onActivity(true), lastActivity: () => last };
 }
 
 /**

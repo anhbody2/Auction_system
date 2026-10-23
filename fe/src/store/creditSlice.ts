@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { api } from '../api';
+import { sessionEnded } from './session';
 
 /**
  * crd-003: the navbar and dashboard credit figures.
@@ -49,7 +50,10 @@ const creditSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(refreshCredit.fulfilled, (_state, action) => action.payload);
+    builder
+      .addCase(refreshCredit.fulfilled, (_state, action) => action.payload)
+      // sec-005: idle logout.
+      .addCase(sessionEnded, () => initialCreditState);
   },
 });
 

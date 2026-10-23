@@ -429,3 +429,10 @@
 - Deviation recorded: no global short idle limit in e2e (would break unrelated specs once sec-005 logs out); sec-005 notes tell the spec to use the override
 - Left uncommitted (user's): fe/src/pages/StaffCredit.tsx, fe/src/pages/ChangePassword.tsx (whitespace)
 - Next best step: sec-005 (warning dialog + idle logout using useIdleTimer and POST /auth/logout { reason: 'idle' })
+
+### Session 013 (cont.) sec-005
+
+- Completed: IdleWarning dialog (alertdialog, live countdown, Stay signed in -> tracker.markActive()); AuthProvider: warning, 5-min activity heartbeat (refreshSession), idle logout (Web Lock winner calls POST /auth/logout {reason:'idle'} and writes 'auction:logout'; every tab drops the user, dispatches sessionEnded, goes to /login {idle, from}); login page idle message; sessionEnded resets auction/credit slices
+- Verification: be 315/317, fe 79, build ok, Playwright 59/60. All 3 failures come from the user's uncommitted reason->context rename (staffCredit.ts + StaffCredit.tsx), not sec-005
+- Manual-check equivalent: real Chromium with VITE_IDLE_TIMEOUT_MS=120000 -> warning at 61 s, logout at 120 s with the 2-minute message
+- Next best step: stf-009 (staff approval stream). Started: be/src/lib/approvalEvents.ts, be/tests/staff.events.test.ts, be/tests/staff.pending-counts.test.ts, fe/src/store/approvalsSlice(.test).ts written, not wired yet (left uncommitted)

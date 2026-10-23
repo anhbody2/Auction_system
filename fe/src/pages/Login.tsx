@@ -2,6 +2,8 @@ import { useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ApiError } from '../api';
 import { homeFor, useAuth } from '../auth';
+import { idleSettings } from '../idle';
+import { idleSignedOutText } from '../idleSession';
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -30,6 +32,12 @@ export function LoginPage() {
   return (
     <div className="card narrow">
       <h1>Log in</h1>
+      {/* sec-005: signed out by the idle logout (this tab or another one). */}
+      {(location.state as { idle?: boolean } | null)?.idle && (
+        <p className="notice" role="status" data-testid="idle-signed-out">
+          {idleSignedOutText(idleSettings().timeoutMs)}
+        </p>
+      )}
       {(location.state as { expired?: boolean } | null)?.expired && (
         <p className="notice" data-testid="session-expired">
           Your session has ended. Please log in again.

@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { ApiError, api, type Auction, type Bid, type BidEvent } from '../api';
+import { sessionEnded } from './session';
 
 /**
  * rt-001: the auction page's data. The bid panel, the facts box and the bid history all read from here,
@@ -48,6 +49,8 @@ const auctionSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // sec-005: an idle logout drops the page data (the bid panel showed the user's own position).
+      .addCase(sessionEnded, () => initialState)
       .addCase(loadAuction.pending, (state, action) => {
         if (state.requestedId !== action.meta.arg) {
           // A different auction: drop the old one so it is never shown under the new URL.

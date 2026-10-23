@@ -1,7 +1,19 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { api, setUnauthorizedHandler, type User } from './api';
+import { api, refreshSession, setUnauthorizedHandler, type User } from './api';
+import { IdleWarning } from './components/IdleWarning';
+import { LOGOUT_SIGNAL_KEY, claimIdleLogout, createHeartbeat, parseLogoutSignal, recentLogoutSignal, writeLogoutSignal } from './idleSession';
+import { useAppDispatch } from './store';
+import { sessionEnded } from './store/session';
 import { useIdleTimer } from './useIdleTimer';
+
+const safeStorage = () => {
+  try {
+    return localStorage;
+  } catch {
+    return null;
+  }
+};
 
 interface AuthState {
   user: User | null;
@@ -62,10 +74,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
-  // sec-004: activity tracking for every signed-in role; sec-005 adds the warning and the idle logout.
-  useIdleTimer({ enabled: !!user });
+  // sec-005 (SRS REQ-2): warning first, then logout with the refresh token revoked. Every signed-in role.
+  const dispatch = useAppDispatch();
+  const [warningUntil, setWarningUntil] = useState<number | null>(null);
+  const heartbeat = useRef<((at: number) => boolean) | null>(null);
+  useEffect(() => {
+    // While the user is active the session is renewed every 5 minutes, so the server idle limit (sec-003)
+    // never ends a session whose user makes no API calls.
+    heartbeat.current = user ? createHeartbeat(() => void refreshSession()) : null;
+  }, [user?.id]);
 
-  return <AuthContext.Provider value={{ user, loading, login, logout, refresh }}>{children}</AuthContext.Provider>;
+  /** Drops the user in this tab; `revoke` (only the tab that went idle) asks the server to revoke the token. */
+  const endIdleSession = useCallback(
+    (revoke: boolean) => {
+      if (!signedIn.current) return;
+      signedIn.current = false;
+      if (revoke) {
+        writeLogoutSignal(safeStorage());
+        // Offline or failing: the client still signs out; the server idle limit refuses the token later anyway.
+        api('/auth/logout', { body: { reason: 'idle' } }).catch(() => undefined);
+      }
+      setWarningUntil(null);
+      setUser(null);
+      dispatch(sessionEnded());
+      navigate('/login', { replace: true, state: { from: here.current, idle: true } });
+    },
+    [dispatch, navigate],
+  );
+
+  const markActive = useIdleTimer({
+    enabled: !!user,
+    onWarning: (remainingMs) => setWarningUntil(Date.now() + remainingMs),
+    onActive: () => setWarningUntil(null),
+    // Two tabs reach the limit together: only the one that wins the cross-tab lock calls logout.
+    onIdle: () => {
+      if (recentLogoutSignal(safeStorage())) endIdleSession(false);
+      else void claimIdleLogout().then((mine) => endIdleSession(mine));
+    },
+    onActivity: (at) => heartbeat.current?.(at),
+  });
+
+  // Another tab logged out for inactivity: follow it without a second logout call.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === LOGOUT_SIGNAL_KEY && parseLogoutSignal(e.newValue)) endIdleSession(false);
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [endIdleSession]);
+
+  const stay = () => {
+    markActive();
+    setWarningUntil(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, loading, login, logout, refresh }}>
+      {children}
+      {user && warningUntil !== null && <IdleWarning deadline={warningUntil} onStay={stay} />}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
