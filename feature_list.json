@@ -370,7 +370,11 @@
         "docs/changes/ui-3a.1.md"
       ],
       "notes": "The mockup's 'Bids placed' counts individual bids (all my bid tickets), not lots.",
-      "status": "not_started"
+      "evidence": [
+        "2026-10-23 ./init.sh exit 0 (full gate again; the user's dev server had stopped): be vitest 71 files / 348 tests (bids.me-history 2: bidCount incl. a raise, creditState locked/released/charged/released/released, totals for two users), fe vitest 23 files / 146 tests (winRate 3), fe build ok, Playwright 91/91 incl. ui-3a-1-bid-history (5 bids placed, 50% win rate, Won/Charged, Lost/Released, Leading/Locked, Outbid/Released, Lot #id, '2 bids', newest first, 375px table scrolls in its wrapper; '-' win rate with nothing finished) and cust-007 (result labels now words)",
+        "2026-10-23 An earlier npm run verify hung ~20 min in the be unit tests and was killed by a session restart (no result recorded); the rerun above is clean"
+      ],
+      "status": "passing"
     },
     {
       "id": "ui-3a.2",

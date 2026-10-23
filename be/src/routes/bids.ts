@@ -134,7 +134,10 @@ bidsRouter.post(
   }),
 );
 
-/** Every auction I've bid on, with my latest bid and where I stand. */
+/**
+ * Every auction I've bid on, with my latest bid and where I stand. ui-3a.1: also how many bids I placed on it,
+ * what happened to my credit (locked while I lead, charged when I won, released otherwise), and totals.
+ */
 bidsRouter.get(
   '/me/bids',
   requireAuth,
@@ -142,7 +145,11 @@ bidsRouter.get(
     const me = req.user!.id;
     const tickets = await prisma.bidTicket.findMany({ where: { bidderId: me }, orderBy: { id: 'desc' } });
     const latest = new Map<bigint, (typeof tickets)[number]>();
-    for (const t of tickets) if (!latest.has(t.auctionId)) latest.set(t.auctionId, t);
+    const ticketsOf = new Map<bigint, typeof tickets>();
+    for (const t of tickets) {
+      if (!latest.has(t.auctionId)) latest.set(t.auctionId, t);
+      ticketsOf.set(t.auctionId, [...(ticketsOf.get(t.auctionId) ?? []), t]);
+    }
 
     const auctions = await prisma.auction.findMany({ where: { id: { in: [...latest.keys()] }, deletedAt: null }, include: auctionInclude });
     const leaders = await prisma.bidTicket.findMany({ where: { auctionId: { in: [...latest.keys()] }, status: 'active' } });
@@ -156,11 +163,24 @@ bidsRouter.get(
         if (view.status === 'cancelled') myStatus = 'cancelled';
         else if (view.status === 'ended') myStatus = a.winnerId === me ? 'won' : 'lost';
         else myStatus = leaderOf.get(a.id) === me ? 'winning' : 'outbid';
-        return { auction: view, myLatestBid: mine.amount, myLatestBidAt: mine.createdAt, myStatus };
+        const myTickets = ticketsOf.get(a.id) ?? [];
+        const creditState: 'locked' | 'charged' | 'released' | 'none' = myTickets.some((t) => t.status === 'active')
+          ? 'locked'
+          : myTickets.some((t) => t.status === 'won')
+            ? 'charged'
+            : myTickets.length
+              ? 'released'
+              : 'none';
+        return { auction: view, myLatestBid: mine.amount, myLatestBidAt: mine.createdAt, myStatus, bidCount: myTickets.length, creditState };
       }),
     );
     items.sort((x, y) => y.myLatestBidAt.getTime() - x.myLatestBidAt.getTime());
-    res.json({ items });
+    const totals = {
+      bidsPlaced: items.reduce((n, i) => n + i.bidCount, 0),
+      won: items.filter((i) => i.myStatus === 'won').length,
+      lost: items.filter((i) => i.myStatus === 'lost').length,
+    };
+    res.json({ items, totals });
   }),
 );
 

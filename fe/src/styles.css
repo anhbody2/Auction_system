@@ -435,3 +435,13 @@ th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: u
 .dash-empty { padding: 0.75rem; margin: 0; }
 [data-testid='my-auctions-card'] .table-wrap { border: none; }
 [data-testid='my-auctions-card'] td a.ui-pill:hover { text-decoration: none; }
+
+/* ui-3a.1 bid history */
+.page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+.page-head h1 { margin-bottom: 0.2rem; }
+.page-head p { margin: 0; }
+.page-totals { display: flex; gap: 1.5rem; margin: 0; }
+.page-totals dt { font-size: 0.72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.page-totals dd { margin: 0; font-size: 1.5rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+.history-lot { display: flex; align-items: center; gap: 0.7rem; min-width: 220px; }
+.history-table td { vertical-align: middle; }

@@ -1,24 +1,22 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api, money, type Auction } from '../api';
-import { Countdown } from '../components/AuctionBits';
-
-type MyStatus = 'winning' | 'outbid' | 'won' | 'lost' | 'cancelled';
-interface Item {
-  auction: Auction;
-  myLatestBid: number;
-  myLatestBidAt: string;
-  myStatus: MyStatus;
-}
+import { api, money } from '../api';
+import { CREDIT_LABELS, RESULT, winRate, type BidHistoryItem, type BidTotals, type MyStatus } from '../bidHistory';
+import { Pill } from '../components/ui';
 
 const FILTERS: ('all' | MyStatus)[] = ['all', 'winning', 'outbid', 'won', 'lost', 'cancelled'];
 
+/** ui-3a.1: 'Bid history' from the 3a mockup: totals, then one row per lot with my bid, credit state and result. */
 export function MyBiddingsPage() {
-  const [items, setItems] = useState<Item[] | null>(null);
+  const [items, setItems] = useState<BidHistoryItem[] | null>(null);
+  const [totals, setTotals] = useState<BidTotals | null>(null);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('all');
 
   useEffect(() => {
-    api<{ items: Item[] }>('/me/bids').then((r) => setItems(r.items));
+    api<{ items: BidHistoryItem[]; totals: BidTotals }>('/me/bids').then((r) => {
+      setItems(r.items);
+      setTotals(r.totals);
+    });
   }, []);
 
   const shown = items?.filter((i) => filter === 'all' || i.myStatus === filter) ?? [];
@@ -26,11 +24,28 @@ export function MyBiddingsPage() {
 
   return (
     <div>
-      <h1>My biddings</h1>
+      <div className="page-head">
+        <div>
+          <h1>Bid history</h1>
+          <p className="muted">Every bid you've placed, newest first.</p>
+        </div>
+        {totals && (
+          <dl className="page-totals">
+            <div>
+              <dt>Bids placed</dt>
+              <dd data-testid="bids-placed">{totals.bidsPlaced}</dd>
+            </div>
+            <div>
+              <dt>Win rate</dt>
+              <dd data-testid="win-rate">{winRate(totals)}</dd>
+            </div>
+          </dl>
+        )}
+      </div>
       <div className="tabs" role="tablist" aria-label="Filter by outcome">
         {FILTERS.map((f) => (
           <button key={f} role="tab" aria-selected={filter === f} className={filter === f ? 'tab active' : 'tab'} onClick={() => setFilter(f)}>
-            {f[0].toUpperCase() + f.slice(1)} ({count(f)})
+            {f === 'all' ? 'All' : RESULT[f].label} ({count(f)})
           </button>
         ))}
       </div>
@@ -48,32 +63,44 @@ export function MyBiddingsPage() {
         </p>
       ) : (
         <div className="table-wrap">
-          <table data-testid="my-bids">
+          <table data-testid="my-bids" className="history-table">
             <thead>
               <tr>
-                <th>Auction</th>
-                <th>My latest bid</th>
-                <th>Highest bid</th>
-                <th>Status</th>
-                <th>Time</th>
+                <th>Lot</th>
+                <th>Your bid</th>
+                <th>Final / highest</th>
+                <th>Placed</th>
+                <th>Credit</th>
+                <th>Result</th>
               </tr>
             </thead>
             <tbody>
               {shown.map((i) => (
                 <tr key={i.auction.id} data-testid={`my-bid-${i.auction.id}`}>
                   <td>
-                    <Link to={`/auctions/${i.auction.id}`}>{i.auction.name}</Link>
-                    <div className="muted small">by {i.auction.seller.username}</div>
+                    <div className="history-lot">
+                      {i.auction.goods.images[0] ? <img src={i.auction.goods.images[0]} alt="" className="owned-thumb" /> : <span className="owned-thumb lot-thumb-empty" aria-hidden="true" />}
+                      <div>
+                        <Link to={`/auctions/${i.auction.id}`}>{i.auction.name}</Link>
+                        <div className="muted small">
+                          Lot #{i.auction.id} · by {i.auction.seller.username}
+                          {i.bidCount > 1 && ` · ${i.bidCount} bids`}
+                        </div>
+                      </div>
+                    </div>
                   </td>
                   <td data-testid="my-latest">{money(i.myLatestBid)}</td>
                   <td data-testid="highest">{money(i.auction.currentPrice)}</td>
-                  <td>
-                    <span className={`badge badge-${i.myStatus}`} data-testid="my-status">
-                      {i.myStatus}
-                    </span>
+                  <td className="muted small" data-testid="placed">
+                    {new Date(i.myLatestBidAt).toLocaleString()}
+                  </td>
+                  <td data-testid="credit-state" data-state={i.creditState}>
+                    {CREDIT_LABELS[i.creditState]}
                   </td>
                   <td>
-                    <Countdown status={i.auction.status} startTime={i.auction.startTime} endTime={i.auction.endTime} />
+                    <Pill tone={RESULT[i.myStatus].tone} testId="my-status">
+                      {RESULT[i.myStatus].label}
+                    </Pill>
                   </td>
                 </tr>
               ))}

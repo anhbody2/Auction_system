@@ -52,11 +52,11 @@ test('cust-007: bidder sees each auction with latest bid, highest bid and outcom
     await expect(row.getByTestId('highest')).toHaveText(highest);
     await expect(row.getByTestId('my-status')).toHaveText(status);
   };
-  await expectRow(winning.id, '$100.00', '$100.00', 'winning');
-  await expectRow(outbid.id, '$100.00', '$150.00', 'outbid');
-  await expectRow(won.id, '$130.00', '$130.00', 'won');
-  await expectRow(lost.id, '$100.00', '$110.00', 'lost');
-  await expectRow(cancelled.id, '$100.00', '$100.00', 'cancelled');
+  await expectRow(winning.id, '$100.00', '$100.00', 'Leading');
+  await expectRow(outbid.id, '$100.00', '$150.00', 'Outbid');
+  await expectRow(won.id, '$130.00', '$130.00', 'Won');
+  await expectRow(lost.id, '$100.00', '$110.00', 'Lost');
+  await expectRow(cancelled.id, '$100.00', '$100.00', 'Cancelled');
 
   await page.getByRole('tab', { name: /Won/ }).click();
   await expect(table.getByRole('row')).toHaveCount(2);
