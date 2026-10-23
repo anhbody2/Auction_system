@@ -42,7 +42,7 @@ test('cust-007: bidder sees each auction with latest bid, highest bid and outcom
   await logout(page);
 
   await login(page, 'jack');
-  await page.getByRole('link', { name: 'My Biddings' }).click();
+  await page.getByRole('link', { name: 'Bids', exact: true }).click();
   const table = page.getByTestId('my-bids');
   await expect(table.getByRole('row')).toHaveCount(6);
 

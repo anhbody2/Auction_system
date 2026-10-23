@@ -77,7 +77,13 @@
         "docs/design-system.md and docs/changes/ui-0.1.md"
       ],
       "notes": "Readings to confirm with the user: (1) brand name - the mockup says 'Lotline'; until confirmed keep the current app name and build the mark only. (2) Nav labels - the mockup shows only Browse / Dashboard / Bids / Credit; My goods and My Auctions are kept because those pages exist and have no other entry point. 'Watchlist' (2a nav) is not a feature of the system and is not added.",
-      "status": "not_started"
+      "evidence": [
+        "2026-10-23 ./init.sh exit 0: be vitest 67 files / 334 tests, fe vitest 13 files / 92 tests (initials.test 4), fe build ok, Playwright 66/66 incl. ui-0-1-design-system (guest bar, customer bid limit = credit - locked and released live on outbid, initials avatar + menu + Escape + log out, staff links/role pill, 375px menu button and no sideways scroll)",
+        "2026-10-23 Older specs updated for the new bar, not weakened: helpers.logout and cust-002 open the avatar menu first; cust-007 and sec-001 use the 'Bids' nav label",
+        "2026-10-23 Live bid limit: own bids update it through the in-app bid panel and other changes through user events (outbid, settlement, approvals); a bid sent from outside the app shows after reload. The spec checks the live release on outbid",
+        "2026-10-23 Readings applied without user confirmation (defaults from notes): brand stays 'BidHouse' with the new mark; My goods and My Auctions kept in the nav; username stays next to the avatar on wide screens; --muted darkened to #4f6e80 for AA"
+      ],
+      "status": "passing"
     },
     {
       "id": "ui-1a.1",

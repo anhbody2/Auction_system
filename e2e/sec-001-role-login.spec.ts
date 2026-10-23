@@ -19,7 +19,7 @@ test('sec-001: customer, staff and admin use one login page and land on their ow
   await expect(page.getByTestId('current-role')).toHaveText('staff');
   await expect(nav.getByRole('link', { name: 'Statistics' })).toBeVisible();
   await expect(nav.getByRole('link', { name: 'Users' })).toHaveCount(0);
-  await expect(nav.getByRole('link', { name: 'My Biddings' })).toHaveCount(0);
+  await expect(nav.getByRole('link', { name: 'Bids', exact: true })).toHaveCount(0);
   await logout(page);
 
   // Admin -> user management, only admin links

@@ -66,6 +66,8 @@ export async function latestPasswordLink(page: Page, email: string) {
 }
 
 export async function logout(page: Page) {
+  // ui-0.1: Log out lives in the avatar menu.
+  await page.getByTestId('avatar').click();
   await page.getByRole('button', { name: 'Log out' }).click();
   await expect(page).toHaveURL(/\/login$/);
 }
