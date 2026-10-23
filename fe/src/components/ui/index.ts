@@ -4,3 +4,4 @@ export { MoneyText } from './MoneyText';
 export { Pill, type PillTone } from './Pill';
 export { SearchInput } from './SearchInput';
 export { SegmentedTabs, type SegmentedTab } from './SegmentedTabs';
+export { ConfirmDialog } from './ConfirmDialog';

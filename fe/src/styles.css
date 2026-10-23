@@ -332,3 +332,10 @@ th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: u
 .sort-control { flex-direction: row; align-items: center; gap: 0.5rem; }
 .empty-state { background: var(--surface); border: 1px dashed var(--border); border-radius: 16px; padding: 1.5rem; text-align: center; margin: 1rem 0; }
 .empty-state p { margin: 0 0 0.75rem; font-weight: 700; }
+
+/* ui-1a.3 quick bid from a card */
+.lot-actions { display: flex; gap: 0.5rem; padding: 0 1rem 1rem; }
+.lot-actions .btn { flex: 1; padding: 0.5rem 0.6rem; font-size: 0.88rem; }
+.confirm-dialog { max-width: 420px; width: 100%; }
+.confirm-body { margin: 0.75rem 0 1.25rem; }
+.confirm-actions { justify-content: flex-end; }

@@ -17,7 +17,7 @@ function Section({ id, title, empty, auctions, onElapsed }: { id: string; title:
       ) : (
         <div className="lot-grid">
           {auctions.map((a) => (
-            <AuctionCard key={a.id} auction={a} onElapsed={onElapsed} />
+            <AuctionCard key={a.id} auction={a} onElapsed={onElapsed} onChanged={onElapsed} />
           ))}
         </div>
       )}

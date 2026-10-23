@@ -39,6 +39,7 @@ the nav folds behind a menu button (`data-testid="nav-toggle"`).
 | `SegmentedTabs` | role=tablist/tab with aria-selected, arrow keys; `variant`: `pills` (default) or `segment`; optional counts. |
 | `SearchInput` | Rounded search box with icon; visually hidden label. |
 | `MoneyText` | Tabular figures; `signed` adds +/- with steel/crimson; `size` lg/xl. |
+| `ConfirmDialog` | (ui-1a.3) role=dialog, aria-modal; focus on confirm, Escape / Cancel / backdrop close. |
 | `initials()` | First letters of the first two words of fullName, else first two letters of username. |
 
 Buttons: `.btn-primary` (navy), `.btn-danger` (crimson, dark red hover), `.btn-steel` (steel-light quick buttons), `.btn-ghost`.

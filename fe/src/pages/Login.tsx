@@ -4,6 +4,7 @@ import { ApiError } from '../api';
 import { homeFor, useAuth } from '../auth';
 import { idleSettings } from '../idle';
 import { idleSignedOutText } from '../idleSession';
+import { safeFrom } from '../safeFrom';
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -20,7 +21,7 @@ export function LoginPage() {
     setBusy(true);
     try {
       const user = await login(identifier, password);
-      const from = (location.state as { from?: string } | null)?.from;
+      const from = (location.state as { from?: string } | null)?.from ?? safeFrom(new URLSearchParams(location.search).get('from'));
       navigate(from && from !== '/login' ? from : homeFor(user));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Login failed');

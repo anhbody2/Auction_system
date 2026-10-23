@@ -168,7 +168,11 @@
         "docs/changes/ui-1a.3.md"
       ],
       "notes": "Reading to confirm: the mockup has no confirm step, but bids are binding and lock credit, so a one-click bid from a list is guarded by a confirm. Ask the user if they want it removed.",
-      "status": "in_progress"
+      "evidence": [
+        "2026-10-23 ./init.sh exit 0: be vitest 68 files / 340 tests, fe vitest 16 files / 103 tests (safeFrom 2), fe build ok, Playwright 76/76 incl. ui-1a-3-quick-bid (Cancel and Escape place nothing; confirm -> toast, Leading, new price, next quick amount, bid limit drops; stale price -> error toast and card refreshes to the new minimum; Custom bid focuses the input; seller no buttons; guest -> /login?from= -> back to the same list; upcoming no buttons; 375px)",
+        "2026-10-23 nextMinBid was already in the list response (auctionView), so no API change. Decision applied without user confirmation: quick bids keep the confirm step (binding bid, locks credit)"
+      ],
+      "status": "passing"
     },
     {
       "id": "ui-1b.1",

@@ -73,7 +73,15 @@ export function BidPanel({ auction, bids, onReload }: { auction: Auction; bids: 
       )}
       <div className="field">
         <label htmlFor="bid-amount">Your bid</label>
-        <input id="bid-amount" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} aria-invalid={!!error || undefined} />
+        {/* ui-1a.3: 'Custom bid' on a card opens the lot with ?bid=1 to start typing straight away. */}
+        <input
+          id="bid-amount"
+          inputMode="decimal"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          aria-invalid={!!error || undefined}
+          autoFocus={new URLSearchParams(location.search).get('bid') === '1'}
+        />
         {error && (
           <span className="field-error" role="alert">
             {error}
