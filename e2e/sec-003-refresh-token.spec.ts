@@ -33,7 +33,8 @@ test('sec-003: the session renews itself after the access cookie expires; logout
   await expect(page).toHaveURL(/\/goods$/);
   await expect(page.getByRole('heading', { name: 'My goods' })).toBeVisible();
   await expect(page.getByTestId('current-user')).toContainText(user);
-  expect(refreshes).toContain(200);
+  // The heading can render before the page's first API call has come back through the refresh.
+  await expect.poll(() => refreshes).toContain(200);
 
   // A full reload after expiry: the page load also renews the session.
   await expireAccessCookie(context);

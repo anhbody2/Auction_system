@@ -10,7 +10,9 @@ import { QUICK_STEPS, bidAmount, changeSinceStart, formatTyping, precheck, quick
 import { useToast } from '../toast';
 import { Countdown, useNow } from './AuctionBits';
 import { isEndingSoon } from './auctionCardState';
-import { Pill } from './ui';
+import { initials, Pill } from './ui';
+import { chartLabel, priceChart } from '../priceChart';
+import { relativeTime } from '../relativeTime';
 
 export type { Bid };
 
@@ -45,6 +47,7 @@ export function BidPanel({ auction, bids, onReload }: { auction: Auction; bids: 
             </span>
           )}
         </div>
+        <PriceChart auction={auction} bids={bids} />
       </div>
       <BidForm auction={auction} bids={bids} onReload={onReload} />
     </div>
@@ -165,32 +168,88 @@ function BidForm({ auction, bids, onReload }: { auction: Auction; bids: Bid[]; o
   );
 }
 
+/**
+ * ui-1b.3: 'Bid history · Live' list, newest first: initials avatar, bidder, amount, relative time (full date
+ * in the tooltip, refreshed every 30 s). The viewer's own bids are cream with a 'You' pill. Rows keep table
+ * semantics (row 0 is a hidden header) so a row index means the same as in the old table.
+ */
 export function BidHistory({ bids }: { bids: Bid[] }) {
-  if (bids.length === 0) return <p className="muted">No bids yet.</p>;
+  const { user } = useAuth();
+  const now = useNow(30_000);
   return (
-    <div className="table-wrap">
-      <table data-testid="bid-history">
-        <thead>
-          <tr>
-            <th>Bidder</th>
-            <th>Amount</th>
-            <th>Time</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {bids.map((b) => (
-            <tr key={b.id}>
-              <td>{b.bidder.username}</td>
-              <td>{money(b.amount)}</td>
-              <td>{new Date(b.createdAt).toLocaleString()}</td>
-              <td>
-                <span className={`badge badge-${b.status === 'active' ? 'winning' : b.status}`}>{b.status === 'active' ? 'leading' : b.status}</span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <section className="ui-card bid-history-card" aria-labelledby="bid-history-title">
+      <header className="ui-card-head">
+        <h2 className="ui-card-title" id="bid-history-title">
+          Bid history <span className="live-dot">· Live</span>
+        </h2>
+        <span className="muted small">
+          {bids.length} bid{bids.length === 1 ? '' : 's'}
+        </span>
+      </header>
+      {bids.length === 0 ? (
+        <p className="muted">No bids yet.</p>
+      ) : (
+        <div className="bid-history" role="table" aria-labelledby="bid-history-title" data-testid="bid-history">
+          <div role="row" className="sr-only">
+            <span role="columnheader">Bidder</span>
+            <span role="columnheader">Amount</span>
+            <span role="columnheader">Time</span>
+            <span role="columnheader">Status</span>
+          </div>
+          {bids.map((b) => {
+            const mine = b.bidder.id === user?.id;
+            return (
+              <div role="row" key={b.id} className={`bid-row ${mine ? 'is-mine' : ''}`} data-testid={`bid-row-${b.id}`}>
+                <span role="cell" className="bid-who">
+                  <span className="avatar avatar-sm" aria-hidden="true">
+                    {initials(null, b.bidder.username)}
+                  </span>
+                  <span>
+                    {b.bidder.username}
+                    {mine && (
+                      <span className="ui-pill ui-pill-cream you-pill" data-testid="you">
+                        You
+                      </span>
+                    )}
+                  </span>
+                </span>
+                <span role="cell" className="bid-amount">
+                  {money(b.amount)}
+                </span>
+                <span role="cell" className="muted small" title={new Date(b.createdAt).toLocaleString()}>
+                  {relativeTime(b.createdAt, now)}
+                </span>
+                <span role="cell" className={`bid-status is-${b.status === 'active' ? 'leading' : b.status}`}>
+                  {b.status === 'active' ? 'leading' : b.status}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** ui-1b.3: area chart of the price from the start through every bid; hidden without bids. */
+function PriceChart({ auction, bids }: { auction: Auction; bids: Bid[] }) {
+  const W = 300;
+  const H = 72;
+  const g = priceChart(auction.initialPrice, bids.map((b) => b.amount), W, H);
+  if (!g) return null;
+  const last = g.points[g.points.length - 1];
+  return (
+    <svg
+      className="price-chart"
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="none"
+      role="img"
+      aria-label={chartLabel(auction.initialPrice, last.price, bids.length, money)}
+      data-testid="price-chart"
+      data-points={g.points.length}
+    >
+      <polygon points={g.area} className="price-chart-area" />
+      <polyline points={g.line} className="price-chart-line" vectorEffect="non-scaling-stroke" />
+    </svg>
   );
 }

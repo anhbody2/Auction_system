@@ -258,7 +258,11 @@
         "docs/changes/ui-1b.3.md"
       ],
       "notes": "Bidder names follow whatever the existing bids endpoint exposes; if usernames are masked for privacy today, keep the mask. '214 watching' is not built (no watch feature).",
-      "status": "not_started"
+      "evidence": [
+        "2026-10-23 npm run verify exit 0: be vitest 68 files / 340 tests, fe vitest 20 files / 136 tests (priceChart 6, relativeTime 2), fe build ok, Playwright 83/83 incl. ui-1b-3-history-chart (two browsers: B's bid adds A's top row and a 3rd chart point without reload, own rows cream with 'You', aria summary, tooltip date; guest with 12 bids: 13 rows, 13 points, list scrolls inside a <=300px card) and the row-index specs bid-001, cust-006, rt-001, sys-004",
+        "2026-10-23 The first verify run failed sec-003 once (4/4 on rerun): it read the refresh responses before the page's first API call had come back. Fixed the race with expect.poll (same assertion). ./init.sh install step still skipped: the user's npm run dev holds the Prisma DLL"
+      ],
+      "status": "passing"
     },
     {
       "id": "ui-2a.1",

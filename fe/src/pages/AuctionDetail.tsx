@@ -58,6 +58,7 @@ export function AuctionDetailPage() {
           <BidPanel auction={auction} bids={bids} onReload={load} />
           <CancelAuction auction={auction} onDone={load} />
         </div>
+        <BidHistory bids={bids} />
       </aside>
       <div className="lot-main">
         <section className="ui-card lot-info" data-testid="lot-info">
@@ -100,8 +101,6 @@ export function AuctionDetailPage() {
             )}
           </dl>
         </section>
-        <h2>Bid history</h2>
-        <BidHistory bids={bids} />
         <Messages auctionId={auction.id} sellerId={auction.seller.id} closed={auction.status === 'ended' || auction.status === 'cancelled'} onClosed={load} />
       </div>
     </div>
