@@ -461,3 +461,12 @@
 - Also fixed a race in e2e/sec-005 (staff case): it replayed the refresh token before the idle logout response arrived; it now waits for the cookie to be cleared, like the customer case
 - Verification: npm run verify -> be vitest 66 files / 329 tests, fe 12 / 88, build ok, Playwright 61/62 (the one failure was that sec-005 race; after the fix sec-005 passed 2/2 runs, stf-007 and stf-008 pass)
 - Still untracked (user's): SRS-2.txt, claude-2.md; ChangePassword.tsx whitespace left uncommitted
+
+### Session 014 round 8 planning: UI redesign from 'Auction Mockups' (2026-10-23)
+
+- User shared the design file 'Auction Mockups.dc.html' (1a Browse, 1b Lot detail, 2a Dashboard, 3a Bid history, 3b Credit) and asked for a feature list per page, splitting pages with several functions into several numbered features
+- Created feature_list.json (round 8): 14 features, ids ui-<page>.<n>: ui-0.1 shared tokens/top bar; ui-1a.1-3 browse cards, chips+sort, quick bid; ui-1b.1-3 lot layout, bid panel, chart+live history; ui-2a.1-3 dashboard credit cards, goods owned, my auctions; ui-3a.1-2 bid history table/totals, tabs+search; ui-3b.1-2 credit request form, transactions panel
+- Mockup items that conflict with existing rules are recorded in each feature's notes as readings to confirm (brand name 'Lotline', instant top-up vs staff-approved requests, Visa card row, buyer's premium, Pending payout, fixed +$100 quick bids vs increment ladder, quick bid without confirm)
+- No code changed; ./init.sh not run this session (planning only). Stopped the auction_db container per CLAUDE.md
+- Left uncommitted (user's): ChangePassword.tsx whitespace, claude-2.md
+- Next best step: confirm the readings in ui-0.1 / ui-1a.3 / ui-2a.1 / ui-3b.1 notes with the user, then start ui-0.1
