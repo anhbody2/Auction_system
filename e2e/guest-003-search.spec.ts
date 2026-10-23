@@ -25,10 +25,8 @@ test('guest-003: guest searches by seller, auction, category and product', async
   await page.request.post(`/api/dev/auctions/${done.id}/expire`);
   await logout(page);
 
-  // Guest toggles search tools
+  // ui-1a.2: the search box sits in the top bar (no toggle any more)
   await page.goto('/');
-  await expect(page.getByLabel('Keywords')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Search auctions' }).click();
   await expect(page.getByLabel('Keywords')).toBeVisible();
   await expect(page.getByLabel('Search in').locator('option')).toHaveText(['Everything', 'Seller name', 'Auction', 'Category', 'Product']);
 
@@ -64,7 +62,7 @@ test('guest-003: guest searches by seller, auction, category and product', async
   await expect(page.getByText('No live auctions match.')).toBeVisible();
 
   // Clear restores the full listing
-  await page.getByRole('button', { name: 'Clear' }).click();
+  await page.getByRole('button', { name: 'Clear', exact: true }).click();
   await expect(page.getByTestId('search-summary')).toHaveCount(0);
   await expect(page.getByTestId('section-live')).toContainText(`Watercolor ${TAG}`);
 });

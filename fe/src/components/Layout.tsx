@@ -6,6 +6,7 @@ import { useAppSelector } from '../store';
 import { useCredit, useCreditSync } from '../store/useCredit';
 import { useStaffEvents } from '../store/useStaffEvents';
 import { ResendActivation } from './ResendActivation';
+import { TopSearch } from './TopSearch';
 import { initials } from './ui';
 
 export function Layout() {
@@ -80,6 +81,8 @@ export function Layout() {
           {can(user, 'user.manage') && <NavLink to="/admin/users">Users</NavLink>}
           {can(user, 'permission.manage') && <NavLink to="/admin/permissions">Permissions</NavLink>}
         </nav>
+        {/* ui-1a.2: browsing search for guests and customers; staff and admin land on their own pages. */}
+        {(!user || user.role === 'customer') && <TopSearch />}
         <div className="userbox">
           {user ? (
             <>

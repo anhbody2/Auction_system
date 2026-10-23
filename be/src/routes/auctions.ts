@@ -121,10 +121,26 @@ auctionsRouter.get(
 );
 
 export const SEARCH_FIELDS = ['all', 'seller', 'auction', 'category', 'product'] as const;
+// ui-1a.2: category chip, 'Ending soon' chip and sort order, combined with the keyword search (AND).
+export const SORTS = ['bids', 'price_asc', 'price_desc', 'ending'] as const;
+/** The 'Ending soon' chip: live auctions with less than this left (same threshold as the card pill). */
+const ENDING_SOON_MS = 60 * 60 * 1000;
 const searchSchema = z.object({
   q: z.string().trim().max(100).optional().default(''),
   field: z.enum(SEARCH_FIELDS).optional().default('all'),
+  category: z.coerce.number({ invalid_type_error: 'Unknown category' }).int().positive('Unknown category').optional(),
+  endingSoon: z.enum(['1']).optional(),
+  sort: z.enum(SORTS, { errorMap: () => ({ message: 'Unknown sort order' }) }).optional(),
 });
+
+type Listed = { bidCount: number; currentPrice: Prisma.Decimal | null; initialPrice: Prisma.Decimal; endTime: Date };
+const priceOf = (a: Listed) => Number(a.currentPrice ?? a.initialPrice);
+const SORTERS: Record<(typeof SORTS)[number], (x: Listed, y: Listed) => number> = {
+  bids: (x, y) => y.bidCount - x.bidCount,
+  price_asc: (x, y) => priceOf(x) - priceOf(y),
+  price_desc: (x, y) => priceOf(y) - priceOf(x),
+  ending: (x, y) => x.endTime.getTime() - y.endTime.getTime(),
+};
 
 /** Case-insensitive keyword match on seller name, auction, category or product (goods). */
 function searchWhere(q: string, field: (typeof SEARCH_FIELDS)[number]): Prisma.AuctionWhereInput {
@@ -142,9 +158,16 @@ auctionsRouter.get(
   '/auctions',
   optionalAuth,
   asyncHandler(async (req, res) => {
-    const { q, field } = searchSchema.parse(req.query);
-    const match = q ? searchWhere(q, field) : {};
+    const { q, field, category, endingSoon, sort } = searchSchema.parse(req.query);
     const now = new Date();
+    const match: Prisma.AuctionWhereInput = {
+      AND: [
+        q ? searchWhere(q, field) : {},
+        category ? { goods: { categoryId: BigInt(category) } } : {},
+        // Started (start time passed, even before the start job) and ending within the window.
+        endingSoon ? { startTime: { lte: now }, endTime: { lte: new Date(now.getTime() + ENDING_SOON_MS) } } : {},
+      ],
+    };
     const recent = new Date(now.getTime() - JUST_COMPLETED_DAYS * 24 * 3600 * 1000);
     const [open, completed] = await Promise.all([
       // live + upcoming, soonest ending first
@@ -155,7 +178,8 @@ auctionsRouter.get(
         take: 200,
       }),
       // just completed, most recent first. Past end time counts even before the close job has run.
-      prisma.auction.findMany({
+      // The 'Ending soon' chip only lists live auctions.
+      endingSoon ? Promise.resolve([]) : prisma.auction.findMany({
         where: { AND: [{ status: { not: 'cancelled' }, endTime: { gte: recent, lte: now }, deletedAt: null }, match] },
         include: auctionInclude,
         orderBy: { endTime: 'desc' },
@@ -165,6 +189,8 @@ auctionsRouter.get(
     const all = [...open, ...completed];
     const myBids = await viewerBids(req.user?.id, all);
     const views = await Promise.all(all.map(async (a) => ({ ...(await auctionView(a, req.user?.id)), myBid: myBids.get(a.id) ?? null })));
+    // Without a sort the query order stays (open by end time, then just completed newest first).
+    if (sort) views.sort(SORTERS[sort]);
     res.json({ auctions: views, justCompletedDays: JUST_COMPLETED_DAYS });
   }),
 );

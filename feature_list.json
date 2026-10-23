@@ -138,7 +138,12 @@
         "docs/changes/ui-1a.2.md"
       ],
       "notes": "'Trending' in the mockup is the default view (sort by most bids among active lots). The mockup's separate 'Live / Ending soon / Results' header links map to the existing Active / Ending soon chip / ended-section anchors; no new pages.",
-      "status": "not_started"
+      "evidence": [
+        "2026-10-23 ./init.sh exit 0: be vitest 68 files / 340 tests (auctions.filter-sort 6: default order, 4 sorts, category, endingSoon, AND combos, 400s), fe vitest 15 files / 101 tests (browseQuery 4), fe build ok, Playwright 73/73 incl. ui-1a-2-browse-filters (Art chip, price both ways, reload, Back, top-bar search keeps chip, no match + Clear filters, Ending soon chip, 375px chip scroll, 1280px top bar fits) and guest-003 (updated: search box always visible, Clear matched exactly)",
+        "2026-10-23 First gate run failed 9 specs: the top-bar 'Search in' select's wrapping label put its option texts in the accessible name and 'Search in' matched getByLabel('Search'). Fixed in the UI (aria-label on the select, search shown to guests/customers only), not in the specs",
+        "2026-10-23 Decision: default sort stays soonest ending (acceptance: old order when sort is absent); 'Trending' is the 'Most bids' option"
+      ],
+      "status": "passing"
     },
     {
       "id": "ui-1a.3",
@@ -163,7 +168,7 @@
         "docs/changes/ui-1a.3.md"
       ],
       "notes": "Reading to confirm: the mockup has no confirm step, but bids are binding and lock credit, so a one-click bid from a list is guarded by a confirm. Ask the user if they want it removed.",
-      "status": "not_started"
+      "status": "in_progress"
     },
     {
       "id": "ui-1b.1",

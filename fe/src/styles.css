@@ -317,3 +317,18 @@ th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: u
 .my-bid-strip.is-outbid { background: var(--cream); color: var(--crimson); }
 .my-bid-strip.is-none { border: 1px dashed var(--border); color: var(--muted); justify-content: center; }
 .my-bid-state { font-weight: 800; white-space: nowrap; }
+
+/* ui-1a.2 top bar search, category chips, sort */
+.top-search { display: flex; flex-direction: row; align-items: center; gap: 0.4rem; flex: 0 1 380px; min-width: 0; }
+.top-search-input { flex: 1; min-width: 0; }
+.top-search-field select { padding: 0.45rem 0.5rem; font-size: 0.85rem; border-radius: 999px; background: var(--steel-lighter); border-color: transparent; max-width: 9.5rem; }
+.top-search-go { padding: 0.45rem 0.85rem; font-size: 0.85rem; border-radius: 999px; }
+.topbar nav { flex: 1 1 auto; }
+@media (max-width: 1250px) { .topbar nav { gap: 1rem; } .top-search { flex-basis: 300px; } }
+@media (max-width: 900px) { .top-search { order: 5; flex: 1 0 100%; } }
+.chip-bar { margin: 0 0 0.5rem; overflow-x: auto; scrollbar-width: thin; }
+.chip-bar .ui-tabs { flex-wrap: nowrap; padding-bottom: 0.25rem; }
+.browse-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; flex-wrap: wrap; }
+.sort-control { flex-direction: row; align-items: center; gap: 0.5rem; }
+.empty-state { background: var(--surface); border: 1px dashed var(--border); border-radius: 16px; padding: 1.5rem; text-align: center; margin: 1rem 0; }
+.empty-state p { margin: 0 0 0.75rem; font-weight: 700; }
