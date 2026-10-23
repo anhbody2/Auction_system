@@ -1,0 +1,405 @@
+{
+  "project": "Online Auction System",
+  "last_updated": "2026-10-23",
+  "scope": "Round 8. Customer UI redesign from the 'Auction Mockups' design file (turns 1-3: 1a Browse, 1b Lot detail, 2a Dashboard, 3a Bid history, 3b Credit). Each page is split into one feature per function, so a page with several functions has several numbered features (ui-<page>.<n>). This round restyles and extends pages that already exist (Home, AuctionDetail, Dashboard, MyBiddings, Credit). It keeps every business rule from rounds 1-7 (archived in progress-feature-list/): bids are checked against available credit and the increment ladder, top-ups and withdrawals are staff-approved requests, the transaction search window is unchanged, all deletes are soft. Staff and admin pages are out of scope except for the shared top bar and design tokens.",
+  "source_design": {
+    "file": "Auction Mockups.dc.html (shared in the session of 2026-10-23, not checked in)",
+    "pages": {
+      "1a": "Browse: category chip bar, 'Trending lots' header + sort, 4-column auction cards with your-bid strip and Bid / Custom bid buttons",
+      "1b": "Lot detail: breadcrumb, gallery, info card with facts grid; sticky bid panel (countdown, highest bid, % since start, price chart, input + quick bids, Place bid) and live bid history",
+      "2a": "Dashboard: available / locked / third summary card, Goods owned list with Sell, My auctions table with Bidding / Selling / Ended tabs",
+      "3a": "Bid history: totals (bids placed, win rate), All / Active / Won / Lost tabs, lot search, table with credit state and result pill",
+      "3b": "Credit: available-credit card, Top up / Withdraw segmented form with quick amounts, transactions panel with search, type chips and date range"
+    },
+    "tokens": {
+      "navy": "#003049 (text, primary buttons, active pills)",
+      "crimson": "#c1121f (outbid, withdraw, errors, brand dot)",
+      "dark_red": "#780000 (ending-soon pill, crimson hover)",
+      "cream": "#fdf0d5 (warning / outbid backgrounds)",
+      "steel": "#669bbc (accents, avatar, chart line)",
+      "steel_light": "#e6f0f6 / #eef3f6 (leading pill, inputs, quick buttons)",
+      "muted_text": "#5b7a8c / #335a6e",
+      "page_bg": "#f5f8fa",
+      "border": "#e1e8ee",
+      "font": "Mulish 400-900 (Google Fonts), system-ui fallback",
+      "radii": "cards 14-16px, inputs 10-12px, pills 999px"
+    }
+  },
+  "conventions": {
+    "tests": "Playwright e2e specs go in e2e/ as <id>-<slug>.spec.ts (id with the dot replaced by a dash, e.g. e2e/ui-1a-2-browse-filters.spec.ts). API/integration tests use vitest in be/tests/ as <area>.<topic>.test.ts; frontend unit tests sit next to the code (fe/src/**/*.test.ts). fe vitest has no DOM: keep logic (formatting, filtering, chart points, status mapping) in plain modules and cover the React wiring in e2e.",
+    "existing_tests": "Existing specs depend on data-testids (current-price, bid-count, next-min-bid, my-bids, my-status, credit-balance, credit-held, dashboard-credit, dashboard-locked, pending-requests, tx-empty, auction-card-<id>, section-<id>, ...). A redesign keeps those testids on the equivalent element. When a feature changes visible text or structure that an older spec checks, update the spec to check the new UI. Do not delete or weaken it.",
+    "change_docs": "Each feature writes docs/changes/<id>.md listing the files it added or changed and why. ui-0.1 adds docs/design-system.md (tokens, components, how pages use them); later features add to it when they introduce a reusable component.",
+    "responsive": "Mockups are drawn at 1440px. Every redesigned page must also work at 375px wide with no horizontal page scroll: grids collapse to one column, tables scroll inside their own wrapper. Each e2e spec checks at least one page at 375px.",
+    "accessibility": "Clickable mockup <div>s become <button> or <a>. Tabs use role=tablist/tab with aria-selected. Status pills carry text, not colour alone. Contrast of text on the token colours must meet WCAG AA.",
+    "no_fake_data": "Mockup values with no source in the system (payment card 'Visa •• 4412', '214 watching', '5% buyer's premium', 'Verified authentic', 'Meridian Horology 4.9 ★ 312 sales') are not built as static text. Each feature's notes say what replaces them.",
+    "run_all": "./init.sh (npm install + npm run verify = vitest + fe build + Playwright) must exit 0 before a feature moves to passing. Stop running Docker containers / dev servers first (CLAUDE.md), otherwise prisma generate hits EPERM."
+  },
+  "rules": {
+    "single_active_feature": true,
+    "passing_requires_evidence": true,
+    "do_not_skip_verification": true
+  },
+  "status_legend": {
+    "not_started": "Work has not begun.",
+    "in_progress": "The feature is the current active task.",
+    "blocked": "Work cannot continue until a documented blocker is resolved.",
+    "passing": "Required verification has passed and evidence is recorded."
+  },
+  "roles": {
+    "guest": "Not signed in. Can browse and view lots.",
+    "customer": "A signed-in user who bids, sells goods and requests credit top-ups/withdrawals.",
+    "staff": "users.role 'staff'. Only the shared top bar changes for staff in this round.",
+    "admin": "users.role 'admin'. Same as staff for this round."
+  },
+  "features": [
+    {
+      "id": "ui-0.1",
+      "priority": 1,
+      "role": "all",
+      "area": "design-system",
+      "page": "shared (every mockup)",
+      "srs_ref": "Auction Mockups: shared top bar and tokens on 1a, 1b, 2a, 3a, 3b",
+      "title": "Design tokens, Mulish font and the new top bar",
+      "user_visible_behavior": "Every page uses the navy / crimson / cream / steel palette and the Mulish font. The top bar shows the brand mark (navy square with a crimson dot) and name, the nav links with the active one underlined in navy, the signed-in user's available credit ('Bid limit') and a round avatar with their initials that opens the existing user menu (Profile, Log out). Staff and admin links stay in the bar.",
+      "acceptance": [
+        "fe/src/styles.css :root tokens replaced by the mockup palette (source_design.tokens); existing class names keep working so unrestyled pages (staff, admin, auth) still render correctly.",
+        "Mulish loaded from Google Fonts in fe/index.html with a system-ui fallback.",
+        "Layout top bar: brand mark + name, nav links (customer: Browse '/', Dashboard, Bids '/my-bids', Credit, My goods, My Auctions; staff/admin links and pending badges from stf-009 unchanged), active link underlined.",
+        "'Bid limit' shows available credit = credit - locked from the existing credit store, updates live (crd-003), data-testid='bid-limit'. Hidden for guests.",
+        "Avatar shows initials from fullName (first letters of the first two words) or the first two letters of username, data-testid='avatar'; it opens a menu with Profile and Log out.",
+        "Shared building blocks in fe/src/components/ui/: Pill (navy / steel / cream / muted / dark-red variants), Card, SegmentedTabs, SearchInput, MoneyText. Pages in later features use them.",
+        "At 375px the nav collapses into a menu button; no horizontal scroll."
+      ],
+      "verification": [
+        "fe/src/components/ui/initials.test.ts (fullName, single word, username fallback, unicode)",
+        "e2e/ui-0-1-design-system.spec.ts: guest top bar (no bid limit/avatar), customer top bar (bid limit equals credit - locked, avatar initials, menu logs out), staff still sees staff links and badges, 375px menu",
+        "All existing Playwright specs still pass (updated only where nav text changed)",
+        "docs/design-system.md and docs/changes/ui-0.1.md"
+      ],
+      "notes": "Readings to confirm with the user: (1) brand name - the mockup says 'Lotline'; until confirmed keep the current app name and build the mark only. (2) Nav labels - the mockup shows only Browse / Dashboard / Bids / Credit; My goods and My Auctions are kept because those pages exist and have no other entry point. 'Watchlist' (2a nav) is not a feature of the system and is not added.",
+      "status": "not_started"
+    },
+    {
+      "id": "ui-1a.1",
+      "priority": 2,
+      "role": "guest, customer",
+      "area": "browse",
+      "page": "1a Browse",
+      "srs_ref": "Auction Mockups 1a: auction cards",
+      "title": "Browse: redesigned auction cards with the viewer's bid status",
+      "user_visible_behavior": "The home page lists auctions as compact cards: square thumbnail, name, time-left pill (dark red with a dot when under 1 hour, steel otherwise), category pill, 'Highest bid' in large type with the bid count, and a strip with the viewer's own position: 'Your bid $X ● Leading' (steel), 'Your bid $X ▲ Outbid' (cream/crimson) or a dashed 'You haven't bid yet'. Cards lift slightly on hover. Upcoming and ended sections keep their own cards' existing information (starts in / sold for / winner).",
+      "acceptance": [
+        "GET /api/auctions (and the search variant) returns, for a signed-in viewer, myBid { amount, status: 'leading'|'outbid' } | null per auction; null for guests and for auctions the viewer has not bid on. One extra query per request, not one per auction.",
+        "AuctionCard redesigned to the 1a layout; 4 columns at >=1200px, 2 at tablet, 1 at 375px; keeps data-testid='auction-card-<id>' and section-<id>.",
+        "Time pill uses the existing Countdown; 'ending soon' styling when an active auction has under 60 minutes left (constant in one place), data-testid='ending-soon'.",
+        "Price label: 'Highest bid' when there are bids, 'Starting at' when none, 'Sold for' / 'Final' when ended (existing wording rules).",
+        "Your-bid strip: data-testid='my-bid-strip' with data-state='leading'|'outbid'|'none'; not shown to guests or to the auction's seller.",
+        "Images: first goods image when present, striped placeholder otherwise."
+      ],
+      "verification": [
+        "be/tests/auctions.list-mybid.test.ts: guest -> myBid null; bidder leading -> leading; outbid after another bid -> outbid; seller -> null",
+        "fe/src/components/auctionCardState.test.ts (label and strip state from an auction + myBid)",
+        "e2e/ui-1a-1-browse-cards.spec.ts: guest sees cards without strip; customer bids -> strip Leading; second customer outbids -> first sees Outbid after reload; ending-soon pill on an auction with <60 min; 375px single column",
+        "docs/changes/ui-1a.1.md"
+      ],
+      "notes": "The mockup's '1,284 live auctions · bids update in real time' subtitle shows the real count of active auctions. Cards refresh with the existing 30 s poll; per-card live updates are not part of this feature.",
+      "status": "not_started"
+    },
+    {
+      "id": "ui-1a.2",
+      "priority": 3,
+      "role": "guest, customer",
+      "area": "browse",
+      "page": "1a Browse",
+      "srs_ref": "Auction Mockups 1a: category chip bar and sort",
+      "title": "Browse: category chips and sort (Most bids, Price, Ending soon)",
+      "user_visible_behavior": "Under the top bar a row of pills lists 'All', 'Ending soon' and every active category. Picking one filters the lots; the active pill is navy. A sort control next to the heading switches between Most bids, Price (low to high / high to low) and Ending soon. The search box from the existing SearchTools moves into the top bar as in the mockup and keeps working together with the chips and sort. Choices are kept in the URL so reload and Back restore them.",
+      "acceptance": [
+        "GET /api/categories (active only, id + name) if not already exposed.",
+        "GET /api/auctions accepts category=<id>, endingSoon=1, sort=bids|price_asc|price_desc|ending (zod-validated, 400 on bad values) and combines them with q/field (AND).",
+        "Default sort keeps today's order when sort is absent, so existing specs are unaffected.",
+        "Chip bar: role=tablist, data-testid='category-chips', active chip aria-selected; overflows by horizontal scroll inside the bar on narrow screens.",
+        "URL params: q, field, category, sort; Back/Forward restore the state.",
+        "Empty result shows 'No lots match.' with a 'Clear filters' button."
+      ],
+      "verification": [
+        "be/tests/auctions.filter-sort.test.ts: each sort order, category filter, endingSoon window, combined with q, 400 on unknown sort",
+        "e2e/ui-1a-2-browse-filters.spec.ts: pick category -> only that category; sort by price both ways; reload keeps state; Back restores previous filter; clear filters",
+        "docs/changes/ui-1a.2.md"
+      ],
+      "notes": "'Trending' in the mockup is the default view (sort by most bids among active lots). The mockup's separate 'Live / Ending soon / Results' header links map to the existing Active / Ending soon chip / ended-section anchors; no new pages.",
+      "status": "not_started"
+    },
+    {
+      "id": "ui-1a.3",
+      "priority": 4,
+      "role": "customer",
+      "area": "browse",
+      "page": "1a Browse",
+      "srs_ref": "Auction Mockups 1a: 'Bid $X' and 'Custom bid' card buttons",
+      "title": "Browse: quick bid at the minimum next bid and Custom bid from a card",
+      "user_visible_behavior": "Active auction cards have two buttons. 'Bid $X' shows the minimum next bid; clicking it opens a small confirm ('Place a binding bid of $X on <lot>?') and then places the bid without leaving the page; the card's price and strip update and a toast confirms or shows the server's error (e.g. not enough available credit, price moved). 'Custom bid' opens the lot page with the bid input focused. Guests clicking either are sent to login and come back to the same place. Sellers do not see the buttons on their own lots.",
+      "acceptance": [
+        "GET /api/auctions includes nextMinBid for active auctions (same increment ladder as the detail endpoint).",
+        "'Bid $X' posts to the existing POST /api/auctions/:id/bids with amount = nextMinBid shown; all server rules apply unchanged (credit, increment, ended, own lot).",
+        "Confirm dialog (role=dialog) before every quick bid; Escape / Cancel places nothing.",
+        "If the price moved, the server's 400 message is shown and the card refreshes to the new nextMinBid.",
+        "'Custom bid' links to /auctions/:id?bid=1, which focuses the bid input (ui-1b.2).",
+        "Buttons hidden for upcoming, ended and cancelled auctions and for the seller; guests go to /login?from=<current url>.",
+        "Bid limit in the top bar updates after a successful bid (existing credit store)."
+      ],
+      "verification": [
+        "e2e/ui-1a-3-quick-bid.spec.ts: quick bid -> confirm -> card shows Leading and new price, bid limit drops; cancel places nothing; stale price -> error + refreshed amount; guest redirect and return; seller sees no buttons; Custom bid focuses the input on the lot page",
+        "docs/changes/ui-1a.3.md"
+      ],
+      "notes": "Reading to confirm: the mockup has no confirm step, but bids are binding and lock credit, so a one-click bid from a list is guarded by a confirm. Ask the user if they want it removed.",
+      "status": "not_started"
+    },
+    {
+      "id": "ui-1b.1",
+      "priority": 5,
+      "role": "guest, customer",
+      "area": "lot-detail",
+      "page": "1b Lot detail",
+      "srs_ref": "Auction Mockups 1b: breadcrumb, gallery, info card",
+      "title": "Lot detail: breadcrumb, image gallery and lot information card",
+      "user_visible_behavior": "The lot page has a two-column layout: on the left a breadcrumb (Browse / <category> / Lot #<id>), a large hero image with a row of thumbnails (the selected one outlined in navy, a '+N' tile when there are more than five images that opens the rest), and an information card with status pills, the lot name, 'Sold by <seller>', the description and a facts grid (Condition, Category, Starts, Ends). The bid panel sits in a sticky right column. Messages and the seller's Cancel action remain below.",
+      "acceptance": [
+        "Two-column grid (content | 480px aside) at >=1100px; aside is position:sticky; one column on narrow screens with the bid panel directly after the gallery.",
+        "Breadcrumb links: Browse -> '/', category -> '/?category=<id>' (ui-1a.2).",
+        "Gallery uses all goods.images in sortOrder; clicking a thumbnail swaps the hero; '+N' opens a lightbox (keyboard: arrows, Escape). Placeholder when there are no images.",
+        "Info card pills: auction status (StatusBadge), NewTag, and 'No reserve' only when reservePrice is null.",
+        "Facts grid shows only fields that have values. Keeps data-testids end-time and winner.",
+        "Messages and CancelAuction keep working and keep their testids."
+      ],
+      "verification": [
+        "e2e/ui-1b-1-lot-layout.spec.ts: thumbnails swap the hero; lightbox opens and closes with keyboard; breadcrumb category link filters browse; no-image placeholder; 375px single column; existing messages/cancel specs still pass",
+        "docs/changes/ui-1b.1.md"
+      ],
+      "notes": "Not built (no data in the system): 'Verified authentic' pill, seller rating / sales count, 'Ships' fact. The seller's completed-sales count could replace the rating later if the user asks.",
+      "status": "not_started"
+    },
+    {
+      "id": "ui-1b.2",
+      "priority": 6,
+      "role": "customer",
+      "area": "lot-detail",
+      "page": "1b Lot detail",
+      "srs_ref": "Auction Mockups 1b: bid panel",
+      "title": "Lot detail: bid panel with live countdown, quick increments and inline feedback",
+      "user_visible_behavior": "The bid panel shows a dark red 'Ends in 2h 14m 37s' pill counting down every second, the bid count, the highest bid in large type with the change since the starting price ('+65%'), a 'Your bid' input with a '$' prefix and 'Min. $X' hint, three quick buttons that fill the input with the highest bid plus 1, 2 and 5 increments, and a 'Place bid $X' button that shows the amount that will be bid. Enter in the input also places the bid. Errors (below minimum, over available credit, auction ended) appear inline in a cream box; success shows 'You're the highest bidder.' Guests see a 'Log in to bid' button instead.",
+      "acceptance": [
+        "Countdown with seconds while active (existing Countdown component gains a seconds format); 'Starts in' for upcoming; 'Ended' / 'Cancelled' pill otherwise. Reloads the auction when it elapses (existing onElapsed).",
+        "Change since start = (highest - initialPrice) / initialPrice rounded to whole percent; hidden with no bids.",
+        "Quick buttons: highest + k x increment(highest) for k = 1, 2, 5 using the increment ladder (fe copy of be/src/lib/increments.ts, shared test vectors); labels show the resulting amount.",
+        "Placeholder and 'Min.' come from nextMinBid; an empty input bids nextMinBid; non-digits are stripped; thousands separators are shown while typing.",
+        "Client pre-checks (below min, over available credit) show the same messages as the server; the server stays the authority and its 400 message is shown as-is.",
+        "Success message only while the viewer is the leader; replaced by an outbid notice when a live bid event (rt-001) puts someone else ahead.",
+        "?bid=1 in the URL focuses the input (used by ui-1a.3).",
+        "Keeps data-testids current-price, bid-count, next-min-bid; new: bid-input, quick-bid-<k>, place-bid, bid-error, bid-ok."
+      ],
+      "verification": [
+        "fe/src/bidMath.test.ts: quick amounts across ladder boundaries, % change, input parsing; same vectors as be increments tests",
+        "e2e/ui-1b-2-bid-panel.spec.ts: countdown ticks; quick button fills input; Enter places bid; below-min and over-credit inline errors; success message; second context outbids -> first sees outbid notice without reload; guest sees log in; ?bid=1 focuses",
+        "Existing bid-* and rt-001 specs still pass",
+        "docs/changes/ui-1b.2.md"
+      ],
+      "notes": "The mockup's fixed +$100/+$250/+$500 buttons are replaced by increment multiples because the system has an increment ladder (bid-003/bid-004). '5% buyer's premium applies' is not shown: the system charges commission to the seller (sys-003), not a buyer's premium. Footer text becomes 'Bids are binding · locked from your available credit until you are outbid'. The mockup's navy/crimson button prop: navy is the default.",
+      "status": "not_started"
+    },
+    {
+      "id": "ui-1b.3",
+      "priority": 7,
+      "role": "guest, customer",
+      "area": "lot-detail",
+      "page": "1b Lot detail",
+      "srs_ref": "Auction Mockups 1b: price chart and live bid history",
+      "title": "Lot detail: price chart and live bid history list",
+      "user_visible_behavior": "Under the highest bid a small area chart traces the price from the starting price through every bid. Below the bid panel a 'Bid history · Live' card lists bids newest first with the bidder's initials avatar, name and relative time ('2 min ago'); the viewer's own bids are highlighted in cream and labelled 'You'. New bids from other people appear at the top and extend the chart without a reload.",
+      "acceptance": [
+        "Chart points from initialPrice + bids (oldest first), inline SVG, no chart library; y-range padded as in the mockup; hidden with fewer than one bid; aria-label summarising start, current and bid count.",
+        "History list scrolls inside its card (max-height ~300px); relative times refresh every 30 s; full date in a title tooltip.",
+        "Own bids: 'You', cream background; others show username and initials.",
+        "Both update from the existing Redux auction slice fed by useAuctionEvents (rt-001); no extra polling.",
+        "Replaces BidHistory in the left column; keeps any testids BidHistory had (bid-history, bid rows)."
+      ],
+      "verification": [
+        "fe/src/priceChart.test.ts: points and area polygon from bids, single-bid case, flat prices",
+        "fe/src/relativeTime.test.ts",
+        "e2e/ui-1b-3-history-chart.spec.ts: two contexts, B bids -> A's history row and chart point appear without reload; A's own bid shows 'You'",
+        "docs/changes/ui-1b.3.md"
+      ],
+      "notes": "Bidder names follow whatever the existing bids endpoint exposes; if usernames are masked for privacy today, keep the mask. '214 watching' is not built (no watch feature).",
+      "status": "not_started"
+    },
+    {
+      "id": "ui-2a.1",
+      "priority": 8,
+      "role": "customer",
+      "area": "dashboard",
+      "page": "2a Dashboard",
+      "srs_ref": "Auction Mockups 2a: credit summary cards",
+      "title": "Dashboard: available credit, locked credit and pending requests cards",
+      "user_visible_behavior": "The dashboard greets the user ('Welcome back, <first name>') and shows three cards. The navy card shows available credit in large type, 'Total $X' (credit), a two-colour bar of available versus locked, and 'Add credit' / 'Withdraw' buttons that open the Credit page on the matching tab. The second card shows locked credit and 'Held against N leading bids. Released automatically if you're outbid.' The third shows the total of top-up and withdrawal requests waiting for staff approval, with a link to the Credit page.",
+      "acceptance": [
+        "Available = credit - locked from the existing credit store; values update live (crd-003, stf-010 events).",
+        "Bar widths = available / credit and locked / credit; empty bar when credit is 0.",
+        "Leading-bid count from GET /api/me/bids (myStatus 'winning') or a small GET /api/me/summary { leadingBids, pendingTopup, pendingWithdraw } - pick one and record it in the change doc.",
+        "'Add credit' -> /credit?mode=topup, 'Withdraw' -> /credit?mode=withdraw (ui-3b.1 reads it).",
+        "Keeps data-testids dashboard-credit (now the total) and dashboard-locked; new dashboard-available, dashboard-pending."
+      ],
+      "verification": [
+        "be/tests/me.summary.test.ts (if the summary endpoint is added)",
+        "e2e/ui-2a-1-dashboard-credit.spec.ts: values match the Credit page; bid -> locked rises and leading count increments; top-up request -> pending card shows it; staff approves -> pending clears and totals update without reload; buttons open the right Credit tab",
+        "docs/changes/ui-2a.1.md"
+      ],
+      "notes": "Reading to confirm: the mockup's third card is 'Pending payout' (seller money released after delivery). In this system the seller is credited when the auction closes (settlement), so there is never a pending payout. Pending credit requests are the closest real 'waiting' money; ask the user before building something else.",
+      "status": "not_started"
+    },
+    {
+      "id": "ui-2a.2",
+      "priority": 9,
+      "role": "customer",
+      "area": "dashboard",
+      "page": "2a Dashboard",
+      "srs_ref": "Auction Mockups 2a: Goods owned",
+      "title": "Dashboard: Goods owned list with Sell",
+      "user_visible_behavior": "A 'Goods owned' card lists goods the user won at auction, with thumbnail, name, 'Won $X · <date>' and a 'Sell' button that opens Create auction with that item preselected. The header shows the item count. Items already listed in a running auction show 'Listed' instead of Sell.",
+      "acceptance": [
+        "Data: goods where buyerId = me and status not deleted (lib/goods.ts already treats buyer as owner); response adds the winning price and won date from the closing auction.",
+        "Sell -> /auctions/new?goodsId=<id>; CreateAuction preselects it when the goods is eligible, otherwise shows the existing eligibility message.",
+        "Empty state: 'Nothing won yet.' with a Browse link.",
+        "Shows up to 5 with 'View all' -> /goods (filtered to bought if My goods supports it)."
+      ],
+      "verification": [
+        "be/tests/goods.owned.test.ts: won goods listed with price/date, sold-on goods leave the list, deleted excluded, other users' goods excluded",
+        "e2e/ui-2a-2-goods-owned.spec.ts: win an auction -> item appears with price; Sell preselects it in Create auction; listed item shows Listed",
+        "docs/changes/ui-2a.2.md"
+      ],
+      "notes": "'Goods owned' = bought goods only (the mockup shows 'Won $X'). The user's own unsold goods stay on My goods.",
+      "status": "not_started"
+    },
+    {
+      "id": "ui-2a.3",
+      "priority": 10,
+      "role": "customer",
+      "area": "dashboard",
+      "page": "2a Dashboard",
+      "srs_ref": "Auction Mockups 2a: My auctions (Bidding / Selling / Ended)",
+      "title": "Dashboard: My auctions table with Bidding, Selling and Ended tabs",
+      "user_visible_behavior": "A 'My auctions' card has three tabs with counts. Bidding lists active auctions the user has bid on (lot, highest, your bid, time left, 'Leading' or 'Outbid · Rebid' pill where Rebid opens the lot with the input focused). Selling lists the user's own active and upcoming auctions (lot, highest, bids, time left/starts). Ended lists the user's recently ended auctions from both sides (won / lost / sold / unsold). Rows link to the lot.",
+      "acceptance": [
+        "Bidding from GET /api/me/bids (winning|outbid); Selling from the existing my-auctions endpoint (active|upcoming); Ended = last 10 across both, newest first.",
+        "Tab counts in the labels ('Bidding · 5'); role=tablist; selected tab kept in ?tab=.",
+        "'Outbid · Rebid' -> /auctions/:id?bid=1.",
+        "Time left uses Countdown and refreshes the row when it elapses.",
+        "Empty state per tab."
+      ],
+      "verification": [
+        "e2e/ui-2a-3-dashboard-auctions.spec.ts: bid -> appears under Bidding as Leading; outbid by another context -> Outbid after reload; own listing under Selling; ended auction under Ended with the right result; Rebid focuses the input",
+        "docs/changes/ui-2a.3.md"
+      ],
+      "notes": "Uses existing endpoints only; if a combined endpoint turns out to be needed for the Ended tab, add it with a be test and record it.",
+      "status": "not_started"
+    },
+    {
+      "id": "ui-3a.1",
+      "priority": 11,
+      "role": "customer",
+      "area": "bid-history",
+      "page": "3a Bid history",
+      "srs_ref": "Auction Mockups 3a: header totals and table",
+      "title": "Bid history: totals, win rate and redesigned table with credit state",
+      "user_visible_behavior": "'Bid history - every bid you've placed, newest first' shows two totals at the top right: bids placed and win rate. The table lists each lot with thumbnail, name and 'Lot #<id>', your bid, final/highest price, when you last bid, what happened to your credit (Locked, Released, Charged, or '-') and a result pill: Won (navy), Leading (steel), Outbid (cream/crimson), Lost (muted), Cancelled (muted).",
+      "acceptance": [
+        "GET /api/me/bids adds per item: bidCount (my bids on that auction), creditState 'locked'|'released'|'charged'|'none' derived from my bid ticket status and the settlement, and the response adds totals { bidsPlaced, won, lost }.",
+        "Win rate = won / (won + lost), whole percent, '-' when no finished auctions.",
+        "'Placed' shows the date of my latest bid on that lot (myLatestBidAt).",
+        "Keeps data-testids my-bids, my-bid-<id>, my-latest, highest, my-status; status values stay winning|outbid|won|lost|cancelled in the API, the UI shows 'Leading' for winning.",
+        "Table scrolls inside its wrapper at 375px."
+      ],
+      "verification": [
+        "be/tests/bids.me-history.test.ts: totals, creditState for leading (locked), outbid (released), won (charged), lost (released), cancelled",
+        "fe/src/winRate.test.ts",
+        "e2e/ui-3a-1-bid-history.spec.ts: totals and win rate after a won and a lost auction; credit column per state; existing my-biddings specs updated to new labels",
+        "docs/changes/ui-3a.1.md"
+      ],
+      "notes": "The mockup's 'Bids placed' counts individual bids (all my bid tickets), not lots.",
+      "status": "not_started"
+    },
+    {
+      "id": "ui-3a.2",
+      "priority": 12,
+      "role": "customer",
+      "area": "bid-history",
+      "page": "3a Bid history",
+      "srs_ref": "Auction Mockups 3a: All / Active / Won / Lost tabs and lot search",
+      "title": "Bid history: result tabs and lot search",
+      "user_visible_behavior": "Pill tabs All, Active, Won, Lost filter the table (Active = Leading + Outbid; Cancelled lots appear under All only). A 'Search lots' box filters by lot name or lot number as you type. Both combine, survive reload via the URL, and 'No bids match.' shows when nothing is left.",
+      "acceptance": [
+        "Client-side filter over the loaded list (logic in fe/src/bidHistoryFilter.ts); tabs show counts.",
+        "Search matches name (case-insensitive substring) or exact lot id (with or without '#').",
+        "URL params tab and q; Back restores.",
+        "Existing 'cancelled' and 'outbid' filters from the old page remain reachable: Active includes outbid; a decision is recorded if the user wants a separate Cancelled tab."
+      ],
+      "verification": [
+        "fe/src/bidHistoryFilter.test.ts: each tab, search by name and by #id, combined, empty",
+        "e2e/ui-3a-2-bid-filters.spec.ts: tabs filter; search narrows; reload keeps both; no-match message",
+        "docs/changes/ui-3a.2.md"
+      ],
+      "notes": "Mockup shows 4 tabs while the old page has 6 (all, winning, outbid, won, lost, cancelled). The 4-tab version is built; existing specs that click 'Winning'/'Outbid'/'Cancelled' tabs are updated to the new tabs, not removed.",
+      "status": "not_started"
+    },
+    {
+      "id": "ui-3b.1",
+      "priority": 13,
+      "role": "customer",
+      "area": "credit",
+      "page": "3b Credit",
+      "srs_ref": "Auction Mockups 3b: available-credit card and Top up / Withdraw form",
+      "title": "Credit: balance card and segmented Top up / Withdraw request form with quick amounts",
+      "user_visible_behavior": "The left column shows a navy card with available credit and 'Locked in bids $X', and below it one form with a Top up / Withdraw switch, a large '$' amount input, quick amounts ($500, $1,000, $5,000, $10,000), and a submit button that reads 'Request top up $X' (navy) or 'Request withdrawal $X' (crimson). Withdrawals over available credit are refused inline. After submitting, the request appears in a 'Waiting for approval' list under the form, and the balance changes only when staff approve (the user gets the existing stf-010 toast).",
+      "acceptance": [
+        "Uses the existing request endpoints and rules unchanged (amount format, withdraw <= available, staff approval).",
+        "?mode=topup|withdraw selects the tab (ui-2a.1 links).",
+        "Inline messages: 'Enter an amount.', 'Exceeds available credit of $X.', and server 400 messages as-is.",
+        "Pending requests list keeps data-testids pending-requests / pending-<id> / no-pending; credit-balance and credit-held keep their testids.",
+        "Note under the button: 'Requests are approved by staff · top-ups are simulated, no real payment is taken.'",
+        "Two-column layout (420px | table) at >=1100px, stacked below."
+      ],
+      "verification": [
+        "e2e/ui-3b-1-credit-form.spec.ts: quick amount fills input; top-up request appears pending, balance unchanged until staff approves (second context) then updates live; withdraw over available refused; ?mode=withdraw opens Withdraw",
+        "Existing crd-* specs still pass (updated for new labels only)",
+        "docs/changes/ui-3b.1.md"
+      ],
+      "notes": "The mockup credits the balance instantly and shows 'Pay with Visa •• 4412' / '1-2 business days'. The system has no payment methods and every top-up/withdrawal is a staff-approved request (stf-007), so the button says 'Request', no card row is shown, and the balance waits for approval.",
+      "status": "not_started"
+    },
+    {
+      "id": "ui-3b.2",
+      "priority": 14,
+      "role": "customer",
+      "area": "credit",
+      "page": "3b Credit",
+      "srs_ref": "Auction Mockups 3b: Transactions panel (search, type chips, date range, balance column)",
+      "title": "Credit: transactions panel with one search box, type chips, date range and running balance",
+      "user_visible_behavior": "The right column lists transactions with date, description (with the transaction ID under it), a type pill, a signed and coloured amount (+ steel, - crimson) and the balance after it. One search box matches lot name, transaction ID or amount; chips filter by type (All, Top up, Withdraw, Hold, Release, Purchase, Sale, Adjustment); a date-range dropdown offers the allowed preset ranges plus custom dates. Pagination stays.",
+      "acceptance": [
+        "transactionFilterSchema gains optional type (list of the existing transaction types) and q (a single text that matches name, id when numeric, or amount when numeric); existing name/id/min/max params keep working for other callers (staff list stf-008).",
+        "Date presets never exceed the existing search window (SEARCH_WINDOW_DAYS); the preset labels are derived from it, not hard-coded to 90 days.",
+        "Balance column = balanceAfter; amount sign from the existing debit/credit logic (adjustments included).",
+        "Type pill labels come from one map shared with TransactionTable.",
+        "Keeps data-testid tx-empty and the existing server-error display for invalid filters.",
+        "Pending requests are not in this list (they are in ui-3b.1)."
+      ],
+      "verification": [
+        "be/tests/credit.transactions-q.test.ts: q by name, id, amount; type filter; combined with dates; window still enforced; old params unchanged",
+        "fe/src/components/TransactionSearch.test.ts updated for q/type/presets (not weakened)",
+        "e2e/ui-3b-2-transactions.spec.ts: chip filters by type; search by id and by amount; date preset; no-match message; pagination",
+        "docs/changes/ui-3b.2.md"
+      ],
+      "notes": "Mockup chips are All / Top up / Withdraw / Hold / Purchase; the system has more types, so all real types get a chip. 'Last 90 days ▾' becomes presets bounded by the SRS search window.",
+      "status": "not_started"
+    }
+  ]
+}
