@@ -19,6 +19,9 @@ export interface StreamEvent {
 
 const auctionChannel = (auctionId: bigint) => `auction:${auctionId}`;
 const userChannel = (userId: bigint) => `user:${userId}`;
+/** stf-009: the two staff approval queues; a stream listens only to the ones its user may manage. */
+export type StaffChannel = 'goods' | 'credit';
+const staffChannel = (name: StaffChannel) => `staff:${name}`;
 
 export function publishAuctionEvent(auctionId: bigint, event: StreamEvent) {
   bus.emit(auctionChannel(auctionId), event);
@@ -37,13 +40,18 @@ export function publishAuctionFinished(
   for (const userId of new Set([...userIds].map(String))) publishUserEvent(BigInt(userId), { type: 'auction-finished', data });
 }
 
+/** stf-009: a change in an approval queue, for every staff stream on that channel. */
+export function publishStaffEvent(channel: StaffChannel, event: StreamEvent) {
+  bus.emit(staffChannel(channel), event);
+}
+
 export const HEARTBEAT_MS = 25_000;
 
 /**
- * Turns the response into an SSE stream that forwards every event on `channel` until the client goes away.
+ * Turns the response into an SSE stream that forwards every event on `channels` until the client goes away.
  * Headers are flushed at once and a comment line is sent every HEARTBEAT_MS so proxies keep it open.
  */
-function streamChannel(req: Request, res: Response, channel: string) {
+function streamChannels(req: Request, res: Response, channels: string[]) {
   res.status(200);
   res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
@@ -61,19 +69,28 @@ function streamChannel(req: Request, res: Response, channel: string) {
     res.write(frame);
   };
   const heartbeat = setInterval(() => res.write(': ping\n\n'), HEARTBEAT_MS);
-  bus.on(channel, send);
+  for (const channel of channels) bus.on(channel, send);
   req.on('close', () => {
     clearInterval(heartbeat);
-    bus.off(channel, send);
+    for (const channel of channels) bus.off(channel, send);
   });
 }
 
 export function streamAuction(req: Request, res: Response, auctionId: bigint) {
-  streamChannel(req, res, auctionChannel(auctionId));
+  streamChannels(req, res, [auctionChannel(auctionId)]);
 }
 
 export function streamUser(req: Request, res: Response, userId: bigint) {
-  streamChannel(req, res, userChannel(userId));
+  streamChannels(req, res, [userChannel(userId)]);
+}
+
+export function streamStaff(req: Request, res: Response, channels: StaffChannel[]) {
+  streamChannels(req, res, channels.map(staffChannel));
+}
+
+/** For tests: how many staff streams listen to a queue. */
+export function staffListenerCount(channel: StaffChannel) {
+  return bus.listenerCount(staffChannel(channel));
 }
 
 /** For tests: how many streams are listening to a user. */

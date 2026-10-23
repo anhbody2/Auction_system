@@ -1,7 +1,9 @@
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { money } from '../api';
 import { can, useAuth } from '../auth';
+import { useAppSelector } from '../store';
 import { useCredit, useCreditSync } from '../store/useCredit';
+import { useStaffEvents } from '../store/useStaffEvents';
 import { ResendActivation } from './ResendActivation';
 
 export function Layout() {
@@ -12,6 +14,9 @@ export function Layout() {
   const notice = (location.state as { notice?: string } | null)?.notice;
   useCreditSync();
   const { credit, locked } = useCredit();
+  // stf-009: live approval queues and their nav badges.
+  useStaffEvents();
+  const { goodsPending, creditPending } = useAppSelector((s) => s.approvals);
 
   const onLogout = async () => {
     await logout();
@@ -37,8 +42,18 @@ export function Layout() {
           )}
           {can(user, 'report.view') && <NavLink to="/staff/statistics">Statistics</NavLink>}
           {can(user, 'auction.manage') && <NavLink to="/staff/auctions">Manage auctions</NavLink>}
-          {can(user, 'goods.manage') && <NavLink to="/staff/goods">Goods</NavLink>}
-          {can(user, 'credit.manage') && <NavLink to="/staff/credit">Credit management</NavLink>}
+          {can(user, 'goods.manage') && (
+            <NavLink to="/staff/goods">
+              Goods
+              <PendingBadge count={goodsPending} testId="badge-goods-pending" label="goods waiting for approval" />
+            </NavLink>
+          )}
+          {can(user, 'credit.manage') && (
+            <NavLink to="/staff/credit">
+              Credit management
+              <PendingBadge count={creditPending} testId="badge-credit-pending" label="credit requests waiting for approval" />
+            </NavLink>
+          )}
           {can(user, 'user.manage') && <NavLink to="/admin/users">Users</NavLink>}
           {can(user, 'permission.manage') && <NavLink to="/admin/permissions">Permissions</NavLink>}
           {user && <NavLink to="/profile">Profile</NavLink>}
@@ -93,5 +108,15 @@ export function Layout() {
         <Outlet />
       </main>
     </>
+  );
+}
+
+/** stf-009: how many requests wait in a queue; hidden at zero. */
+function PendingBadge({ count, testId, label }: { count: number | null; testId: string; label: string }) {
+  if (!count) return null;
+  return (
+    <span className="nav-badge" data-testid={testId} aria-label={`${count} ${label}`}>
+      {count}
+    </span>
   );
 }

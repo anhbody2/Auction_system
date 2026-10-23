@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db';
+import { publishGoodsRequest } from '../lib/approvalEvents';
 import { effectiveStatus } from '../lib/auctions';
 import { GOODS_STATUSES, IN_AUCTION_MESSAGE, checkGoodsRefs, goodsSchema } from '../lib/goods';
 import { HttpError, asyncHandler } from '../lib/http';
@@ -165,11 +166,14 @@ staffGoodsRouter.delete(
   '/:id',
   asyncHandler(async (req, res) => {
     const id = idParam(req.params.id);
-    await prisma.$transaction(async (tx) => {
+    const before = await prisma.$transaction(async (tx) => {
       const current = await lockGoods(tx, id);
       if (openAuction(current)) throw new HttpError(400, DELETE_OPEN_MESSAGE);
       await tx.goods.update({ where: { id }, data: { status: 'deleted' } });
+      return current;
     });
+    // stf-009: deleting a waiting request takes it out of every staff queue.
+    if (before.status === 'pending') await publishGoodsRequest('deleted', { ...before, status: 'deleted' }, req.user);
     res.json({ message: 'Goods deleted' });
   }),
 );
@@ -186,7 +190,8 @@ async function review(id: bigint, staffId: bigint, decision: 'active' | 'rejecte
       include: staffGoodsInclude,
     });
   });
-  // After commit: the decision stands even if the mail fails (it is logged).
+  // After commit: other staff see the decision at once (stf-009); the decision stands even if the mail fails.
+  await publishGoodsRequest(decision === 'active' ? 'approved' : 'rejected', goods, goods.reviewedBy);
   const subject = decision === 'active' ? `Your goods "${goods.name}" were approved` : `Your goods "${goods.name}" were not approved`;
   const text =
     decision === 'active'

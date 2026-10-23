@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db';
+import { publishCreditRequest } from '../lib/approvalEvents';
 import { requestCredit } from '../lib/creditRequests';
 import { asyncHandler } from '../lib/http';
 import { searchTransactions, transactionFilterSchema } from '../lib/transactions';
@@ -55,6 +56,7 @@ creditRouter.post(
   asyncHandler(async (req, res) => {
     const { amount } = amountSchema.parse(req.body);
     const request = await requestCredit(req.user!.id, 'topup', amount);
+    await publishCreditRequest('created', request, req.user!);
     res.status(201).json({ message: 'Top-up requested. It will be added once staff approve it.', request, ...(await summary(req.user!.id)) });
   }),
 );
@@ -64,6 +66,7 @@ creditRouter.post(
   asyncHandler(async (req, res) => {
     const { amount } = amountSchema.parse(req.body);
     const request = await requestCredit(req.user!.id, 'withdraw', amount);
+    await publishCreditRequest('created', request, req.user!);
     res.status(201).json({ message: 'Withdrawal requested. It will be paid out once staff approve it.', request, ...(await summary(req.user!.id)) });
   }),
 );

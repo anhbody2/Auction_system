@@ -2,8 +2,9 @@ import { Prisma } from '@prisma/client';
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db';
+import { publishCreditRequest } from '../lib/approvalEvents';
 import { applyCredit } from '../lib/credit';
-import { lockTransaction, reviewCredit } from '../lib/creditRequests';
+import { REQUEST_TYPES, lockTransaction, reviewCredit, type RequestType } from '../lib/creditRequests';
 import { publishUserEvent } from '../lib/events';
 import { HttpError, asyncHandler } from '../lib/http';
 import { directionOf, searchTransactions, transactionFilterSchema, withDirection } from '../lib/transactions';
@@ -153,9 +154,12 @@ staffCreditRouter.delete(
       const t = await lockTransaction(tx, id);
       if (t.status === 'deleted') throw new HttpError(404, 'Transaction not found');
       if (t.status === 'posted') throw new HttpError(400, 'Posted transactions cannot be deleted; reverse them instead');
-      return tx.creditTransaction.update({ where: { id }, data: { status: 'deleted' } });
+      const deleted = await tx.creditTransaction.update({ where: { id }, data: { status: 'deleted' } });
+      return { ...deleted, wasPending: t.status === 'pending', user: t.user };
     });
     await notifyBalance(row.userId, row.id, 'deleted');
+    // stf-009: a waiting request deleted by staff leaves every staff queue.
+    if (row.wasPending && REQUEST_TYPES.includes(row.transactionType as RequestType)) await publishCreditRequest('cancelled', row, row.user, req.user);
     res.json({ message: 'Transaction deleted' });
   }),
 );

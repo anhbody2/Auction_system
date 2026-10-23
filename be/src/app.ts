@@ -16,6 +16,7 @@ import { goodsRouter } from './routes/goods';
 import { meRouter } from './routes/me';
 import { messagesRouter } from './routes/messages';
 import { staffRouter } from './routes/staff';
+import { staffApprovalsRouter } from './routes/staffApprovals';
 import { staffAuctionsRouter } from './routes/staffAuctions';
 import { staffCreditRouter } from './routes/staffCredit';
 import { staffGoodsRouter } from './routes/staffGoods';
@@ -65,6 +66,7 @@ export function createApp() {
   app.use('/api/staff/goods', staffGoodsRouter);
   app.use('/api/staff/credit', staffCreditRouter);
   app.use('/api/staff/manage/auctions', staffAuctionsRouter);
+  app.use('/api/staff', staffApprovalsRouter);
   app.use('/api/staff', staffRouter);
   app.use('/api/credit', creditRouter);
   app.use('/api/uploads', uploadsRouter);

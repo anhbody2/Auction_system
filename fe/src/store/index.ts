@@ -1,10 +1,11 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { useDispatch, useSelector } from 'react-redux';
+import { approvalsReducer } from './approvalsSlice';
 import { auctionReducer } from './auctionSlice';
 import { creditReducer } from './creditSlice';
 
 export function makeStore() {
-  return configureStore({ reducer: { auction: auctionReducer, credit: creditReducer } });
+  return configureStore({ reducer: { auction: auctionReducer, credit: creditReducer, approvals: approvalsReducer } });
 }
 
 export const store = makeStore();

@@ -436,3 +436,11 @@
 - Verification: be 315/317, fe 79, build ok, Playwright 59/60. All 3 failures come from the user's uncommitted reason->context rename (staffCredit.ts + StaffCredit.tsx), not sec-005
 - Manual-check equivalent: real Chromium with VITE_IDLE_TIMEOUT_MS=120000 -> warning at 61 s, logout at 120 s with the 2-minute message
 - Next best step: stf-009 (staff approval stream). Started: be/src/lib/approvalEvents.ts, be/tests/staff.events.test.ts, be/tests/staff.pending-counts.test.ts, fe/src/store/approvalsSlice(.test).ts written, not wired yet (left uncommitted)
+
+### Session 013 (cont.) stf-009
+
+- Completed: staff SSE stream GET /api/staff/events (channels staff:goods / staff:credit by permission), GET /api/staff/pending-counts, events published after commit from goods create/resubmit/delete, staff goods approve/reject/delete, credit request create, credit review, staff delete of pending requests; fe approvals slice, useStaffEvents in Layout, nav badges, live StaffGoods list/detail and StaffCredit queue/detail (decided-elsewhere)
+- Verification: be 324/326, fe 85, build ok, Playwright 58/60 (stf-008 = user WIP; crd-003 = DB connection flake, 3/3 on rerun)
+- Commit note: be/src/routes/staffCredit.ts and fe/src/pages/StaffCredit.tsx were staged without the user's in-progress reason->context rename (working tree untouched)
+- Untracked user files left alone: SRS-2.txt, claude-2.md
+- Next best step: stf-010 (requester-side realtime: goods-reviewed user event, toasts, My Goods live update)

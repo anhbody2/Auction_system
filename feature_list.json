@@ -152,8 +152,12 @@
         "docs/realtime.md updated (staff stream, channels, event formats) and docs/changes/stf-009.md"
       ],
       "notes": "'All request Approve' = the two approval flows that exist: goods review (stf-005) and credit top-up/withdraw requests (stf-007). Auctions have no approval step. One API process (same limit as rt-001).",
-      "status": "not_started",
-      "evidence": []
+      "status": "passing",
+      "evidence": [
+        "2026-10-23 be vitest 65 files: 324/326; new staff.events (6: 401/403, permission-scoped channels, goods created/approved/rejected/resubmitted/deleted and credit created/approved/rejected/cancelled each one event after commit with the right pendingCount, refused 400 reviews publish nothing, closed stream stops listening) and staff.pending-counts (3) pass; the 2 failures are staff.credit.crud from the user's uncommitted reason->context rename",
+        "2026-10-23 fe vitest 11 files / 85 tests (approvalsSlice.test 6: counts, each action, duplicate delivery ignored, bounded seen list, resync, sessionEnded); fe build ok",
+        "2026-10-23 Playwright 58/60 in the full run; stf-009-approval-realtime passes (also 2x more): staff A on /staff/goods sees the customer's new goods row and badge +1 without reload, admin approves -> row 'approved' and badge back; non-matching filter -> 'new requests' notice + Show; detail page shows 'Rejected by admin just now' with Approve/Reject disabled; credit top-up row appears on /staff/credit, admin approves -> 'Approved by admin just now' and badge back; own approval leaves no note. Failures: stf-008 (user WIP) and crd-003 during a window where the e2e API logged \"Can't reach database server\" (Docker port forward); crd-003 then passed 3/3 in separate runs"
+      ]
     },
     {
       "id": "stf-010",

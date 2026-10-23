@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApiError, api, money } from '../api';
+import { useAuth } from '../auth';
 import { Field } from '../components/Field';
 import { TransactionSearch } from '../components/TransactionSearch';
 import { Pager, TransactionTable, type Tx, type TxPage } from '../components/TransactionTable';
+import { decidedText, isDecision, useApprovalEvents } from '../store/useStaffEvents';
 import { useToast } from '../toast';
 import { defaultFilter, filterQuery, type FilterErrors, type TransactionFilterValues } from '../transactionSearch';
 
@@ -24,11 +26,29 @@ export function PendingRequests({ onReviewed }: { onReviewed?: () => void }) {
   const [reason, setReason] = useState('');
   const [reasonError, setReasonError] = useState('');
   const [busy, setBusy] = useState(false);
+  // stf-009: the queue is live. New requests appear; a request decided by someone else shows who did it.
+  const { user } = useAuth();
+  const { event, resync } = useApprovalEvents('credit');
+  const [decided, setDecided] = useState<Record<number, string>>({});
 
   const load = useCallback(() => {
-    api<{ requests: CreditRequest[] }>('/staff/credit/requests').then((r) => setRequests(r.requests));
+    api<{ requests: CreditRequest[] }>('/staff/credit/requests').then((r) => {
+      setRequests(r.requests);
+      setDecided({});
+    });
   }, []);
-  useEffect(load, [load]);
+  useEffect(load, [load, resync]);
+
+  useEffect(() => {
+    if (!event) return;
+    if (event.action === 'created') load();
+    else if (isDecision(event) && event.reviewedBy !== user?.username) {
+      setDecided((d) => ({ ...d, [event.id]: decidedText(event) }));
+      if (rejecting === event.id) setRejecting(null);
+    }
+    if (event.reviewedBy !== user?.username) onReviewed?.();
+    // Runs per event only.
+  }, [event]);
 
   const review = async (id: number, decision: 'approve' | 'reject') => {
     setBusy(true);
@@ -80,7 +100,11 @@ export function PendingRequests({ onReviewed }: { onReviewed?: () => void }) {
               <td>{money(r.amount)}</td>
               <td>{new Date(r.createdAt).toLocaleString()}</td>
               <td>
-                {rejecting === r.id ? (
+                {decided[r.id] ? (
+                  <span className="muted small" data-testid="decided-elsewhere">
+                    {decided[r.id]}
+                  </span>
+                ) : rejecting === r.id ? (
                   <form
                     className="row"
                     aria-label={`Reject request ${r.id}`}
@@ -292,6 +316,10 @@ export function StaffCreditDetailPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirm, setConfirm] = useState<'delete' | 'reverse' | null>(null);
   const [busy, setBusy] = useState(false);
+  // stf-009: a pending request open here was decided by someone else.
+  const { user } = useAuth();
+  const { event } = useApprovalEvents('credit');
+  const [decided, setDecided] = useState('');
 
   const load = useCallback(() => {
     api<{ transaction: StaffTx }>(`/staff/credit/transactions/${id}`)
@@ -299,6 +327,14 @@ export function StaffCreditDetailPage() {
       .catch((err) => setProblem(err instanceof ApiError ? err.message : 'Could not load the transaction'));
   }, [id]);
   useEffect(load, [load]);
+
+  useEffect(() => {
+    if (!event || event.id !== Number(id) || !isDecision(event) || event.reviewedBy === user?.username) return;
+    setDecided(decidedText(event));
+    setEditing(null);
+    setConfirm(null);
+    load();
+  }, [event]);
 
   if (problem) return <p className="muted">{problem}</p>;
   if (!t) return <p className="muted">Loading...</p>;
@@ -345,6 +381,11 @@ export function StaffCreditDetailPage() {
       </p>
       <div className="row spread">
         <h1>Transaction #{t.id}</h1>
+        {decided && (
+          <span className="notice" role="status" data-testid="decided-elsewhere">
+            {decided}
+          </span>
+        )}
         <span className={`badge badge-${t.status}`} data-testid="tx-detail-status">
           {t.status}
         </span>

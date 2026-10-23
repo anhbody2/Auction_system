@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ApiError, CONDITION_LABELS, api } from '../api';
+import { useAuth } from '../auth';
 import { StatusBadge } from '../components/AuctionBits';
 import { EMPTY_GOODS, GoodsForm, type GoodsValues } from '../components/GoodsForm';
 import { Pager } from '../components/TransactionTable';
+import type { GoodsRequestEvent } from '../store/approvalsSlice';
+import { decidedText, isDecision, useApprovalEvents } from '../store/useStaffEvents';
 import { useToast } from '../toast';
 import { toGoodsBody } from './MyGoods';
 
@@ -36,6 +39,18 @@ export interface StaffGoods {
 
 const PAGE_SIZE = 20;
 
+/** stf-009: the stored status a queue decision leaves behind. */
+const STATUS_AFTER: Partial<Record<GoodsRequestEvent['action'], StaffGoodsStatus>> = { approved: 'active', rejected: 'rejected', deleted: 'deleted' };
+
+/**
+ * stf-009: would a new or resubmitted request show in the list as filtered? The event has no category, so a
+ * category filter never matches (the user gets the 'new requests' notice instead).
+ */
+export function matchesGoodsFilters(ev: Pick<GoodsRequestEvent, 'name' | 'seller'>, f: { q: string; seller: string; categoryId: string; status: string }) {
+  const has = (text: string, part: string) => text.toLowerCase().includes(part.trim().toLowerCase());
+  return (f.status === '' || f.status === 'pending') && !f.categoryId && has(ev.name, f.q) && has(ev.seller, f.seller);
+}
+
 export function StaffGoodsBadge({ status }: { status: StaffGoodsStatus }) {
   const cls = status === 'active' ? 'available' : status === 'deleted' ? 'sold' : status;
   return (
@@ -57,6 +72,10 @@ export function StaffGoodsPage() {
   const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
   const [data, setData] = useState<{ goods: StaffGoods[]; total: number; page: number; pageSize: number } | null>(null);
   const [error, setError] = useState('');
+  // stf-009: live queue. Matching new requests reload the page in place; others are counted in a notice.
+  const { event, resync } = useApprovalEvents('goods');
+  const [reload, setReload] = useState(0);
+  const [newRequests, setNewRequests] = useState(0);
 
   useEffect(() => {
     api<{ categories: { id: number; name: string }[] }>('/categories').then((r) => setCategories(r.categories));
@@ -68,7 +87,24 @@ export function StaffGoodsPage() {
     api<{ goods: StaffGoods[]; total: number; page: number; pageSize: number }>(`/staff/goods?${qs}`)
       .then(setData)
       .catch((err) => setError(err instanceof ApiError ? err.message : 'Could not load goods'));
-  }, [q, seller, categoryId, status, page]);
+  }, [q, seller, categoryId, status, page, reload, resync]);
+  useEffect(() => setNewRequests(0), [q, seller, categoryId, status]);
+
+  useEffect(() => {
+    if (!event) return;
+    if (event.action === 'created' || event.action === 'resubmitted') {
+      if (matchesGoodsFilters(event, { q, seller, categoryId, status })) setReload((n) => n + 1);
+      else setNewRequests((n) => n + 1);
+      return;
+    }
+    const next = STATUS_AFTER[event.action];
+    setData((d) =>
+      d && next
+        ? { ...d, goods: d.goods.map((g) => (g.id === event.id ? { ...g, status: next, reviewedBy: event.reviewedBy ? { id: 0, username: event.reviewedBy } : g.reviewedBy } : g)) }
+        : d,
+    );
+    // Runs per event only; the filters are read as they are when it arrives.
+  }, [event]);
 
   const apply = (e: FormEvent) => {
     e.preventDefault();
@@ -121,6 +157,14 @@ export function StaffGoodsPage() {
         </button>
       </form>
 
+      {newRequests > 0 && (
+        <p className="notice new-requests" role="status" data-testid="new-requests-notice">
+          {newRequests} new {newRequests === 1 ? 'request' : 'requests'} waiting for approval
+          <button className="btn btn-ghost btn-small" type="button" onClick={() => setParams({ status: 'pending' })}>
+            Show
+          </button>
+        </p>
+      )}
       {error && <p className="error">{error}</p>}
       {!data ? (
         <p className="muted">Loading...</p>
@@ -183,6 +227,10 @@ export function StaffGoodsDetailPage() {
   const [reason, setReason] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
+  // stf-009: another staff member (or the seller) decided this request while it is open here.
+  const { user } = useAuth();
+  const { event } = useApprovalEvents('goods');
+  const [decided, setDecided] = useState('');
 
   const load = useCallback(() => {
     api<{ goods: StaffGoods }>(`/staff/goods/${id}`)
@@ -190,6 +238,17 @@ export function StaffGoodsDetailPage() {
       .catch((err) => setProblem(err instanceof ApiError ? err.message : 'Could not load the goods'));
   }, [id]);
   useEffect(load, [load]);
+
+  useEffect(() => {
+    if (!event || event.id !== Number(id)) return;
+    if (isDecision(event) && event.reviewedBy !== user?.username) {
+      setDecided(decidedText(event));
+      setRejecting(false);
+    } else if (event.action === 'resubmitted') {
+      setDecided('');
+      load();
+    }
+  }, [event]);
 
   const act = async (path: string, init: { method?: string; body?: unknown }, after?: () => void) => {
     setBusy(true);
@@ -225,6 +284,14 @@ export function StaffGoodsDetailPage() {
         <StaffGoodsBadge status={goods.status} />
       </div>
       {goods.status === 'rejected' && goods.rejectionReason && <p className="error">Rejected: {goods.rejectionReason}</p>}
+      {decided && (
+        <p className="notice" role="status" data-testid="decided-elsewhere">
+          {decided}.{' '}
+          <button className="btn btn-ghost btn-small" type="button" onClick={() => { setDecided(''); load(); }}>
+            Reload
+          </button>
+        </p>
+      )}
 
       {editing ? (
         <GoodsForm
@@ -280,10 +347,10 @@ export function StaffGoodsDetailPage() {
         <div className="row actions" style={{ marginTop: '1rem', flexWrap: 'wrap' }}>
           {goods.status === 'pending' && !rejecting && (
             <>
-              <button className="btn btn-primary" disabled={busy} onClick={() => act('/approve', { method: 'POST' })}>
+              <button className="btn btn-primary" disabled={busy || !!decided} onClick={() => act('/approve', { method: 'POST' })}>
                 Approve
               </button>
-              <button className="btn btn-danger" disabled={busy} onClick={() => setRejecting(true)}>
+              <button className="btn btn-danger" disabled={busy || !!decided} onClick={() => setRejecting(true)}>
                 Reject
               </button>
             </>

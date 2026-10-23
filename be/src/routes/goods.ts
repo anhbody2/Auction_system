@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db';
+import { publishGoodsRequest } from '../lib/approvalEvents';
 import { HttpError, asyncHandler } from '../lib/http';
 import { checkGoodsRefs, goodsInclude, goodsSchema, goodsView, lockChangeableGoods, lockOwnGoods, visibleGoodsWhere } from '../lib/goods';
 import { requireAuth } from '../middleware/auth';
@@ -45,6 +46,8 @@ goodsRouter.post(
         include: goodsInclude,
       });
     });
+    // stf-009: a new request in the staff goods queue.
+    await publishGoodsRequest('created', { ...goods, seller: req.user! });
     res.status(201).json({ goods: goodsView(goods, req.user!.id) });
   }),
 );
@@ -70,8 +73,10 @@ goodsRouter.patch(
   asyncHandler(async (req, res) => {
     const d = goodsSchema.partial().strict().parse(req.body);
     const id = idParam(req.params.id);
+    let resubmitted = false;
     const goods = await prisma.$transaction(async (tx) => {
       const current = await lockChangeableGoods(tx, id, req.user!.id);
+      resubmitted = current.status === 'rejected';
       const merged = {
         name: d.name ?? current.name,
         description: d.description ?? current.description ?? '',
@@ -95,6 +100,7 @@ goodsRouter.patch(
         include: goodsInclude,
       });
     });
+    if (resubmitted) await publishGoodsRequest('resubmitted', { ...goods, seller: req.user! });
     res.json({ message: 'Goods updated', goods: goodsView(goods, req.user!.id) });
   }),
 );
@@ -105,10 +111,13 @@ goodsRouter.delete(
   requireAuth,
   asyncHandler(async (req, res) => {
     const id = idParam(req.params.id);
-    await prisma.$transaction(async (tx) => {
-      await lockChangeableGoods(tx, id, req.user!.id);
+    const before = await prisma.$transaction(async (tx) => {
+      const current = await lockChangeableGoods(tx, id, req.user!.id);
       await tx.goods.update({ where: { id }, data: { status: 'deleted' } });
+      return current;
     });
+    // stf-009: a request withdrawn by its seller leaves the staff queue.
+    if (before.status === 'pending') await publishGoodsRequest('deleted', { ...before, status: 'deleted', seller: req.user! });
     res.json({ message: 'Goods deleted' });
   }),
 );

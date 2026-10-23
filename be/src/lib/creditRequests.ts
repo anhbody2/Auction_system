@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../db';
+import { publishCreditRequest } from './approvalEvents';
 import { lockBalances } from './credit';
 import { publishUserEvent } from './events';
 import { HttpError } from './http';
@@ -38,6 +39,8 @@ export async function lockTransaction(tx: Prisma.TransactionClient, id: bigint) 
   return row;
 }
 
+const reviewInclude = { user: true, reviewedBy: { select: { username: true } } } as const;
+
 /**
  * Approves or rejects a pending request exactly once (the row lock serialises concurrent reviews).
  * A withdrawal larger than the customer's available credit at approval time is refused and stays pending.
@@ -50,7 +53,7 @@ export async function reviewCredit(id: bigint, staffId: bigint, decision: 'appro
     const type = current.transactionType as RequestType;
     const reviewed = { reviewedAt: new Date(), reviewedById: staffId };
     if (decision === 'reject') {
-      return tx.creditTransaction.update({ where: { id }, data: { status: 'rejected', rejectionReason: reason.trim(), ...reviewed }, include: { user: true } });
+      return tx.creditTransaction.update({ where: { id }, data: { status: 'rejected', rejectionReason: reason.trim(), ...reviewed }, include: reviewInclude });
     }
     const { balance, held, available } = await lockBalances(tx, current.userId);
     if (type === 'withdraw' && available.lessThan(current.amount)) throw new HttpError(400, AT_APPROVAL_MESSAGE);
@@ -59,12 +62,14 @@ export async function reviewCredit(id: bigint, staffId: bigint, decision: 'appro
     return tx.creditTransaction.update({
       where: { id },
       data: { status: 'posted', balanceBefore: balance, balanceAfter: after, description: LABEL[type], ...reviewed },
-      include: { user: true },
+      include: reviewInclude,
     });
   });
 
-  // After commit: the customer's credit and request list refresh live; the mail is best effort.
+  // After commit: the customer's credit and request list refresh live, other staff see the decision (stf-009);
+  // the mail is best effort.
   const u = row.user;
+  await publishCreditRequest(row.status === 'posted' ? 'approved' : 'rejected', row, u, row.reviewedBy);
   publishUserEvent(u.id, {
     type: 'credit-request',
     id: `${row.id}-${row.status}`,
