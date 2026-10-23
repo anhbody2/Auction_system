@@ -95,5 +95,7 @@ test('sec-005: staff are signed out after inactivity too; guests never see the w
   await waitForWarning(page);
   await expect(page).toHaveURL(/\/login$/, { timeout: TIMEOUT_MS });
   await expect(page.getByTestId('idle-signed-out')).toBeVisible();
+  // The page moves on before the logout response arrives; replay only once the server has answered.
+  await expect.poll(() => refreshCookie(context)).toBeUndefined();
   await expectRefreshRevoked(baseURL, token!);
 });

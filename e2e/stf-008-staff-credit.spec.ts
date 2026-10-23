@@ -35,9 +35,9 @@ test('stf-008: staff filter transactions, add an adjustment, edit and delete req
   const adjust = page.getByRole('form', { name: 'Manual adjustment' });
   await adjust.getByLabel('Customer (username or email)').fill('carol');
   await adjust.getByLabel('Adjustment amount').fill('20');
-  await adjust.getByLabel('Reason').fill(`Goodwill ${TAG}`);
+  await adjust.getByLabel('Context').fill(`Goodwill ${TAG}`);
   await adjust.getByRole('button', { name: 'Post adjustment' }).click();
-  await expect(adjust.getByLabel('Reason')).toHaveValue('');
+  await expect(adjust.getByLabel('Context')).toHaveValue('');
 
   // Edit the $30 request's amount to $35
   await page.goto(`/staff/credit/${toEdit}`);

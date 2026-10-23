@@ -168,7 +168,7 @@ const TX_STATUS_OPTIONS: [string, string][] = [
 /** stf-008: manual credit or debit for a customer, posted at once. */
 function AdjustmentForm({ onPosted }: { onPosted: () => void }) {
   const toast = useToast();
-  const empty = { customer: '', direction: 'credit', amount: '', reason: '' };
+  const empty = { customer: '', direction: 'credit', amount: '', context: '' };
   const [values, setValues] = useState(empty);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -207,7 +207,7 @@ function AdjustmentForm({ onPosted }: { onPosted: () => void }) {
         </div>
         <Field label="Adjustment amount" inputMode="decimal" {...bind('amount')} />
       </div>
-      <Field label="Reason" {...bind('reason')} />
+      <Field label="Context" {...bind('context')} />
       <button className="btn btn-primary" type="submit" disabled={busy}>
         Post adjustment
       </button>

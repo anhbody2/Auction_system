@@ -453,3 +453,11 @@
 - Environment note: Docker's port 5436 forward dropped connections a few times on 2026-10-23 ("Can't reach database server"); reruns were clean
 - Left for the user (uncommitted / untracked): staffCredit.ts + StaffCredit.tsx rename (also needs be/tests/staff.credit.crud.test.ts and e2e/stf-008-staff-credit.spec.ts updated to 'context'), ChangePassword.tsx whitespace, SRS-2.txt, claude-2.md
 - Next best step: new SRS round -> create a fresh feature_list.json at the root (SRS-2.txt may hold the next requirements)
+
+### Session 013 (cont.) adjustment field reason -> context (user change finished)
+
+- User asked to fix everything around their rename of the staff manual-adjustment field 'reason' -> 'context' (API field, 'Give a context' message, form label 'Context', description "Adjustment: <context>")
+- Updated to match: be/tests/staff.credit.crud.test.ts, e2e/stf-008-staff-credit.spec.ts, docs/credit-model.md (credit-request rejection reasons are unchanged)
+- Also fixed a race in e2e/sec-005 (staff case): it replayed the refresh token before the idle logout response arrived; it now waits for the cookie to be cleared, like the customer case
+- Verification: npm run verify -> be vitest 66 files / 329 tests, fe 12 / 88, build ok, Playwright 61/62 (the one failure was that sec-005 race; after the fix sec-005 passed 2/2 runs, stf-007 and stf-008 pass)
+- Still untracked (user's): SRS-2.txt, claude-2.md; ChangePassword.tsx whitespace left uncommitted

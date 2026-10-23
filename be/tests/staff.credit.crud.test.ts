@@ -11,26 +11,26 @@ const balances = async (username: string) => {
 describe('stf-008 staff view, adjust, edit, delete and reverse transactions', () => {
   beforeEach(resetDb);
 
-  it('manual credit and debit adjustments post at once with type adjustment and the reason', async () => {
+  it('manual credit and debit adjustments post at once with type adjustment and the context', async () => {
     const staff = await loginAs('staff');
     const before = await balances('carol');
-    const credit = await staff.post(BASE).send({ customer: 'carol', direction: 'credit', amount: 20, reason: 'Goodwill for a late delivery' });
+    const credit = await staff.post(BASE).send({ customer: 'carol', direction: 'credit', amount: 20, context: 'Goodwill for a late delivery' });
     expect(credit.status).toBe(201);
     expect(credit.body.transaction).toMatchObject({ transactionType: 'adjustment', status: 'posted', amount: 20, direction: 'credit', description: 'Adjustment: Goodwill for a late delivery' });
     expect(await balances('carol')).toEqual({ ...before, balance: before.balance + 20 });
 
-    const debit = await staff.post(BASE).send({ customer: 'carol', direction: 'debit', amount: 5, reason: 'Fee correction' });
+    const debit = await staff.post(BASE).send({ customer: 'carol', direction: 'debit', amount: 5, context: 'Fee correction' });
     expect(debit.status).toBe(201);
     expect(debit.body.transaction.direction).toBe('debit');
     expect((await balances('carol')).balance).toBe(before.balance + 15);
 
-    const tooMuch = await staff.post(BASE).send({ customer: 'carol', direction: 'debit', amount: 1_000_000, reason: 'Too much' });
+    const tooMuch = await staff.post(BASE).send({ customer: 'carol', direction: 'debit', amount: 1_000_000, context: 'Too much' });
     expect(tooMuch.status).toBe(400);
     expect(tooMuch.body.fields.amount).toBe("Debit exceeds the customer's available credit");
-    const noReason = await staff.post(BASE).send({ customer: 'carol', direction: 'credit', amount: 5 });
-    expect(noReason.status).toBe(400);
-    expect(noReason.body.fields.reason).toBeTruthy();
-    expect((await staff.post(BASE).send({ customer: 'staff', direction: 'credit', amount: 5, reason: 'Not a customer' })).status).toBe(400);
+    const noContext = await staff.post(BASE).send({ customer: 'carol', direction: 'credit', amount: 5 });
+    expect(noContext.status).toBe(400);
+    expect(noContext.body.fields.context).toBeTruthy();
+    expect((await staff.post(BASE).send({ customer: 'staff', direction: 'credit', amount: 5, context: 'Not a customer' })).status).toBe(400);
     expect((await balances('carol')).balance).toBe(before.balance + 15);
   });
 
@@ -109,7 +109,7 @@ describe('stf-008 staff view, adjust, edit, delete and reverse transactions', ()
     expect((await staff.post(`${BASE}/${rev.body.transaction.id}/reverse`)).status).toBe(400);
 
     // A debit adjustment reverses into a credit.
-    const debit = (await staff.post(BASE).send({ customer: 'carol', direction: 'debit', amount: 7, reason: 'Fee' })).body.transaction;
+    const debit = (await staff.post(BASE).send({ customer: 'carol', direction: 'debit', amount: 7, context: 'Fee' })).body.transaction;
     const back = await staff.post(`${BASE}/${debit.id}/reverse`);
     expect(back.body.transaction.direction).toBe('credit');
     expect((await balances('carol')).balance).toBe(start);

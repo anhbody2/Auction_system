@@ -94,7 +94,7 @@ const adjustmentSchema = z.object({
   customer: z.string({ required_error: 'Choose a customer' }).trim().min(1, 'Choose a customer'),
   direction: z.enum(['credit', 'debit'], { errorMap: () => ({ message: 'Choose credit or debit' }) }),
   amount: moneyField,
-  reason: z.string({ required_error: 'Give a reason' }).trim().min(3, 'Give a reason').max(500),
+  context: z.string({ required_error: 'Give a context' }).trim().min(3, 'Give a context').max(500),
 });
 
 /** The customer's navbar and /credit refresh, as after an approved request. */
@@ -111,7 +111,7 @@ staffCreditRouter.post(
     const user = await prisma.user.findFirst({ where: { OR: [{ username: d.customer }, { email: d.customer }], role: 'customer', status: { not: 'deleted' } } });
     if (!user) throw new HttpError(400, 'Validation failed', { customer: 'No customer with that username or email' });
     const row = await prisma.$transaction((tx) =>
-      applyCredit(tx, { userId: user.id, type: 'adjustment', direction: d.direction, amount: d.amount, description: `Adjustment: ${d.reason}`, reviewedById: req.user!.id }),
+      applyCredit(tx, { userId: user.id, type: 'adjustment', direction: d.direction, amount: d.amount, description: `Adjustment: ${d.context}`, reviewedById: req.user!.id }),
     );
     await notifyBalance(user.id, row.id);
     res.status(201).json({ message: 'Adjustment posted', transaction: withDirection(row) });

@@ -133,7 +133,7 @@ What can change, and why:
 
 | Action | Allowed on | Why |
 |---|---|---|
-| Add (`POST`) | Manual adjustment for a customer: `credit` or `debit`, amount, required reason. Type `adjustment`, posted at once, description "Adjustment: <reason>". A debit needs available credit. | Corrections that are not requests. |
+| Add (`POST`) | Manual adjustment for a customer: `credit` or `debit`, amount, required context (at least 3 characters; field `context`, label "Context"). Type `adjustment`, posted at once, description "Adjustment: <context>". A debit needs available credit. | Corrections that are not requests. |
 | Edit amount (`PATCH`) | Pending requests only. | No money has moved yet. |
 | Edit description (`PATCH`) | Any row that is not deleted. | Text only. |
 | Delete (`DELETE`) | Pending or rejected requests: status `deleted`, row kept, hidden from the customer. | A posted row is a real money movement and the balances follow from it, so it is never deleted (400). |
