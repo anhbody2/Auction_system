@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api, money } from '../api';
 import { useAuth } from '../auth';
 import { share } from '../creditBar';
+import { GoodsOwned } from '../components/GoodsOwned';
 import { Card } from '../components/ui';
 import { useCredit } from '../store/useCredit';
 import { CREDIT_REQUEST_EVENT } from './Credit';
@@ -85,6 +86,9 @@ export function DashboardPage() {
             <Link to="/credit">Manage requests</Link>
           </p>
         </Card>
+      </div>
+      <div className="dash-lower">
+        <GoodsOwned />
       </div>
     </div>
   );

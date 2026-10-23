@@ -314,7 +314,11 @@
         "docs/changes/ui-2a.2.md"
       ],
       "notes": "'Goods owned' = bought goods only (the mockup shows 'Won $X'). The user's own unsold goods stay on My goods.",
-      "status": "not_started"
+      "evidence": [
+        "2026-10-23 npm run verify exit 0: be vitest 70 files / 346 tests (goods.owned 3: price/date newest first, other users excluded, in_auction while relisted, leaves on resale, deleted excluded), fe vitest 21 files / 138 tests, fe build ok, Playwright 87/87 incl. ui-2a-2-goods-owned (won item with 'Won $150.00' first, Sell preselects it in Create auction, relisted item reads Listed, empty state + Browse link, 375px)",
+        "2026-10-23 First verify run failed crd-003: its credit-refetch filter matched every /api/me* path, including the new owned-goods request. The filter now lists the endpoints that return credit figures (/api/auth/me, /api/me/profile, /api/credit), checked against the routes"
+      ],
+      "status": "passing"
     },
     {
       "id": "ui-2a.3",

@@ -25,6 +25,37 @@ goodsRouter.get(
   }),
 );
 
+/**
+ * ui-2a.2: goods the user won at auction and still owns (gds-003 makes the buyer the owner; selling them on
+ * moves buyer_id to the next winner, so they leave this list). Each carries the winning price and date.
+ */
+goodsRouter.get(
+  '/me/goods/owned',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const me = req.user!.id;
+    const goods = await prisma.goods.findMany({
+      where: { buyerId: me, status: { not: 'deleted' } },
+      include: goodsInclude,
+      orderBy: { id: 'desc' },
+    });
+    const won = await prisma.auction.findMany({
+      where: { goodsId: { in: goods.map((g) => g.id) }, winnerId: me },
+      select: { goodsId: true, currentPrice: true, closedAt: true, endTime: true },
+      orderBy: { endTime: 'desc' },
+    });
+    const wonFor = new Map<bigint, (typeof won)[number]>();
+    for (const w of won) if (!wonFor.has(w.goodsId)) wonFor.set(w.goodsId, w);
+    const items = goods.map((g) => {
+      const w = wonFor.get(g.id);
+      return { ...goodsView(g, me), wonPrice: w?.currentPrice ?? null, wonAt: w ? (w.closedAt ?? w.endTime) : null };
+    });
+    // Most recently won first.
+    items.sort((x, y) => (y.wonAt?.getTime() ?? 0) - (x.wonAt?.getTime() ?? 0));
+    res.json({ goods: items });
+  }),
+);
+
 goodsRouter.post(
   '/goods',
   requireAuth,
