@@ -163,8 +163,11 @@
         "docs/changes/home-2.2.md and design-system.md 'Homepage' entry updated"
       ],
       "notes": "Depends on home-2.1. The mockup has no completed section, so it reuses the 1a card in its ended state.",
-      "evidence": [],
-      "status": "not_started"
+      "evidence": [
+        "2026-10-27 ./init.sh exit 0: be vitest 74 / 362, fe vitest 26 / 162 (auctionCardState label test updated), fe build ok, Playwright 102/102 incl. new e2e/home-2-2-just-completed-section.spec.ts (2 tests: guest + customer 8 cards newest first, 375px one column)",
+        "2026-10-27 guest-002 and guest-003 pass unchanged. Ended card labels now 'Winning bid' / 'Final price'. Notes: docs/changes/home-2.2.md, design-system.md 'Homepage'"
+      ],
+      "status": "passing"
     }
   ]
 }

@@ -14,9 +14,14 @@ quick bid, lot page layout + bid panel + chart/live history, dashboard credit ca
 history totals + tabs/search, credit request form + transactions panel. Design system: docs/design-system.md;
 per-feature notes: docs/changes/ui-*.md. Defaults applied without user confirmation are listed in each feature's
 evidence (brand stays BidHouse, quick bid keeps a confirm, 'Pending payout' card shows pending requests).
+Round 9 is passing and archived to `progress-feature-list/feature_list_9.json`: homepage from SRS 'system - Ui
+change' + mockup 1a: 'Trending lots' (live lots only, most bids first; no upcoming section) and 'Just completed'
+(the 8 newest closed lots, API `justCompletedLimit: 8`, no day window). Notes: docs/changes/home-*.md,
+docs/design-system.md 'Homepage'. Defaults applied without explicit confirmation are in feature_list_9.json
+readings_to_confirm.
 Mail: real Gmail settings live only in be/.env (docs/mail.md); vitest and Playwright blank them so tests use the dev outbox.
 Note: root package.json `overrides` pin is-generator-function/is-async-function so tsx can load exceljs on Node 20.19+ (see claude-progress Session 005 stf-002).
-`./init.sh` exits 0 (be 353 + fe 159 vitest, fe build, 96 Playwright; 2026-10-23). Stop any running `npm run dev` first (Prisma DLL lock on Windows).
+`./init.sh` exits 0 (be 362 + fe 162 vitest, fe build, 102 Playwright; 2026-10-27). Stop any running `npm run dev` first (Prisma DLL lock on Windows).
 
 ## Restart path
 

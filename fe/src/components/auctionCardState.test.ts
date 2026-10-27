@@ -18,9 +18,9 @@ describe('ui-1a.1 priceLabel', () => {
     expect(priceLabel({ ...base, status: 'upcoming' })).toBe('Starting at');
   });
 
-  it('says Sold for with a winner and Final without one once ended', () => {
-    expect(priceLabel({ ...base, status: 'ended', currentPrice: 120, winner: { id: 1, username: 'bob' } })).toBe('Sold for');
-    expect(priceLabel({ ...base, status: 'ended', currentPrice: 120 })).toBe('Final');
+  it('home-2.2: says Winning bid with a winner and Final price without one once ended', () => {
+    expect(priceLabel({ ...base, status: 'ended', currentPrice: 120, winner: { id: 1, username: 'bob' } })).toBe('Winning bid');
+    expect(priceLabel({ ...base, status: 'ended', currentPrice: 120 })).toBe('Final price');
   });
 });
 

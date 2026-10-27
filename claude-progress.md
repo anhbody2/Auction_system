@@ -491,3 +491,19 @@
 - No code changed; ./init.sh not run (planning only). Stopped the auction_db container per CLAUDE.md
 - Left uncommitted (user's): SRS.txt, AuctionCard/AuctionBits/TopSearch/Home/ChangePassword/styles.css, e2e/ui-1a-3-quick-bid.spec.ts, fe/tsconfig.tsbuildinfo, Auction Mockups.dc.html
 - Next best step: confirm the readings with the user and settle the uncommitted card restyle, then start home-1.1
+
+### Session 017 round 9 built: homepage trending + 8 just completed (2026-10-27)
+
+- Startup: no containers running; baseline `npm run verify` (init.sh install hit the Prisma DLL EPERM while the user's `npm run dev` ran) -> be 353, fe 159, build ok, Playwright 94/96. The 2 failures (guest-003, ui-1a-2) came from the user's uncommitted top bar change that removed the Search button; the specs now submit with Enter
+- User asked to finish all features, so readings_to_confirm were applied as defaults (not confirmed one by one): trending = live lots by most bids; upcoming leaves the homepage; 8 newest closed with no 7-day window; sort only orders trending
+- Completed, one at a time, each committed after its own gate:
+  - home-1.1: /api/auctions open part = started lots only, most bids -> soonest ending -> id; sort reorders trending only; fe sort default label 'Most bids', 'Ending soon' option
+  - home-1.2: 'Trending lots' section (live count, 'Sort:' select), hero and 'Starting soon' removed; fe/src/homeSections.ts. The user's uncommitted 1a card restyle (AuctionCard, AuctionBits, TopSearch, styles.css, ui-1a-3 spec) was committed with this feature
+  - home-2.1: completed part = 8 newest closed lots (take 8, endTime desc, id desc), justCompletedLimit replaces justCompletedDays
+  - home-2.2: 'Just completed (n)' section, ended cards 'Winning bid' / 'Final price', card-winner line, no buttons
+- Older tests updated to the new behaviour (listed in docs/changes/home-*.md): auctions.filter-sort, homepage, auction.new-tag, e2e guest-002, sell-007, ui-1a-3, guest-003, ui-1a-2
+- Final verification: ./init.sh exit 0 -> be vitest 74 files / 362 tests, fe vitest 26 / 162, fe build ok, Playwright 102/102
+- Environment: one verify run was cut by a session restart (Docker Desktop stopped; 2 unrelated timeouts ui-3b-2, upl-001); restarted Docker, clean rerun green
+- Round 9: 4/4 passing; feature_list.json archived as progress-feature-list/feature_list_9.json
+- Left uncommitted (user's): SRS.txt, fe/src/pages/ChangePassword.tsx whitespace, fe/tsconfig.tsbuildinfo, Auction Mockups.dc.html (untracked)
+- Next best step: ask the user to confirm the round 9 defaults; a new round needs a fresh feature_list.json at the root

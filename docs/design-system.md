@@ -56,4 +56,7 @@ Follows mockup 1a. Same page for guests and customers; only the card's bid strip
   Price low/high, Ending soon), kept in the URL.
 - `.lot-grid`: 4 columns from 1200px, 2 from 640px, 1 below. Cards are `AuctionCard` (1a layout).
 - No 'Starting soon' section: upcoming lots are not listed (home-1.1).
-- `section-completed` below (see home-2.2).
+- `section-completed` below (home-2.2): `h2` 'Just completed (<n>)', up to 8 closed lots (API order, newest
+  first) in the same `.lot-grid`. Ended card: muted 'Ended <date>' pill, 'Winning bid' / 'Final price'
+  label, bid count, `card-winner` line 'Won by <user>' / 'No winner'; no bid strip and no Bid / Custom bid
+  buttons. Empty: 'No recently completed auctions.' / 'No completed auctions match.'

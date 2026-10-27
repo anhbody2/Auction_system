@@ -50,7 +50,11 @@ export function AuctionCard({ auction, onElapsed }: { auction: Auction; onElapse
             {auction.bidCount} bid{auction.bidCount === 1 ? '' : 's'}
           </span>
         </div>
-        {ended && <div className="small muted">{auction.winner ? `Won by ${auction.winner.username}` : 'No winner'}</div>}
+        {ended && (
+          <div className="small muted" data-testid="card-winner">
+            {auction.winner ? `Won by ${auction.winner.username}` : 'No winner'}
+          </div>
+        )}
         {strip && <MyBidStrip state={strip} amount={auction.myBid?.amount} />}
       </Link>
       {auction.status === 'active' && !auction.isOwner && auction.nextMinBid != null && <QuickBid auction={auction} />}

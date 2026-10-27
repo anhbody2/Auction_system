@@ -5,9 +5,9 @@ export const ENDING_SOON_MS = 60 * 60 * 1000;
 
 type CardAuction = Pick<Auction, 'status' | 'currentPrice' | 'winner' | 'endTime' | 'isOwner' | 'myBid'>;
 
-/** Label above the big price: 'Highest bid' / 'Starting at' while open, 'Sold for' / 'Final' once ended. */
+/** Label above the big price: 'Highest bid' / 'Starting at' while open; home-2.2: 'Winning bid' / 'Final price' once ended. */
 export function priceLabel(a: CardAuction) {
-  if (a.status === 'ended') return a.winner ? 'Sold for' : 'Final';
+  if (a.status === 'ended') return a.winner ? 'Winning bid' : 'Final price';
   return a.currentPrice ? 'Highest bid' : 'Starting at';
 }
 
