@@ -1,0 +1,160 @@
+{
+  "project": "Online Auction System",
+  "last_updated": "2026-10-27",
+  "scope": "Round 9. Homepage change from SRS.txt ('system - Ui change'): the homepage shows trending auctions only, for both guests and logged-in users, plus a 'Just completed' section of exactly 8 closed auctions returned by the API. The UI follows the 1a Browse section of 'Auction Mockups.dc.html' (now in the repo root). Builds on round 8 (archived as progress-feature-list/feature_list_8.json): the card, chip bar, sort control and top bar from ui-1a.1-3 stay. Every business rule from rounds 1-8 stays: bids are checked against available credit and the increment ladder, all deletes are soft (deleted_at), cancelled lots are never listed.",
+  "source_requirements": {
+    "file": "SRS.txt",
+    "section": "system - Ui change",
+    "text": "Modify homepage to show trending auction only, both logged and un-logged users; just completed auction show 8 closed auction",
+    "requirements": {
+      "Req-1": "UI should stick with Auction Mockups.dc.html (focus on homepage section)",
+      "Req-2": "just completed auction show 8 closed auction, API return 8 auctions"
+    }
+  },
+  "source_design": {
+    "file": "Auction Mockups.dc.html (repo root, untracked), section 1a 'Browse - auction cards'",
+    "homepage": "Top bar; category chip bar; heading 'Trending lots' with subtitle '<n> live auctions · bids update in real time'; 'Sort: Most bids' and 'Price' controls on the right; 4-column grid of lot cards (56px thumb + title + time pill + category pill, 'Highest bid' + bid count, your-bid strip Leading / Outbid / You haven't bid yet, 'Bid $X' and 'Custom bid' buttons). The mockup has no 'Starting soon' section and no 'Just completed' section; the completed section reuses the same card in its ended state."
+  },
+  "readings_to_confirm": [
+    "'Trending' = live lots (started, not ended, not cancelled, not deleted), ordered by most bids, ties broken by soonest ending. This replaces round 8's decision that the default order stays 'soonest ending'.",
+    "'Show trending auction only' = the 'Starting soon' (upcoming) section leaves the homepage. Upcoming lots are still reachable by direct link, My auctions and staff pages, but not from homepage search.",
+    "'8 closed auctions' = the 8 most recently closed lots (status ended, or end time passed before the close job ran), newest end time first, with no 7-day window. Fewer than 8 are shown only when fewer than 8 exist (or match the filters).",
+    "Search, category chip and 'Ending soon' chip filter both sections, as today. The sort control orders only the trending section; 'Just completed' always stays newest first.",
+    "The user's uncommitted card restyle (fe/src/components/AuctionCard.tsx, AuctionBits.tsx, TopSearch.tsx, styles.css, e2e/ui-1a-3-quick-bid.spec.ts) is treated as the baseline and built on, not reverted. Ask the user to commit it, or confirm it may go into home-1.2's commit, before starting."
+  ],
+  "conventions": {
+    "tests": "Playwright e2e specs go in e2e/ as <id>-<slug>.spec.ts (id with the dot replaced by a dash, e.g. e2e/home-1-2-trending-section.spec.ts). API/integration tests use vitest in be/tests/ as <area>.<topic>.test.ts; frontend unit tests sit next to the code (fe/src/**/*.test.ts). fe vitest has no DOM: keep logic (section split, ordering, labels) in plain modules and cover the React wiring in e2e.",
+    "existing_tests": "Keep the existing data-testids on the equivalent element: the trending section keeps data-testid='section-live' and the completed section keeps 'section-completed'; live-count, sort, category-chips, auction-card-<id>, countdown, my-bid-strip, quick-bid, custom-bid stay. When a feature changes visible text or structure an older spec checks (guest-002, guest-003, ui-1a-1, ui-1a-2, ui-1a-3, be/tests/homepage.test.ts, be/tests/auctions.filter-sort.test.ts), update the spec to check the new behaviour. Do not delete or weaken it.",
+    "change_docs": "Each feature writes docs/changes/<id>.md listing the files it added or changed and why. home-1.2 / home-2.2 add a 'Homepage' entry to docs/design-system.md.",
+    "responsive": "The mockup is drawn at 1440px. The homepage must also work at 375px with no horizontal page scroll: the grid collapses to one column. Each UI e2e spec checks 375px.",
+    "accessibility": "Sections use <section aria-labelledby> with an <h2>. Pills carry text, not colour alone. Contrast meets WCAG AA.",
+    "no_fake_data": "Mockup values with no source ('1,284 live auctions' as a fixed number, 'bids update in real time' if cards do not update live) are not built as static text.",
+    "soft_delete": "All deletes are soft: lots with deleted_at set never appear in either section.",
+    "run_all": "./init.sh (npm install + npm run verify = vitest + fe build + Playwright) must exit 0 before a feature moves to passing. Stop running Docker containers / dev servers first (CLAUDE.md), otherwise prisma generate hits EPERM. Playwright runs with workers: 1, so a spec that creates 9 ended lots can rely on them being the newest."
+  },
+  "rules": {
+    "single_active_feature": true,
+    "passing_requires_evidence": true,
+    "do_not_skip_verification": true
+  },
+  "status_legend": {
+    "not_started": "Work has not begun.",
+    "in_progress": "The feature is the current active task.",
+    "blocked": "Work cannot continue until a documented blocker is resolved.",
+    "passing": "Required verification has passed and evidence is recorded."
+  },
+  "roles": {
+    "guest": "Not signed in. Sees the same homepage sections as a customer, without the your-bid strip.",
+    "customer": "A signed-in user. Sees the same sections plus their own bid position on each trending card.",
+    "staff": "users.role 'staff'. Not affected this round.",
+    "admin": "users.role 'admin'. Not affected this round."
+  },
+  "features": [
+    {
+      "id": "home-1.1",
+      "priority": 1,
+      "role": "guest, customer",
+      "area": "homepage",
+      "srs_ref": "SRS 'system - Ui change': show trending auction only (Req-1, API side)",
+      "title": "Auctions API: open list returns trending (live) lots only, most bids first",
+      "user_visible_behavior": "GET /api/auctions no longer returns upcoming lots. The open part of the list holds only live lots, ordered by most bids, ties by soonest ending. Guests and logged-in users get the same lots; logged-in users still get myBid on each.",
+      "acceptance": [
+        "Open list: status 'active' or start time passed (before the start job), end time in the future, not cancelled, deleted_at null. Upcoming (start time in the future) lots are not returned.",
+        "Default order (no sort param): bidCount desc, then endTime asc, then id asc for a stable order.",
+        "sort=bids|price_asc|price_desc|ending still works and reorders only the trending lots.",
+        "q/field, category and endingSoon=1 still filter the trending lots (AND), 400 on bad values unchanged.",
+        "Same lots for a guest and for a logged-in customer (only myBid differs).",
+        "Response shape otherwise unchanged; any field the frontend reads (status, bidCount, nextMinBid, myBid) still present."
+      ],
+      "verification": [
+        "be/tests/auctions.trending.test.ts: upcoming lot excluded; started-but-not-yet-activated lot included; cancelled and soft-deleted lots excluded; default order by bids then end time; explicit sorts; guest vs customer return the same ids",
+        "be/tests/homepage.test.ts and be/tests/auctions.filter-sort.test.ts updated (no 'Soon lamp' in the list; default order is most bids)",
+        "e2e/home-1-1-trending-api.spec.ts: through page.request, an upcoming lot is absent from /api/auctions and two live lots come back with the one holding more bids first, as guest and as customer",
+        "docs/changes/home-1.1.md"
+      ],
+      "notes": "Upcoming lots disappearing from search on the homepage follows from 'trending only'; recorded in readings_to_confirm. Check fe/src/browseQuery.ts: if it sends sort=ending as default, drop that so the server default applies.",
+      "evidence": [],
+      "status": "not_started"
+    },
+    {
+      "id": "home-1.2",
+      "priority": 2,
+      "role": "guest, customer",
+      "area": "homepage",
+      "srs_ref": "SRS 'system - Ui change' Req-1: UI sticks with Auction Mockups.dc.html 1a",
+      "title": "Homepage: single 'Trending lots' section as in mockup 1a, same for guests and customers",
+      "user_visible_behavior": "The homepage shows the category chip bar, then the heading 'Trending lots' with '<n> live auctions' underneath and the sort control on the right (default 'Most bids'), then one 4-column grid of lot cards. The 'Find something worth bidding on' hero and the 'Starting soon' section are gone. A guest and a logged-in customer see the same lots; the customer's cards also show their bid strip. The 'Bid $X' / 'Custom bid' buttons keep the current behaviour (guests go to login).",
+      "acceptance": [
+        "Heading <h2 id='live'> or <h1> text 'Trending lots' inside data-testid='section-live'; subtitle data-testid='live-count' shows the real live count ('1 live auction' / 'n live auctions').",
+        "'bids update in real time' is shown only if the cards update without a reload; otherwise it is left out (no_fake_data).",
+        "Sort control (data-testid='sort') shows 'Most bids' selected by default; Price and Ending soon options remain; choice kept in the URL.",
+        "No element with data-testid='section-upcoming' on the homepage.",
+        "Grid: 4 columns at 1440px, fewer at tablet widths, 1 column at 375px, no horizontal page scroll.",
+        "Card layout matches 1a (thumb left of title, time and category pills, 'Highest bid' + bid count, bid strip, two buttons), building on the user's uncommitted AuctionCard restyle.",
+        "Empty trending: 'No auctions are live right now.' (or 'No live auctions match.' when filtered).",
+        "Guest: no bid strip, Sign-in prompt only through the buttons; customer: strip Leading / Outbid / You haven't bid yet."
+      ],
+      "verification": [
+        "fe unit test (e.g. fe/src/homeSections.test.ts) for the section split and live-count label if that logic is moved to a module",
+        "e2e/home-1-2-trending-section.spec.ts: as guest and as customer, 'Trending lots' heading visible, live-count matches, an upcoming lot is not on the page, the lot with more bids is first by default, sort control shows 'Most bids', customer card shows the bid strip and the guest card does not, 375px one column with no horizontal scroll",
+        "Updated specs: e2e/guest-002-homepage.spec.ts (upcoming lot no longer on the homepage; open it by URL to check 'Starts in'), e2e/ui-1a-3-quick-bid.spec.ts (the section-upcoming case), e2e/ui-1a-1-browse-cards.spec.ts, e2e/ui-1a-2-browse-filters.spec.ts and e2e/guest-003-search.spec.ts where they assume the old order or sections",
+        "docs/changes/home-1.2.md and a 'Homepage' entry in docs/design-system.md"
+      ],
+      "notes": "Depends on home-1.1. Keep data-testid='section-live' so older specs keep working. The mockup's '1,284 live auctions' is the live count from the API, not a fixed number.",
+      "evidence": [],
+      "status": "not_started"
+    },
+    {
+      "id": "home-2.1",
+      "priority": 3,
+      "role": "guest, customer",
+      "area": "homepage",
+      "srs_ref": "SRS 'system - Ui change' Req-2: API returns 8 closed auctions",
+      "title": "Auctions API: just-completed list returns the 8 most recently closed lots",
+      "user_visible_behavior": "GET /api/auctions returns at most 8 closed lots in its completed part, newest end time first, whatever their age. The response says how many it returns (justCompletedLimit: 8) instead of a day window.",
+      "acceptance": [
+        "Closed = status 'ended', or end time passed before the close job ran; status 'cancelled' and deleted_at set are excluded.",
+        "take: 8, ordered by endTime desc, then id desc. The 7-day JUST_COMPLETED_DAYS window is removed.",
+        "With 10 closed lots the API returns exactly the 8 newest; with 3 it returns 3.",
+        "The sort param does not reorder the completed lots (newest first always).",
+        "q/field and category filter the completed lots before the limit (8 newest matches). endingSoon=1 returns no completed lots, as today.",
+        "Response field justCompletedDays replaced by justCompletedLimit: 8; fe/src/pages/Home.tsx and the Auction list type updated in the same change.",
+        "Same result for a guest and a logged-in customer."
+      ],
+      "verification": [
+        "be/tests/auctions.just-completed.test.ts: 10 closed lots -> exactly 8, newest first, the 2 oldest absent; a lot closed 10 days ago is included when it is among the 8 newest; cancelled and soft-deleted lots never counted; filter applied before the limit; sort=price_asc leaves completed order unchanged; justCompletedLimit is 8; guest == customer",
+        "be/tests/homepage.test.ts updated: 'Old lamp' (10 days) is now listed",
+        "e2e/home-2-1-just-completed-api.spec.ts: create and expire 9 lots via /api/dev/auctions/:id/expire, GET /api/auctions returns 8 status-ended lots, the first expired of the 9 is absent, order newest first",
+        "docs/changes/home-2.1.md"
+      ],
+      "notes": "The 'no 7-day window' reading is in readings_to_confirm; if the user wants the window kept, the limit is applied inside it instead.",
+      "evidence": [],
+      "status": "not_started"
+    },
+    {
+      "id": "home-2.2",
+      "priority": 4,
+      "role": "guest, customer",
+      "area": "homepage",
+      "srs_ref": "SRS 'system - Ui change' Req-2: just completed auction shows 8 closed auctions; Req-1 mockup card style",
+      "title": "Homepage: 'Just completed' section shows the 8 closed lots in the mockup card style",
+      "user_visible_behavior": "Below 'Trending lots' a 'Just completed' section shows up to 8 closed lots, newest first, in the same 4-column card grid. Each card shows 'Ended <date>', the final price, the bid count and 'Won by <user>' or 'No winner', and has no Bid / Custom bid buttons. Clicking a card opens the lot in view-only mode. Guests and customers see the same 8.",
+      "acceptance": [
+        "data-testid='section-completed' with heading 'Just completed' (the '(last 7 days)' text is gone); count shown matches the cards (max 8).",
+        "Exactly 8 cards when 8 or more closed lots exist; never more.",
+        "Order newest closed first, matching the API.",
+        "Ended card: muted 'Ended <date>' pill, final price under 'Winning bid' / 'Final price' label, 'Won by <username>' or 'No winner'; no quick-bid / custom-bid buttons, no bid strip.",
+        "Empty: 'No recently completed auctions.' (or 'No completed auctions match.' when filtered).",
+        "Grid collapses to one column at 375px with no horizontal page scroll."
+      ],
+      "verification": [
+        "e2e/home-2-2-just-completed-section.spec.ts: create and expire 9 lots (one with a winning bid); as guest and as customer the section has exactly 8 cards, newest first, the oldest of the 9 is absent, the won lot shows 'Won by <user>' and the price, no quick-bid buttons in the section, clicking a card shows 'This auction has ended and no longer accepts bids.', 375px one column",
+        "Updated specs: e2e/guest-002-homepage.spec.ts (completed card still found), e2e/guest-003-search.spec.ts (search still finds a completed lot)",
+        "docs/changes/home-2.2.md and design-system.md 'Homepage' entry updated"
+      ],
+      "notes": "Depends on home-2.1. The mockup has no completed section, so it reuses the 1a card in its ended state.",
+      "evidence": [],
+      "status": "not_started"
+    }
+  ]
+}

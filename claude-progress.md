@@ -482,3 +482,12 @@
 - Environment: ui-1b.2 .. ui-2a.3 ran npm run verify instead of ./init.sh because the user's npm run dev held the Prisma DLL (install step EPERM; deps/schema unchanged). One verify hung ~20 min in be unit tests and was lost to a session restart; reruns were clean
 - Left uncommitted (user's): fe/src/pages/ChangePassword.tsx whitespace, claude-2.md; fe/tsconfig.tsbuildinfo (build output)
 - Next best step: ask the user to confirm the defaults above; a new SRS/design round needs a fresh feature_list.json at the root
+
+### Session 016 round 9 planning: homepage trending + 8 just completed (2026-10-27)
+
+- SRS.txt now holds 'system - Ui change': homepage shows trending auctions only (guests and customers), 'Just completed' shows 8 closed auctions, API returns 8; UI follows Auction Mockups.dc.html 1a (file now in the repo root, untracked)
+- Created feature_list.json (round 9): 4 features. home-1.1 API trending (live only, most bids first), home-1.2 'Trending lots' section UI, home-2.1 API 8 most recent closed lots (justCompletedLimit replaces justCompletedDays), home-2.2 'Just completed' section UI
+- Readings recorded in feature_list.json readings_to_confirm: trending = live lots by most bids; upcoming section leaves the homepage; 8 closed = newest 8 with no 7-day window; filters apply to both sections, sort only to trending
+- No code changed; ./init.sh not run (planning only). Stopped the auction_db container per CLAUDE.md
+- Left uncommitted (user's): SRS.txt, AuctionCard/AuctionBits/TopSearch/Home/ChangePassword/styles.css, e2e/ui-1a-3-quick-bid.spec.ts, fe/tsconfig.tsbuildinfo, Auction Mockups.dc.html
+- Next best step: confirm the readings with the user and settle the uncommitted card restyle, then start home-1.1
