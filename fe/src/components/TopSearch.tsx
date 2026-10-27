@@ -45,9 +45,6 @@ export function TopSearch() {
           ))}
         </select>
       </span>
-      <button type="submit" className="btn btn-primary top-search-go">
-        Search
-      </button>
     </form>
   );
 }

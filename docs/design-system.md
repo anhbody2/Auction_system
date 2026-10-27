@@ -44,3 +44,16 @@ the nav folds behind a menu button (`data-testid="nav-toggle"`).
 | `initials()` | First letters of the first two words of fullName, else first two letters of username. |
 
 Buttons: `.btn-primary` (navy), `.btn-danger` (crimson, dark red hover), `.btn-steel` (steel-light quick buttons), `.btn-ghost`.
+
+## Homepage (`fe/src/pages/Home.tsx`, round 9)
+
+Follows mockup 1a. Same page for guests and customers; only the card's bid strip differs.
+
+- Category chip bar (`.chip-bar`), then the search summary / 'No lots match.' box when a filter is set.
+- `section-live`: head row `.browse-head` with the title 'Trending lots' (`h1#live.browse-title`, 28px / 900)
+  and `.browse-sub` '<n> live auctions' (real count of trending cards; 'bids update in real time' is left
+  out because cards refresh on a 30 s poll). Sort on the right: 'Sort:' + select (Most bids default,
+  Price low/high, Ending soon), kept in the URL.
+- `.lot-grid`: 4 columns from 1200px, 2 from 640px, 1 below. Cards are `AuctionCard` (1a layout).
+- No 'Starting soon' section: upcoming lots are not listed (home-1.1).
+- `section-completed` below (see home-2.2).

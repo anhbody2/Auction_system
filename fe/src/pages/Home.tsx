@@ -1,32 +1,35 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { api, type Auction } from '../api';
-import { useAuth } from '../auth';
 import { FIELD_LABELS, SORT_LABELS, browseApiQuery, browseParams, isFiltered, readBrowse, type Browse, type Sort } from '../browseQuery';
 import { AuctionCard } from '../components/AuctionCard';
+import { liveCountLabel, splitSections } from '../homeSections';
 import { SegmentedTabs } from '../components/ui';
 
 function Section({ id, title, empty, auctions, onElapsed }: { id: string; title: string; empty: string; auctions: Auction[]; onElapsed: () => void }) {
   return (
-    <section aria-labelledby={id} data-testid={`section-${id}`}>
+    <section aria-labelledby={id} data-testid={`section-${id}`} className="home-section">
       <h2 id={id}>
         {title} <span className="muted small">({auctions.length})</span>
       </h2>
-      {auctions.length === 0 ? (
-        <p className="muted">{empty}</p>
-      ) : (
-        <div className="lot-grid">
-          {auctions.map((a) => (
-            <AuctionCard key={a.id} auction={a} onElapsed={onElapsed} onChanged={onElapsed} />
-          ))}
-        </div>
-      )}
+      <LotGrid auctions={auctions} empty={empty} onElapsed={onElapsed} />
     </section>
   );
 }
 
+function LotGrid({ auctions, empty, onElapsed }: { auctions: Auction[]; empty: string; onElapsed: () => void }) {
+  return auctions.length === 0 ? (
+    <p className="muted">{empty}</p>
+  ) : (
+    <div className="lot-grid">
+      {auctions.map((a) => (
+        <AuctionCard key={a.id} auction={a} onElapsed={onElapsed} />
+      ))}
+    </div>
+  );
+}
+
 export function HomePage() {
-  const { user } = useAuth();
   const [params, setParams] = useSearchParams();
   const browse = readBrowse(params);
   const apiQuery = browseApiQuery(browse);
@@ -53,7 +56,7 @@ export function HomePage() {
 
   // ui-1a.2: every change pushes a history entry, so Back restores the previous filter.
   const go = (next: Partial<Browse>) => setParams(browseParams({ ...browse, ...next }));
-  const by = (s: Auction['status']) => auctions?.filter((a) => a.status === s) ?? [];
+  const { trending, completed } = splitSections(auctions ?? []);
   const searching = !!browse.q;
   const filtered = isFiltered(browse);
   const chips = [
@@ -61,43 +64,11 @@ export function HomePage() {
     { value: 'ending', label: 'Ending soon' },
     ...categories.map((c) => ({ value: String(c.id), label: c.name })),
   ];
-  const liveCount = by('active').length;
 
   return (
     <div>
       <div className="chip-bar">
         <SegmentedTabs tabs={chips} value={browse.category || 'all'} onChange={(v) => go({ category: v === 'all' ? '' : v })} label="Categories" testId="category-chips" />
-      </div>
-      <div className="hero browse-head">
-        <div>
-          <h1>Find something worth bidding on</h1>
-          {auctions && (
-            <p className="muted small" data-testid="live-count">
-              {liveCount.toLocaleString('en-US')} live auction{liveCount === 1 ? '' : 's'}
-            </p>
-          )}
-          <p className="muted">
-            {user ? (
-              <>
-                Signed in as {user.username}. <Link to="/auctions/new">Sell an item</Link>
-              </>
-            ) : (
-              <>
-                Browse freely. <Link to="/register">Create an account</Link> or <Link to="/login">log in</Link> to bid.
-              </>
-            )}
-          </p>
-        </div>
-        <label className="sort-control">
-          <span className="muted small">Sort by</span>
-          <select value={browse.sort} onChange={(e) => go({ sort: e.target.value as Sort })} data-testid="sort">
-            {Object.entries(SORT_LABELS).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v}
-              </option>
-            ))}
-          </select>
-        </label>
       </div>
       {searching && auctions && (
         <p data-testid="search-summary" className="row">
@@ -117,20 +88,45 @@ export function HomePage() {
           </button>
         </div>
       )}
-      {!auctions ? (
-        <p className="muted">Loading auctions...</p>
-      ) : (
-        <>
-          <Section id="live" title="Live auctions" empty={filtered ? 'No live auctions match.' : 'No auctions are live right now.'} auctions={by('active')} onElapsed={load} />
-          <Section id="upcoming" title="Starting soon" empty={filtered ? 'No upcoming auctions match.' : 'Nothing scheduled yet.'} auctions={by('upcoming')} onElapsed={load} />
-          <Section
-            id="completed"
-            title={`Just completed (last ${days} days)`}
-            empty={filtered ? 'No completed auctions match.' : 'No recently completed auctions.'}
-            auctions={by('ended')}
-            onElapsed={load}
-          />
-        </>
+      {/* home-1.2: one 'Trending lots' section as in mockup 1a, the same for guests and customers. */}
+      <section aria-labelledby="live" data-testid="section-live" className="home-section">
+        <div className="browse-head">
+          <div>
+            <h1 id="live" className="browse-title">
+              Trending lots
+            </h1>
+            {auctions && (
+              // The cards refresh on a 30 s poll, not live, so the mockup's 'bids update in real time' is left out.
+              <p className="muted browse-sub" data-testid="live-count">
+                {liveCountLabel(trending.length)}
+              </p>
+            )}
+          </div>
+          <label className="sort-control">
+            <span className="sort-label">Sort:</span>
+            <select value={browse.sort} onChange={(e) => go({ sort: e.target.value as Sort })} data-testid="sort">
+              {Object.entries(SORT_LABELS).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {!auctions ? (
+          <p className="muted">Loading auctions...</p>
+        ) : (
+          <LotGrid auctions={trending} empty={filtered ? 'No live auctions match.' : 'No auctions are live right now.'} onElapsed={load} />
+        )}
+      </section>
+      {auctions && (
+        <Section
+          id="completed"
+          title={`Just completed (last ${days} days)`}
+          empty={filtered ? 'No completed auctions match.' : 'No recently completed auctions.'}
+          auctions={completed}
+          onElapsed={load}
+        />
       )}
     </div>
   );

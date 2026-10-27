@@ -75,7 +75,7 @@ export function Countdown({
 
   const panel = format === 'ends-in';
   if (live === 'cancelled') return <span className="muted" data-testid="countdown">Cancelled</span>;
-  if (live === 'ended') return <span className="muted" data-testid="countdown">{panel ? 'Ended' : `Ended ${new Date(endTime).toLocaleString()}`}</span>;
+  if (live === 'ended') return <span className="muted" data-testid="countdown">{panel ? 'Ended' : `Ended ${new Date(endTime).toLocaleDateString()}`}</span>;
   if (live === 'upcoming') return <span data-testid="countdown">Starts in {formatDuration(start - now, panel)}</span>;
   if (panel) return <span data-testid="countdown">Ends in {formatDuration(end - now, true)}</span>;
   return (
