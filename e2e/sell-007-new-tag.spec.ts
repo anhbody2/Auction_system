@@ -6,7 +6,7 @@ const TAG = Date.now().toString(36);
 const card = (page: Page, id: number) => page.getByTestId(`auction-card-${id}`);
 const myRow = (page: Page, name: string) => page.getByRole('row', { name: new RegExp(name) });
 
-test("sell-007: a new auction shows the 'New' tag on the home card, My auctions and its page until it starts", async ({ page }) => {
+test("sell-007: a new auction shows the 'New' tag on My auctions and its page until it starts, then joins the homepage", async ({ page }) => {
   await login(page, 'alice');
   const name = `Fresh Teapot ${TAG}`;
   const auction = await createAuctionViaApi(page.request, {
@@ -17,9 +17,10 @@ test("sell-007: a new auction shows the 'New' tag on the home card, My auctions 
   const raw = async () => (await (await page.request.get(`/api/dev/auctions/${auction.id}/raw`)).json()).status;
   expect(await raw()).toBe('upcoming');
 
-  // Home card
+  // home-1.1: the homepage lists trending (live) lots only, so the lot is not there before its start.
   await page.goto('/');
-  await expect(card(page, auction.id).getByTestId('new-tag')).toHaveText('New');
+  await expect(page.getByTestId('section-live')).toBeVisible();
+  await expect(card(page, auction.id)).toHaveCount(0);
   // My auctions
   await page.goto('/my-auctions');
   await expect(myRow(page, name).getByTestId('new-tag')).toHaveText('New');

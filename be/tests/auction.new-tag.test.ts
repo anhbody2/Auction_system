@@ -15,9 +15,9 @@ describe("sell-007 every new auction is 'upcoming' with a 'New' tag until it sta
     expect(a).toMatchObject({ status: 'upcoming', isNew: true });
     const got = (await alice.get(`/api/auctions/${a.id}`)).body.auction;
     expect(got).toMatchObject({ status: 'upcoming', isNew: true });
-    // The public listing carries the tag too.
+    // home-1.1: the public listing holds trending (live) lots only, so a lot that has not started is not on it.
     const home = (await alice.get('/api/auctions')).body.auctions as { id: number; isNew: boolean }[];
-    expect(home.find((x) => x.id === a.id)).toMatchObject({ isNew: true });
+    expect(home.find((x) => x.id === a.id)).toBeUndefined();
     // ...and so does My auctions.
     const mine = (await alice.get('/api/me/auctions')).body.auctions as { id: number; isNew: boolean }[];
     expect(mine.find((x) => x.id === a.id)).toMatchObject({ isNew: true });

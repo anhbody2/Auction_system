@@ -73,8 +73,12 @@
         "docs/changes/home-1.1.md"
       ],
       "notes": "Upcoming lots disappearing from search on the homepage follows from 'trending only'; recorded in readings_to_confirm. Check fe/src/browseQuery.ts: if it sends sort=ending as default, drop that so the server default applies.",
-      "evidence": [],
-      "status": "not_started"
+      "evidence": [
+        "2026-10-27 npm run verify exit 0: be vitest 73 files / 358 tests (new be/tests/auctions.trending.test.ts 5), fe vitest 25 / 160, fe build ok, Playwright 97/97 incl. new e2e/home-1-1-trending-api.spec.ts",
+        "2026-10-27 Older tests updated to the new behaviour (not weakened): auctions.filter-sort, homepage, auction.new-tag, e2e guest-002, sell-007, ui-1a-3 upcoming case; guest-003 and ui-1a-2 submit search with Enter (baseline failures from the user's removed Search button). Notes in docs/changes/home-1.1.md",
+        "2026-10-27 ./init.sh install step hits Prisma DLL EPERM because the user's npm run dev is running (left running, deps/schema unchanged), so npm run verify was used"
+      ],
+      "status": "passing"
     },
     {
       "id": "home-1.2",

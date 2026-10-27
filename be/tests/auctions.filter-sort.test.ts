@@ -26,23 +26,23 @@ describe('ui-1a.2 auction list filters and sort', () => {
     await prisma.auction.update({ where: { id: BigInt(lamp.id) }, data: { endTime: new Date(Date.now() + 20 * 60_000) } });
     const table = await createAuction(alice, { name: 'Oak table', initialPrice: 300, categoryId: cats['Home and Garden'], duration: day });
     await bob.post(`/api/auctions/${table.id}/bids`).send({ amount: 300 });
-    // Upcoming: never 'ending soon' even if its end were close.
+    // Upcoming: not listed at all since home-1.1 (trending = live lots only).
     await createAuction(alice, { name: 'Future vase', initialPrice: 20, categoryId: cats['Home and Garden'], startTime: inMinutes(30) });
   });
 
-  it('keeps the old order without a sort (soonest ending first)', async () => {
-    expect(await names('')).toEqual(['Desk lamp', 'Future vase', 'Cheap camera', 'Oak table']);
+  it('home-1.1: without a sort lists live lots by most bids, ties by soonest ending; upcoming lots are left out', async () => {
+    expect(await names('')).toEqual(['Cheap camera', 'Oak table', 'Desk lamp']);
   });
 
   it('sorts by most bids, price both ways and ending time', async () => {
-    expect((await names('sort=bids')).slice(0, 2)).toEqual(['Cheap camera', 'Oak table']);
-    expect(await names('sort=price_asc')).toEqual(['Cheap camera', 'Future vase', 'Desk lamp', 'Oak table']);
-    expect(await names('sort=price_desc')).toEqual(['Oak table', 'Desk lamp', 'Future vase', 'Cheap camera']);
-    expect(await names('sort=ending')).toEqual(['Desk lamp', 'Future vase', 'Cheap camera', 'Oak table']);
+    expect(await names('sort=bids')).toEqual(['Cheap camera', 'Oak table', 'Desk lamp']);
+    expect(await names('sort=price_asc')).toEqual(['Cheap camera', 'Desk lamp', 'Oak table']);
+    expect(await names('sort=price_desc')).toEqual(['Oak table', 'Desk lamp', 'Cheap camera']);
+    expect(await names('sort=ending')).toEqual(['Desk lamp', 'Cheap camera', 'Oak table']);
   });
 
   it('filters by category', async () => {
-    expect(await names(`category=${cats.Electronics}`)).toEqual(['Desk lamp', 'Cheap camera']);
+    expect(await names(`category=${cats.Electronics}`)).toEqual(['Cheap camera', 'Desk lamp']);
     expect(await names(`category=${cats.Art}`)).toEqual([]);
   });
 
@@ -53,7 +53,7 @@ describe('ui-1a.2 auction list filters and sort', () => {
   it('combines with the keyword search and with each other (AND)', async () => {
     expect(await names(`q=cheap&field=auction&category=${cats.Electronics}`)).toEqual(['Cheap camera']);
     expect(await names(`q=cheap&field=auction&category=${cats['Home and Garden']}`)).toEqual([]);
-    expect(await names(`category=${cats['Home and Garden']}&sort=price_asc`)).toEqual(['Future vase', 'Oak table']);
+    expect(await names(`category=${cats['Home and Garden']}&sort=price_asc`)).toEqual(['Oak table']);
     expect(await names(`category=${cats.Electronics}&endingSoon=1`)).toEqual(['Desk lamp']);
   });
 

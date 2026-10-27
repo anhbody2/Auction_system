@@ -3,7 +3,7 @@
  * `category` is a category id or 'ending' for the 'Ending soon' chip.
  */
 export type SearchField = 'all' | 'seller' | 'auction' | 'category' | 'product';
-export type Sort = '' | 'bids' | 'price_asc' | 'price_desc';
+export type Sort = '' | 'price_asc' | 'price_desc' | 'ending';
 
 export const FIELD_LABELS: Record<SearchField, string> = {
   all: 'Everything',
@@ -13,12 +13,12 @@ export const FIELD_LABELS: Record<SearchField, string> = {
   product: 'Product',
 };
 
-/** '' keeps the server's default order (soonest ending first). */
+/** '' keeps the server's default order (home-1.1: trending, most bids first). */
 export const SORT_LABELS: Record<Sort, string> = {
-  '': 'Ending soon',
-  bids: 'Most bids',
+  '': 'Most bids',
   price_asc: 'Price: low to high',
   price_desc: 'Price: high to low',
+  ending: 'Ending soon',
 };
 
 export interface Browse {

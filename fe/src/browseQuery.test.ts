@@ -17,13 +17,18 @@ describe('ui-1a.2 browse state in the URL', () => {
 
   it('writes only what is set (field only with a keyword) and round-trips', () => {
     expect(browseParams({ q: '', field: 'seller', category: '', sort: '' })).toEqual({});
-    const b = { q: 'oak', field: 'product' as const, category: '2', sort: 'bids' as const };
+    const b = { q: 'oak', field: 'product' as const, category: '2', sort: 'ending' as const };
     expect(read(new URLSearchParams(browseParams(b)).toString())).toEqual(b);
   });
 
   it('maps the Ending soon chip to endingSoon=1 for the API', () => {
     expect(browseApiQuery(read(''))).toBe('');
-    expect(browseApiQuery(read('category=ending&sort=bids'))).toBe('?endingSoon=1&sort=bids');
+    expect(browseApiQuery(read('category=ending&sort=ending'))).toBe('?endingSoon=1&sort=ending');
+  });
+
+  it('home-1.1: the default sort is the server most bids; the old sort=bids URL falls back to it', () => {
+    expect(read('sort=bids').sort).toBe('');
+    expect(browseApiQuery(read('sort=bids'))).toBe('');
     expect(browseApiQuery(read('q=oak&field=product&category=2'))).toBe('?q=oak&field=product&category=2');
   });
 });

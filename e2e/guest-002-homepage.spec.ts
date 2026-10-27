@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { createAuctionViaApi, login, logout } from './helpers';
 
-test('guest-002: guest sees live, upcoming and just-completed auctions with countdowns; only logged-in users can bid', async ({ page }) => {
+test('guest-002: guest sees live and just-completed auctions with countdowns, upcoming ones by link; only logged-in users can bid', async ({ page }) => {
   // Arrange as alice / bob
   await login(page, 'alice');
   const soon = (m: number) => new Date(Date.now() + m * 60_000).toISOString();
@@ -25,8 +25,8 @@ test('guest-002: guest sees live, upcoming and just-completed auctions with coun
   const first = await liveCard.getByTestId('countdown').textContent();
   await expect(liveCard.getByTestId('countdown')).not.toHaveText(first!, { timeout: 3000 }); // ticking
 
-  const soonCard = page.getByTestId('section-upcoming').getByTestId(`auction-card-${upcoming.id}`);
-  await expect(soonCard.getByTestId('countdown')).toHaveText(/^Starts in /);
+  // home-1.1/1.2: the homepage lists trending (live) lots only; an upcoming lot opens by its own URL.
+  await expect(page.getByTestId(`auction-card-${upcoming.id}`)).toHaveCount(0);
 
   const doneCard = page.getByTestId('section-completed').getByTestId(`auction-card-${done.id}`);
   await expect(doneCard.getByTestId('countdown')).toHaveText(/^Ended /);
@@ -37,6 +37,9 @@ test('guest-002: guest sees live, upcoming and just-completed auctions with coun
   await doneCard.click();
   await expect(page.getByText('This auction has ended and no longer accepts bids.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Place bid' })).toHaveCount(0);
+
+  await page.goto(`/auctions/${upcoming.id}`);
+  await expect(page.getByTestId('countdown').first()).toHaveText(/^Starts in /);
 
   // 4. Only logged-in users can bid
   await page.goto(`/auctions/${live.id}`);

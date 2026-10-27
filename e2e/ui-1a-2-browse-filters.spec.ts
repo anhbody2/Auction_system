@@ -20,7 +20,8 @@ test('ui-1a.2: category chips, sort, URL state, Back and clear filters', async (
   // Narrow to this test's lots with the top bar search, then wait for the start job to make them live.
   await page.goto('/');
   await page.getByLabel('Keywords').fill(TAG);
-  await page.getByRole('search').getByRole('button', { name: 'Search', exact: true }).click();
+  // The top bar has no Search button any more (card restyle): Enter submits.
+  await page.getByLabel('Keywords').press('Enter');
   await expect(page).toHaveURL(new RegExp(`\\?q=${TAG}&field=all$`));
   await expect(async () => {
     await page.reload();
@@ -57,7 +58,8 @@ test('ui-1a.2: category chips, sort, URL state, Back and clear filters', async (
   // Searching again from the top bar keeps the chip and sort
   await page.getByLabel('Keywords').fill(`canvas ${TAG}`);
   await page.getByLabel('Search in').selectOption({ label: 'Auction' });
-  await page.getByRole('search').getByRole('button', { name: 'Search', exact: true }).click();
+  // The top bar has no Search button any more (card restyle): Enter submits.
+  await page.getByLabel('Keywords').press('Enter');
   await expect(page).toHaveURL(new RegExp(`category=${art.id}`));
   await expect.poll(async () => mine(await liveNames(page))).toEqual([`Dear canvas ${TAG}`]);
 

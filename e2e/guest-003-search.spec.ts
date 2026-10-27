@@ -7,7 +7,8 @@ const TAG = `zq${Date.now().toString(36)}`;
 async function search(page: Page, q: string, field: string) {
   await page.getByLabel('Keywords').fill(q);
   await page.getByLabel('Search in').selectOption({ label: field });
-  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  // The top bar has no Search button any more (card restyle): Enter submits.
+  await page.getByLabel('Keywords').press('Enter');
 }
 
 const resultNames = (page: Page) => page.locator('[data-testid^="auction-card-"] h3').allTextContents();

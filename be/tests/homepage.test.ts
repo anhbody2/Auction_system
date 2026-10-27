@@ -20,13 +20,14 @@ describe('guest-002 homepage listing', () => {
     await (await loginAs('admin')).post(`/api/auctions/${ids.cancelled}/cancel`); // started, so only an admin can cancel (sell-005)
   });
 
-  it('guests see live, upcoming and just-completed auctions (not cancelled or old)', async () => {
+  it('guests see live and just-completed auctions (not upcoming since home-1.1, not cancelled or old)', async () => {
     const res = await request(app).get('/api/auctions');
     expect(res.status).toBe(200);
     const byName = Object.fromEntries(res.body.auctions.map((a: { name: string }) => [a.name, a]));
-    expect(Object.keys(byName).sort()).toEqual(['Done lamp', 'Live lamp', 'Soon lamp']);
+    expect(Object.keys(byName).sort()).toEqual(['Done lamp', 'Live lamp']);
     expect(byName['Live lamp']).toMatchObject({ status: 'active', endTime: expect.any(String) });
-    expect(byName['Soon lamp'].status).toBe('upcoming');
+    // The upcoming lot is still reachable by its own URL.
+    expect((await request(app).get(`/api/auctions/${ids.upcoming}`)).body.auction.status).toBe('upcoming');
     expect(byName['Done lamp']).toMatchObject({ status: 'ended', nextMinBid: null, winner: { username: 'bob' }, currentPrice: 100 });
   });
 

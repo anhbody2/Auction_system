@@ -170,11 +170,12 @@ auctionsRouter.get(
     };
     const recent = new Date(now.getTime() - JUST_COMPLETED_DAYS * 24 * 3600 * 1000);
     const [open, completed] = await Promise.all([
-      // live + upcoming, soonest ending first
+      // home-1.1: trending = live lots only (start time passed, even before the start job), most bids first,
+      // ties by soonest ending. Upcoming lots are not listed.
       prisma.auction.findMany({
-        where: { AND: [{ status: { in: ['active', 'upcoming'] }, endTime: { gt: now }, deletedAt: null }, match] },
+        where: { AND: [{ status: { in: ['active', 'upcoming'] }, startTime: { lte: now }, endTime: { gt: now }, deletedAt: null }, match] },
         include: auctionInclude,
-        orderBy: { endTime: 'asc' },
+        orderBy: [{ bids: { _count: 'desc' } }, { endTime: 'asc' }, { id: 'asc' }],
         take: 200,
       }),
       // just completed, most recent first. Past end time counts even before the close job has run.
@@ -186,12 +187,13 @@ auctionsRouter.get(
         take: 100,
       }),
     ]);
-    const all = [...open, ...completed];
-    const myBids = await viewerBids(req.user?.id, all);
-    const views = await Promise.all(all.map(async (a) => ({ ...(await auctionView(a, req.user?.id)), myBid: myBids.get(a.id) ?? null })));
-    // Without a sort the query order stays (open by end time, then just completed newest first).
-    if (sort) views.sort(SORTERS[sort]);
-    res.json({ auctions: views, justCompletedDays: JUST_COMPLETED_DAYS });
+    const myBids = await viewerBids(req.user?.id, [...open, ...completed]);
+    const view = (list: typeof open) =>
+      Promise.all(list.map(async (a) => ({ ...(await auctionView(a, req.user?.id)), myBid: myBids.get(a.id) ?? null })));
+    const [trending, done] = await Promise.all([view(open), view(completed)]);
+    // A sort reorders only the trending lots (stable, so ties keep the trending order); just completed stays newest first.
+    if (sort) trending.sort(SORTERS[sort]);
+    res.json({ auctions: [...trending, ...done], justCompletedDays: JUST_COMPLETED_DAYS });
   }),
 );
 
