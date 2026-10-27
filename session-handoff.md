@@ -21,7 +21,8 @@ docs/design-system.md 'Homepage'. Defaults applied without explicit confirmation
 readings_to_confirm.
 Mail: real Gmail settings live only in be/.env (docs/mail.md); vitest and Playwright blank them so tests use the dev outbox.
 Note: root package.json `overrides` pin is-generator-function/is-async-function so tsx can load exceljs on Node 20.19+ (see claude-progress Session 005 stf-002).
-`./init.sh` exits 0 (be 362 + fe 162 vitest, fe build, 102 Playwright; 2026-10-27). Stop any running `npm run dev` first (Prisma DLL lock on Windows).
+Round 10 (dark theme, theme-1.1) is passing and archived to `progress-feature-list/feature_list_10.json`; tokens in docs/design-system.md.
+`./init.sh` exits 0 (be 362 + fe 162 vitest, fe build, 105 Playwright; 2026-10-27). Stop any running `npm run dev` first (Prisma DLL lock on Windows).
 
 ## Restart path
 

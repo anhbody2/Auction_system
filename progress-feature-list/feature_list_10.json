@@ -1,0 +1,62 @@
+{
+  "project": "Online Auction System",
+  "last_updated": "2026-10-27",
+  "scope": "Round 10. User request (2026-10-27): 'update the theme to dark color'. The whole app switches to a dark palette built from the round 8 tokens (docs/design-system.md). Builds on round 9 (archived as progress-feature-list/feature_list_9.json). No behaviour, layout or text changes; every business rule from rounds 1-9 stays.",
+  "source_requirements": {
+    "file": "user chat request",
+    "text": "update the theme to dark color"
+  },
+  "readings_to_confirm": [
+    "'Update the theme to dark' = the app is dark for everyone, replacing the light palette. No light/dark toggle and no following the OS setting (can be added later as its own feature).",
+    "The brand hues stay (navy, crimson, steel, cream): navy remains the fill for primary buttons, active tabs and the dashboard credit card; crimson and cream stay the outbid / warning accents, lightened where they are used as text so they stay readable on dark surfaces."
+  ],
+  "conventions": {
+    "tests": "Playwright e2e specs go in e2e/ as <id>-<slug>.spec.ts. fe vitest has no DOM, so colour checks run in e2e against computed styles.",
+    "existing_tests": "No existing spec checks colours; all must keep passing unchanged.",
+    "change_docs": "docs/changes/<id>.md lists changed files; docs/design-system.md token table updated to the dark values.",
+    "accessibility": "Text meets WCAG AA (4.5:1, 3:1 for 24px+ / 19px bold) on its own background; native controls follow the dark scheme (color-scheme: dark).",
+    "run_all": "./init.sh must exit 0 before the feature moves to passing."
+  },
+  "rules": {
+    "single_active_feature": true,
+    "passing_requires_evidence": true,
+    "do_not_skip_verification": true
+  },
+  "status_legend": {
+    "not_started": "Work has not begun.",
+    "in_progress": "The feature is the current active task.",
+    "blocked": "Work cannot continue until a documented blocker is resolved.",
+    "passing": "Required verification has passed and evidence is recorded."
+  },
+  "features": [
+    {
+      "id": "theme-1.1",
+      "priority": 1,
+      "role": "guest, customer, staff, admin",
+      "area": "ui",
+      "srs_ref": "User request 2026-10-27: dark theme",
+      "title": "Dark colour theme across the app",
+      "user_visible_behavior": "Every page (top bar, homepage, lot page, dashboard, bid history, credit, staff and admin pages, dialogs, toasts, charts) uses a dark background with light text. Brand navy, steel, crimson and cream stay recognisable as accents. Form fields, selects and date pickers are dark too.",
+      "acceptance": [
+        "Page background, cards, tables, inputs and menus are dark; body text is light.",
+        "No hard-coded light background (#fff, light tints) is left in fe/src/styles.css outside tokens; badge / notice / banner tints come from dark tint tokens.",
+        "Text colour roles split from fill roles: text uses --ink / --muted / --link, fills use --navy / --primary, so no dark-on-dark text.",
+        "color-scheme: dark is set so native controls and scrollbars follow.",
+        "WCAG AA contrast for body text, muted text, links, card titles, prices, pills, badges, bid strips, primary / steel / custom-bid buttons, active chip.",
+        "Charts keep readable grid, axis and tick colours on the dark surface."
+      ],
+      "verification": [
+        "e2e/theme-1-1-dark.spec.ts: on the homepage (guest + customer), a lot page and the dashboard, body background is dark (luminance < 0.05), and an in-page contrast audit over visible text elements finds none under AA against their effective background",
+        "All existing vitest and Playwright specs pass unchanged",
+        "Screenshot review of homepage, lot page, dashboard, credit page",
+        "docs/changes/theme-1.1.md and docs/design-system.md token table"
+      ],
+      "notes": "fe has no colours in TSX (all in fe/src/styles.css), so the change is CSS only.",
+      "evidence": [
+        "2026-10-27 npm run verify exit 0: be vitest 74 / 362, fe vitest 26 / 162, fe build ok, Playwright 105/105 incl. new e2e/theme-1-1-dark.spec.ts (3 tests: in-browser WCAG AA contrast audit on customer, staff, admin and auth pages; the audit catches a planted low-contrast paragraph)",
+        "2026-10-27 Screenshots reviewed (homepage, lot page, dashboard, credit) at 1440px. ./init.sh not used: dev server node processes held the Prisma DLL (deps unchanged). Notes: docs/changes/theme-1.1.md, docs/design-system.md tokens"
+      ],
+      "status": "passing"
+    }
+  ]
+}

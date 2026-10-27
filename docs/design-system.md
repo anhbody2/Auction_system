@@ -2,23 +2,32 @@
 
 Introduced by ui-0.1. Later ui-* features add the components they introduce.
 
-## Tokens (`fe/src/styles.css` `:root`)
+## Tokens (`fe/src/styles.css` `:root`) - dark theme since theme-1.1 (round 10)
+
+`color-scheme: dark` is set, so native selects, date pickers and scrollbars are dark too. Text roles and fill
+roles are separate tokens: never use a fill token (`--navy`, `--primary`, `--dark-red`) as a text colour.
 
 | Token | Value | Use |
 |---|---|---|
-| `--navy` | #003049 | Text, primary buttons, active tabs/pills, navy summary cards |
-| `--crimson` | #c1121f | Outbid, withdraw, errors, brand dot |
-| `--dark-red` | #780000 | Ending-soon pill, crimson hover |
-| `--cream` | #fdf0d5 | Warning / outbid backgrounds |
-| `--steel` | #669bbc | Accents, chart line (not for text: 2.9:1 on white) |
-| `--steel-ink` | #335a6e | Text on steel-light, avatar background, positive amounts |
-| `--steel-light` / `--steel-lighter` | #e6f0f6 / #eef3f6 | Leading pill, inputs, quick buttons |
-| `--muted` | #4f6e80 | Secondary text. The mockup's #5b7a8c is 4.3:1 on the page background, so it was darkened to pass WCAG AA |
-| `--bg` / `--border` | #f5f8fa / #e1e8ee | Page background, hairlines |
+| `--bg` / `--surface` / `--input-bg` | #0b141a / #13212a / #0e1a22 | Page, cards and menus, form fields |
+| `--border` | #263b48 | Hairlines, dashed empty states |
+| `--ink` (= `--text`) | #e6eef4 | Body text, headings, text on tinted fills |
+| `--muted` | #9ab0bf | Secondary text (7:1 on surface) |
+| `--link` | #8ec5e8 | Links, 'Leading' state |
+| `--navy` / `--navy-hover` (= `--primary`) | #1e5578 / #276a93 | Fills with white text: primary buttons, active chips, brand mark, navy credit card |
+| `--steel` | #669bbc | Focus rings, active underline, chart line, selected thumb |
+| `--steel-light` / `--steel-lighter` | #1f3d50 / #1a2c37 | Tinted fills (leading strip, pills, Bid $X) / subtle fills (search, inputs, Custom bid) |
+| `--steel-ink` | #a7cde4 | Text on steel fills, positive amounts |
+| `--crimson` | #ff7a7a | Outbid / error accent as text, brand dot, locked credit bar |
+| `--dark-red` | #8f1d1d | Fills with white text: ending-soon pill, danger button, error toast |
+| `--cream` | #3b2216 | Warm tint behind outbid / bid errors |
+| `--danger` / `--success` / `--warn` | #ff8080 / #5fd08f / #e8b04f | Status text |
+| `--tint-green/red/amber/gray/teal/pink` | dark tints | Badge, notice and banner backgrounds |
+| `--shadow` | rgba(0,0,0,.45) | Hover and menu shadows |
 | `--radius` / `--radius-input` | 14px / 10px | Cards / inputs and buttons; pills are 999px |
 
-The older names (`--text`, `--primary`, `--danger`, ...) now point at the palette, so staff, admin and auth
-pages that are not redesigned this round still render with the new colours.
+Contrast: every visible text element on the main customer, staff, admin and auth pages meets WCAG AA
+against its background; `e2e/theme-1-1-dark.spec.ts` audits this in the browser.
 
 Font: Mulish 400-900 from Google Fonts (`fe/index.html`), `system-ui` fallback.
 

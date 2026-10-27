@@ -507,3 +507,14 @@
 - Round 9: 4/4 passing; feature_list.json archived as progress-feature-list/feature_list_9.json
 - Left uncommitted (user's): SRS.txt, fe/src/pages/ChangePassword.tsx whitespace, fe/tsconfig.tsbuildinfo, Auction Mockups.dc.html (untracked)
 - Next best step: ask the user to confirm the round 9 defaults; a new round needs a fresh feature_list.json at the root
+
+### Session 017 (cont.) round 10: dark theme (2026-10-27)
+
+- User asked to 'update the theme to dark color'. Created feature_list.json round 10 with one feature, theme-1.1
+- Readings applied as defaults: the app is dark for everyone (no toggle, no OS-following); brand hues stay as accents
+- Completed theme-1.1 (CSS only, fe/src/styles.css): dark tokens with text / fill / tint roles split (`--ink`, `--link`, `--navy` fill, `--tint-*`), `color-scheme: dark`, hard-coded light backgrounds replaced, chart colours darkened
+- New e2e/theme-1-1-dark.spec.ts: in-browser WCAG AA audit of every visible text element on 15 pages, self-checked with a planted failure
+- Verification: npm run verify exit 0 -> be 362, fe 162, build ok, Playwright 105/105. ./init.sh not run: dev server node processes started for screenshots were left behind after the shell stopped (stopping them by command line was not permitted), and they hold the Prisma DLL
+- Round 10: 1/1 passing; archived as progress-feature-list/feature_list_10.json
+- Left: dev server node processes may still be running (stop with Ctrl+C / Task Manager); user's SRS.txt, ChangePassword.tsx whitespace, tsconfig.tsbuildinfo, Auction Mockups.dc.html
+- Next best step: confirm the dark-only reading (a light/dark toggle would be its own feature)
