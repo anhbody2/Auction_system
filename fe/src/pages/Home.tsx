@@ -34,7 +34,6 @@ export function HomePage() {
   const browse = readBrowse(params);
   const apiQuery = browseApiQuery(browse);
   const [auctions, setAuctions] = useState<Auction[] | null>(null);
-  const [days, setDays] = useState(7);
   const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
 
   useEffect(() => {
@@ -42,10 +41,7 @@ export function HomePage() {
   }, []);
 
   const load = useCallback(() => {
-    api<{ auctions: Auction[]; justCompletedDays: number }>(`/auctions${apiQuery}`).then((r) => {
-      setAuctions(r.auctions);
-      setDays(r.justCompletedDays);
-    });
+    api<{ auctions: Auction[]; justCompletedLimit: number }>(`/auctions${apiQuery}`).then((r) => setAuctions(r.auctions));
   }, [apiQuery]);
 
   useEffect(() => {
@@ -122,7 +118,7 @@ export function HomePage() {
       {auctions && (
         <Section
           id="completed"
-          title={`Just completed (last ${days} days)`}
+          title="Just completed"
           empty={filtered ? 'No completed auctions match.' : 'No recently completed auctions.'}
           auctions={completed}
           onElapsed={load}

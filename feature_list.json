@@ -135,8 +135,11 @@
         "docs/changes/home-2.1.md"
       ],
       "notes": "The 'no 7-day window' reading is in readings_to_confirm; if the user wants the window kept, the limit is applied inside it instead.",
-      "evidence": [],
-      "status": "not_started"
+      "evidence": [
+        "2026-10-27 ./init.sh exit 0 (npm install + verify): be vitest 74 files / 362 tests (new be/tests/auctions.just-completed.test.ts 4), fe vitest 26 / 162, fe build ok, Playwright 100/100 incl. new e2e/home-2-1-just-completed-api.spec.ts",
+        "2026-10-27 be/tests/homepage.test.ts updated: 'Old lamp' (10 days) now listed. An earlier verify run was cut by a session restart (2 unrelated timeouts: ui-3b-2, upl-001); the clean rerun above passed. Notes: docs/changes/home-2.1.md"
+      ],
+      "status": "passing"
     },
     {
       "id": "home-2.2",

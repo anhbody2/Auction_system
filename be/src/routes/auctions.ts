@@ -13,8 +13,8 @@ export const auctionsRouter = Router();
 export { CONDITIONS };
 const GOODS_IN_AUCTION = 'These goods are already in an auction';
 const GOODS_SOLD = 'These goods have been sold';
-/** Ended auctions stay on the homepage ("just completed") for this many days. */
-const JUST_COMPLETED_DAYS = 7;
+/** home-2.1: the homepage's "just completed" part holds this many of the most recently closed lots, whatever their age. */
+const JUST_COMPLETED_LIMIT = 8;
 
 export const price = (label: string) =>
   z.coerce
@@ -168,7 +168,6 @@ auctionsRouter.get(
         endingSoon ? { startTime: { lte: now }, endTime: { lte: new Date(now.getTime() + ENDING_SOON_MS) } } : {},
       ],
     };
-    const recent = new Date(now.getTime() - JUST_COMPLETED_DAYS * 24 * 3600 * 1000);
     const [open, completed] = await Promise.all([
       // home-1.1: trending = live lots only (start time passed, even before the start job), most bids first,
       // ties by soonest ending. Upcoming lots are not listed.
@@ -178,13 +177,13 @@ auctionsRouter.get(
         orderBy: [{ bids: { _count: 'desc' } }, { endTime: 'asc' }, { id: 'asc' }],
         take: 200,
       }),
-      // just completed, most recent first. Past end time counts even before the close job has run.
-      // The 'Ending soon' chip only lists live auctions.
+      // just completed: the 8 most recently closed matches, newest first. Past end time counts even before the
+      // close job has run. The 'Ending soon' chip only lists live auctions.
       endingSoon ? Promise.resolve([]) : prisma.auction.findMany({
-        where: { AND: [{ status: { not: 'cancelled' }, endTime: { gte: recent, lte: now }, deletedAt: null }, match] },
+        where: { AND: [{ status: { not: 'cancelled' }, endTime: { lte: now }, deletedAt: null }, match] },
         include: auctionInclude,
-        orderBy: { endTime: 'desc' },
-        take: 100,
+        orderBy: [{ endTime: 'desc' }, { id: 'desc' }],
+        take: JUST_COMPLETED_LIMIT,
       }),
     ]);
     const myBids = await viewerBids(req.user?.id, [...open, ...completed]);
@@ -193,7 +192,7 @@ auctionsRouter.get(
     const [trending, done] = await Promise.all([view(open), view(completed)]);
     // A sort reorders only the trending lots (stable, so ties keep the trending order); just completed stays newest first.
     if (sort) trending.sort(SORTERS[sort]);
-    res.json({ auctions: [...trending, ...done], justCompletedDays: JUST_COMPLETED_DAYS });
+    res.json({ auctions: [...trending, ...done], justCompletedLimit: JUST_COMPLETED_LIMIT });
   }),
 );
 
