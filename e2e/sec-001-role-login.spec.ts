@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { logout, PASSWORD } from './helpers';
+import { logout, openRoleNav, PASSWORD } from './helpers';
 
 async function loginOnPage(page: Page, identifier: string) {
   await page.goto('/login');
@@ -17,6 +17,7 @@ test('sec-001: customer, staff and admin use one login page and land on their ow
   await expect(page).toHaveURL(/\/staff\/statistics$/);
   await expect(page.getByRole('heading', { name: 'Auction statistics' })).toBeVisible();
   await expect(page.getByTestId('current-role')).toHaveText('staff');
+  await openRoleNav(page);
   await expect(nav.getByRole('link', { name: 'Statistics' })).toBeVisible();
   await expect(nav.getByRole('link', { name: 'Users' })).toHaveCount(0);
   await expect(nav.getByRole('link', { name: 'Bids', exact: true })).toHaveCount(0);
@@ -26,6 +27,7 @@ test('sec-001: customer, staff and admin use one login page and land on their ow
   await loginOnPage(page, 'admin');
   await expect(page).toHaveURL(/\/admin\/users$/);
   await expect(page.getByRole('heading', { name: 'User management' })).toBeVisible();
+  await openRoleNav(page);
   await expect(nav.getByRole('link', { name: 'Users' })).toBeVisible();
   await expect(nav.getByRole('link', { name: 'Statistics' })).toHaveCount(0);
   await logout(page);

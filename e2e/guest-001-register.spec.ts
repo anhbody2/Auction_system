@@ -41,7 +41,7 @@ test('guest-001: guest registers with validated fields and a confirmation email 
   // 4. The API sent the confirmation email to the user's address
   const outbox = await (await page.request.get('/api/dev/outbox?to=erin@example.com')).json();
   expect(outbox.mails).toHaveLength(1);
-  expect(outbox.mails[0].subject).toBe('Confirm your BidHouse account');
+  expect(outbox.mails[0].subject).toBe("Confirm your Beat'em account");
   const link = outbox.mails[0].text.match(/https?:\/\/\S+verify-email\?token=\w+/)[0];
 
   // mail-002: the link activates the account, signs erin in and lands on the main page.

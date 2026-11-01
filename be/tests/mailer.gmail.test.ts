@@ -42,7 +42,7 @@ describe('mail-001 Gmail transport', () => {
     });
     // No password-style auth for Gmail.
     expect(JSON.stringify(s.options)).not.toMatch(/"pass"/);
-    expect(s.from).toBe('BidHouse <bidhouse.app@gmail.com>');
+    expect(s.from).toBe("Beat'em <bidhouse.app@gmail.com>");
     expect(mailSettings({ ...OAUTH, MAIL_FROM_NAME: 'Auctions' }).from).toBe('Auctions <bidhouse.app@gmail.com>');
   });
 
@@ -86,7 +86,7 @@ describe('mail-001 Gmail transport', () => {
       setMailTransport(null);
     }
     expect(sent[0]).toMatchObject({ to: 'ann@example.com', subject: 'Hello', text: 'plain', html: '<p>html</p>' });
-    expect(sent[0].from).toContain('BidHouse');
+    expect(sent[0].from).toContain("Beat'em");
   });
 });
 
@@ -115,7 +115,7 @@ describe('mail-001 send failures', () => {
     const ok = await request(app).post('/api/auth/forgot-password').send({ email: 'forgetful@example.com' });
     expect(ok.status).toBe(200);
     const mail = getOutbox('forgetful@example.com').at(-1)!;
-    expect(mail.subject).toBe('Reset your BidHouse password');
+    expect(mail.subject).toBe("Reset your Beat'em password");
     expect(mail.html).toContain('/reset-password?token=');
   });
 });

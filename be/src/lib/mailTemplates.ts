@@ -28,9 +28,9 @@ function layout(opts: { heading: string; intro: string; button: string; link: st
 export function activationMail(name: string, link: string): MailContent {
   const footer = 'The link expires in 24 hours.';
   return {
-    subject: 'Confirm your BidHouse account',
+    subject: "Confirm your Beat'em account",
     text: `Hi ${name},\n\nConfirm your email address by opening this link:\n${link}\n\n${footer}`,
-    html: layout({ heading: `Hi ${name}, welcome to BidHouse`, intro: 'Confirm your email address to activate your account.', button: 'Activate my account', link, footer }),
+    html: layout({ heading: `Hi ${name}, welcome to Beat'em`, intro: 'Confirm your email address to activate your account.', button: 'Activate my account', link, footer }),
   };
 }
 
@@ -40,14 +40,14 @@ export function activationMail(name: string, link: string): MailContent {
  */
 const PASSWORD_LINK_WORDING = {
   reset: {
-    subject: 'Reset your BidHouse password',
+    subject: "Reset your Beat'em password",
     heading: 'Reset your password',
     intro: (username: string) => `Someone asked to reset the password for ${username}.`,
     button: 'Set a new password',
     footer: "The link expires in 1 hour. Ignore this email if it wasn't you.",
   },
   change: {
-    subject: 'Change your BidHouse password',
+    subject: "Change your Beat'em password",
     heading: 'Change your password',
     intro: (username: string) => `Hi ${username}, you asked to change your password.`,
     button: 'Choose a new password',

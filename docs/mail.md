@@ -7,7 +7,7 @@ Mail is sent with **Nodemailer**. The transport is chosen from the environment e
 
 | Settings in be/.env | Transport | From |
 |---|---|---|
-| `GMAIL_USER`, `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN` (all four) | Gmail SMTP (`service: 'gmail'`, smtp.gmail.com:465, TLS) with **OAuth 2.0 / XOAUTH2**: `auth: { type: 'OAuth2', user, clientId, clientSecret, refreshToken }`. Nodemailer exchanges the refresh token for short-lived access tokens itself. | `MAIL_FROM_NAME <GMAIL_USER>` (default name "BidHouse") |
+| `GMAIL_USER`, `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN` (all four) | Gmail SMTP (`service: 'gmail'`, smtp.gmail.com:465, TLS) with **OAuth 2.0 / XOAUTH2**: `auth: { type: 'OAuth2', user, clientId, clientSecret, refreshToken }`. Nodemailer exchanges the refresh token for short-lived access tokens itself. | `MAIL_FROM_NAME <GMAIL_USER>` (default name "Beat'em") |
 | `SMTP_HOST` (+ `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`) | Any SMTP server | `MAIL_FROM` |
 | otherwise | Dev outbox: kept in memory, readable at `GET /api/dev/outbox?to=<email>` (not in production), logged to the console | - |
 
@@ -18,7 +18,7 @@ so they use the outbox. **Never commit be/.env**: it is gitignored; be/.env.exam
 
 1. **Google Cloud project.** At https://console.cloud.google.com create (or pick) a project, then
    *APIs & Services → Library → Gmail API → Enable*.
-2. **Consent screen.** *APIs & Services → OAuth consent screen*: user type *External*, app name "BidHouse",
+2. **Consent screen.** *APIs & Services → OAuth consent screen*: user type *External*, app name "Beat'em",
    your email as support and developer contact. Add the scope `https://mail.google.com/`. Under *Test users*
    add the Gmail address that will send the mails. (While the app is in "Testing", Google expires refresh
    tokens after 7 days; publish the app, or redo step 4 when mails start failing.)

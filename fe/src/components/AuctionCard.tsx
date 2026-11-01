@@ -3,11 +3,11 @@ import { money, type Auction } from '../api';
 import { useAuth } from '../auth';
 import { Countdown, NewTag, useNow } from './AuctionBits';
 import { isEndingSoon, priceLabel, stripState } from './auctionCardState';
-import { Pill } from './ui';
-
 /**
- * ui-1a.1: compact lot card from the 1a Browse mockup, with the viewer's own bid position on live lots.
+ * ui-1a.1: lot card with the viewer's own bid position on live lots.
  * ui-1a.3: live lots also get 'Bid $X' and 'Custom bid', both opening the lot page to bid there.
+ * Product-card layout: big image with the timer overlaid top-right ('Starts in …' before the start, time left once
+ * live), name and category under it, price pinned to the bottom above the two buttons.
  */
 export function AuctionCard({ auction, onElapsed }: { auction: Auction; onElapsed?: () => void }) {
   const { user } = useAuth();
@@ -15,31 +15,27 @@ export function AuctionCard({ auction, onElapsed }: { auction: Auction; onElapse
   const ended = auction.status === 'ended';
   const soon = isEndingSoon(auction, now);
   const strip = stripState(auction, !!user);
+  const timerTone = soon ? 'is-soon' : ended || auction.status === 'cancelled' ? 'is-muted' : '';
   return (
     <article className="lot-card" data-testid={`auction-card-${auction.id}`}>
       <Link to={`/auctions/${auction.id}`} className="card-link lot-body">
-        <div className="lot-head">
+        <div className="lot-media">
           {auction.goods.images[0] ? (
-            <img src={auction.goods.images[0]} alt="" className="lot-thumb" loading="lazy" />
+            <img src={auction.goods.images[0]} alt="" className="lot-image" loading="lazy" />
           ) : (
-            <div className="lot-thumb lot-thumb-empty" aria-hidden="true" />
+            <div className="lot-image lot-thumb-empty" aria-hidden="true" />
           )}
-          <div className="lot-head-text">
-            <h3 title={auction.name}>{auction.name}</h3>
-            <div className="lot-pills">
-              {soon ? (
-                <Pill tone="dark-red" dot testId="ending-soon">
-                  <Countdown status={auction.status} startTime={auction.startTime} endTime={auction.endTime} onElapsed={onElapsed} />
-                </Pill>
-              ) : (
-                <Pill tone={ended || auction.status === 'cancelled' ? 'muted' : 'steel'}>
-                  <Countdown status={auction.status} startTime={auction.startTime} endTime={auction.endTime} onElapsed={onElapsed} />
-                </Pill>
-              )}
-              {auction.goods.category && <Pill tone="muted">{auction.goods.category.name}</Pill>}
-              <NewTag status={auction.status} startTime={auction.startTime} />
-            </div>
-          </div>
+          <span className={`lot-timer ${timerTone}`} data-testid={soon ? 'ending-soon' : undefined}>
+            <ClockIcon />
+            <Countdown status={auction.status} startTime={auction.startTime} endTime={auction.endTime} onElapsed={onElapsed} />
+          </span>
+          <span className="lot-media-tag">
+            <NewTag status={auction.status} startTime={auction.startTime} />
+          </span>
+        </div>
+        <div className="lot-head-text">
+          <h3 title={auction.name}>{auction.name}</h3>
+          {auction.goods.category && <div className="lot-sub">{auction.goods.category.name}</div>}
         </div>
         <div className="lot-price">
           <div>
@@ -62,6 +58,15 @@ export function AuctionCard({ auction, onElapsed }: { auction: Auction; onElapse
   );
 }
 
+function ClockIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  );
+}
+
 function MyBidStrip({ state, amount }: { state: 'leading' | 'outbid' | 'none'; amount?: number }) {
   if (state === 'none') {
     return (
@@ -72,7 +77,7 @@ function MyBidStrip({ state, amount }: { state: 'leading' | 'outbid' | 'none'; a
   }
   return (
     <div className={`my-bid-strip is-${state}`} data-testid="my-bid-strip" data-state={state}>
-      <span>
+      <span>  
         Your bid <strong>{money(amount)}</strong>
       </span>
       <span className="my-bid-state">{state === 'leading' ? '● Leading' : '▲ Outbid'}</span>
@@ -89,10 +94,10 @@ function QuickBid({ auction }: { auction: Auction }) {
   return (
     <div className="lot-actions">
       <button type="button" className="lot-action is-bid" onClick={() => open(`/auctions/${auction.id}`)} data-testid="quick-bid">
-        Bid {money(auction.nextMinBid)}
+        BID {money(auction.nextMinBid)}
       </button>
       <button type="button" className="lot-action is-custom" onClick={() => open(`/auctions/${auction.id}?bid=1`)} data-testid="custom-bid">
-        Custom bid
+        JOIN IN!
       </button>
     </div>
   );

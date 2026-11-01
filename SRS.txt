@@ -3,25 +3,10 @@ then write me a feature-list.json file, with e2e function, unit and intergration
 Write changed description (files, changed in code) to docs folder
 All delete mean soft delete
 
-Sytem - Sercurity Functional
-Description and Priority
-Log-out and clear refreshToken for inactive user(30mins inactive)
+system - Ui change
+description and Priority
+Modify homepage to show trending auction only , both logged and un-logged users
+just completed auction show 8 closed auction
 
-REQ-1: Write react custom hook for tracking customer mousemovement, "mousedown",
-      "keydown",
-      "scroll",
-      "touchstart",
-      "mousemove",
-REQ-2: Show notification at first, then log them out, clear their refreshToken
-
-Staff - request Approve
-Description and Priority
-Turn all request Approve to realtime
-
-
-system - Flow of change password function
-Description and Priority
-When customer hit change password, show them a notification screen about check their mail
-
-Req-1: Show check mail screen 
-Req-2: On backend sent a mail to end customer to let them click to their, redirect them to change password page(use same template with forget password)
+Req-1: UI should stick with Auction Mockups.dc.html (focus on homepage section)
+Req-2: just completed auction show 8 closed auction, API return 8 auctions

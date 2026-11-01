@@ -1,12 +1,12 @@
 import { expect, request as playwrightRequest, test } from '@playwright/test';
-import { PASSWORD, createAuctionViaApi, login, logout } from './helpers';
+import { PASSWORD, createAuctionViaApi, login, logout, openRoleNav } from './helpers';
 
 const money = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 test('ui-0.1: guest top bar has the brand and Browse, no bid limit or avatar', async ({ page }) => {
   await page.goto('/');
   const bar = page.locator('header.topbar');
-  await expect(bar.getByRole('link', { name: 'BidHouse home' })).toBeVisible();
+  await expect(bar.getByRole('link', { name: "Beat'em home" })).toBeVisible();
   await expect(bar.locator('nav').getByRole('link', { name: 'Browse' })).toHaveClass(/active/);
   await expect(page.getByTestId('bid-limit')).toHaveCount(0);
   await expect(page.getByTestId('avatar')).toHaveCount(0);
@@ -59,6 +59,7 @@ test('ui-0.1: customer top bar shows bid limit = credit - locked (live), initial
 test('ui-0.1: staff keep their links and role pill, no bid limit', async ({ page }) => {
   await login(page, 'staff');
   const nav = page.locator('header nav');
+  await openRoleNav(page);
   await expect(nav.getByRole('link', { name: 'Statistics' })).toBeVisible();
   await expect(nav.getByRole('link', { name: /^Goods/ })).toBeVisible();
   await expect(nav.getByRole('link', { name: /^Credit management/ })).toBeVisible();

@@ -4,7 +4,7 @@ import { getOutbox } from '../src/lib/mailer';
 import { PASSWORD, app, registerUser, resetDb } from './helpers';
 
 const resetLinkToken = (email: string) => {
-  const mails = getOutbox(email).filter((m) => m.subject === 'Reset your BidHouse password');
+  const mails = getOutbox(email).filter((m) => m.subject === "Reset your Beat'em password");
   return mails.at(-1)?.text.match(/token=([a-f0-9]+)/)?.[1];
 };
 

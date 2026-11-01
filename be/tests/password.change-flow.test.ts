@@ -8,7 +8,7 @@ import { PASSWORD, app, loginAs, refreshWith, registerUser, resetDb, setCookie }
 
 const NEW = 'Changed2026x';
 // The dev outbox is not cleared between tests: count mails relative to before.
-const changeMails = () => getOutbox('flow@example.com').filter((m) => m.subject === 'Change your BidHouse password');
+const changeMails = () => getOutbox('flow@example.com').filter((m) => m.subject === "Change your Beat'em password");
 const tokenIn = (text: string) => text.match(/change-password\/new\?token=([a-f0-9]+)/)![1];
 const save = (agent: ReturnType<typeof request.agent> | ReturnType<typeof request>, token: string) =>
   agent.post('/api/auth/reset-password').send({ token, newPassword: NEW, confirmPassword: NEW });

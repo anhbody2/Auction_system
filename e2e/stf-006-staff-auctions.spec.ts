@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { createAuctionViaApi, createGoodsViaApi, login, logout, registerViaApi, topUpViaApi } from './helpers';
+import { createAuctionViaApi, createGoodsViaApi, login, logout, openRoleNav, registerViaApi, topUpViaApi } from './helpers';
 
 const TAG = Date.now().toString(36);
 
@@ -26,6 +26,7 @@ test('stf-006: staff search and page auctions, add one for a seller, edit it, an
   await logout(page);
 
   await login(page, 'staff');
+  await openRoleNav(page);
   await page.locator('header nav').getByRole('link', { name: 'Manage auctions' }).click();
   await expect(page.getByRole('heading', { name: 'Auction management' })).toBeVisible();
   const search = page.getByRole('search', { name: 'Search auctions' });

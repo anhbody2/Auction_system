@@ -28,7 +28,7 @@ describe('mail-003 change password by emailed link', () => {
     expect(res.status).toBe(200);
     expect(res.body.message).toBe('We sent a link to change your password to linky@example.com');
     const mail = getOutbox('linky@example.com').at(-1)!;
-    expect(mail.subject).toBe('Change your BidHouse password');
+    expect(mail.subject).toBe("Change your Beat'em password");
     expect(mail.html).toContain('/change-password/new?token=');
     const token = tokenIn(mail.text);
     expect((await prisma.passwordResetToken.findFirstOrThrow({ where: { user: { username: 'linky' }, usedAt: null } })).purpose).toBe('change');

@@ -15,7 +15,7 @@ const localTime = (d: Date, tz: number) => new Date(d.getTime() - tz * 60_000);
 /** stf-002: the same rows and summary the statistics page shows, as an .xlsx workbook. */
 export function auctionWorkbook(filter: StatFilter, rows: StatRow[], summary: StatSummary, insights?: Insights) {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'BidHouse';
+  wb.creator = "Beat'em";
   wb.created = new Date();
   const ws = wb.addWorksheet('Auctions', { views: [{ state: 'frozen', ySplit: 1 }] });
   ws.columns = [

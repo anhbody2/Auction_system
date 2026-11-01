@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { login, registerViaApi } from './helpers';
+import { login, openRoleNav, registerViaApi } from './helpers';
 
 const TAG = Date.now().toString(36);
 
@@ -30,6 +30,7 @@ test('stf-007: a top-up waits for staff approval; once approved the customer see
   const staffContext = await browser.newContext();
   const staff = await staffContext.newPage();
   await login(staff, 'staff');
+  await openRoleNav(staff);
   await staff.locator('header nav').getByRole('link', { name: 'Credit management' }).click();
   const fifty = staff.getByTestId(`request-${idOf(50)}`);
   const seventy = staff.getByTestId(`request-${idOf(70)}`);

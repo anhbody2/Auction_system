@@ -38,7 +38,7 @@ export function ChangePasswordButton({ label = 'Change password' }: { label?: st
     if (await send()) navigate(CHECK_EMAIL_PATH, { state: { sent: true } });
   };
   return (
-    <button className="btn btn-primary" type="button" onClick={onClick} disabled={busy}>
+    <button  className="btn btn-primary" type="button" onClick={onClick} disabled={busy}>
       {busy ? 'Sending...' : label}
     </button>
   );

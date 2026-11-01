@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { login, logout, registerViaApi, staffApi, testPng, uploadImageViaApi } from './helpers';
+import { login, logout, openRoleNav, registerViaApi, staffApi, testPng, uploadImageViaApi } from './helpers';
 
 const TAG = Date.now().toString(36);
 
@@ -36,6 +36,7 @@ test('stf-005: new goods wait for staff approval; staff search, page, edit and d
   }
 
   await login(page, 'staff');
+  await openRoleNav(page);
   await page.locator('header nav').getByRole('link', { name: 'Goods' }).click();
   await expect(page.getByRole('heading', { name: 'Goods management' })).toBeVisible();
   const search = page.getByRole('search', { name: 'Search goods' });

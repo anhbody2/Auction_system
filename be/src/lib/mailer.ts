@@ -35,7 +35,7 @@ const outbox: Mail[] = [];
  *  - otherwise -> null: the dev outbox
  */
 export function mailSettings(env: NodeJS.ProcessEnv = process.env) {
-  const name = env.MAIL_FROM_NAME ?? 'BidHouse';
+  const name = env.MAIL_FROM_NAME ?? "Beat'em";
   if (env.GMAIL_USER && env.GMAIL_CLIENT_ID && env.GMAIL_CLIENT_SECRET && env.GMAIL_REFRESH_TOKEN) {
     return {
       kind: 'gmail' as const,

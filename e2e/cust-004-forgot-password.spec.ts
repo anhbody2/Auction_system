@@ -15,7 +15,7 @@ test('cust-004: customer resets a forgotten password via a single-use link', asy
 
   // 3. Reset link issued by email (dev outbox)
   const outbox = await (await page.request.get('/api/dev/outbox?to=gina@example.com')).json();
-  const mail = outbox.mails.find((m: { subject: string }) => m.subject === 'Reset your BidHouse password');
+  const mail = outbox.mails.find((m: { subject: string }) => m.subject === "Reset your Beat'em password");
   const link = new URL(mail.text.match(/https?:\/\/\S+reset-password\?token=\w+/)[0]);
 
   // 4. Use it to set a new password

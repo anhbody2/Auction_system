@@ -65,6 +65,12 @@ export async function latestPasswordLink(page: Page, email: string) {
   return url.pathname + url.search;
 }
 
+/** hdr-1.4: staff/admin role links fold into the header "Dashboard" menu when they do not fit; opens it if so. */
+export async function openRoleNav(page: Page) {
+  const toggle = page.getByTestId('nav-dashboard');
+  if ((await toggle.count()) && (await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
+}
+
 export async function logout(page: Page) {
   // ui-0.1: Log out lives in the avatar menu.
   await page.getByTestId('avatar').click();

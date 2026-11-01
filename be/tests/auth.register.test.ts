@@ -42,7 +42,7 @@ describe('guest-001 register', () => {
 
     const mails = getOutbox('dave@example.com');
     expect(mails).toHaveLength(1);
-    expect(mails[0].subject).toBe('Confirm your BidHouse account');
+    expect(mails[0].subject).toBe("Confirm your Beat'em account");
     const token = mails[0].text.match(/token=([a-f0-9]+)/)![1];
 
     const verify = await request(app).post('/api/auth/verify-email').send({ token });
