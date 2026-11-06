@@ -531,6 +531,13 @@
 - Left uncommitted (user's): fe/src/styles.css footer background line, be/chat.py
 - Next best step: look at sec-003, then settle the hdr-* states
 
+### Session 019: low-priority e2e specs removed (2026-11-06)
+
+- User asked to delete all low-priority e2e specs. Removed 16: hdr-1-1, hdr-1-2, hdr-1-3, home-1-2, home-2-2, theme-1-1, sell-007, ui-0-1, ui-1a-1, ui-1a-2, ui-1a-3, ui-1b-1, ui-2a-3, ui-3a-1, ui-3a-2, ui-3b-2. Not committed; `git restore e2e/` brings them back
+- Verification: `playwright test --list` loads 75 tests in 65 files (64 specs plus e2e/_shots/s.spec.ts). The suite was not run
+- Open: feature_list.json still names the deleted hdr-* and ui-0-1 specs as verification for hdr-1.1 to hdr-1.3, which are unfinished. The list was left unchanged
+- Next best step: user decides how hdr-1.1 to hdr-1.3 get verified, then look at sec-003
+
 ### Session 020: sec-003 spec fixed (2026-11-06)
 
 - Cause: the spec clicked getByRole('link', { name: 'My goods' }), which also matches the site footer link, so Playwright stopped on a strict mode violation. Refresh code was never reached and is not at fault

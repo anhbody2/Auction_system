@@ -93,7 +93,7 @@ h2 { font-size: 1.2rem; margin: 1.5rem 0 0.75rem; font-weight: 800; }
 /* Site footer: intro left, ruled link columns right, outlined wordmark fading into the bottom bar. */
 #root { min-height: 100vh; display: flex; flex-direction: column; }
 #root > main.container { flex: 1 0 auto; width: 100%; }
-.site-footer { background: #030608; border-top: 1px solid var(--border); overflow: hidden; }
+.site-footer { border-top: 1px solid var(--border); overflow: hidden; }
 .site-footer-inner { max-width: 1240px; margin: 0 auto; padding: 3rem 1rem 0; }
 .footer-top { display: grid; grid-template-columns: minmax(0, 1.25fr) repeat(3, minmax(0, 1fr)); gap: 3.5rem; }
 .footer-intro { display: flex; flex-direction: column; align-items: flex-start; gap: 1.25rem; }
