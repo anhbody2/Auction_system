@@ -524,9 +524,18 @@
 - User asked for a custom Facebook chat box component on top of their be/chat.py (Messenger webhook + Gemini). Added chat-1.1 to feature_list.json
 - chat-1.1: fe/src/components/MessengerChat.tsx, a floating button and box that opens https://m.me/<VITE_FACEBOOK_PAGE>; hidden when unset. Toasts moved up to clear it
 - Verification: fe vitest 162 pass, fe build ok, one-off browser check at 1440px and 375px. User stopped the e2e run ('redundant test'), so there is no chat spec and Playwright was not rerun
-- Baseline: ./init.sh was stopped at the user's request during Playwright. Be and fe unit stages had passed; e2e tests 1-66 passed, test 67 sec-003-refresh-token failed in 1.0s, before any code change. Cause not investigated. Remaining specs never ran
+- Baseline: ./init.sh was stopped at the user's request during Playwright. Be and fe unit stages had passed; the e2e run reached test 69 of 132 with 60 passed and 9 failed, before any code change: adm-001, adm-003, adm-005, crd-003, cust-002, cust-006, gds-001, sec-003, sec-005. (Corrected in session 020; this line first said tests 1-66 passed.) Remaining specs never ran
 - Still needed: VITE_FACEBOOK_PAGE in fe/.env (page name unknown); be/chat.py still uncommitted (user's)
 - be/chat.py issues left for the user: no X-Hub-Signature-256 check on POST /webhook; no is_echo skip despite the comment; home() has no route
 - feature_list.json: hdr-1.1 to hdr-1.3 still show in_progress / not_started with empty evidence though their code, specs and docs were committed in 438bbe0; hdr-1.4 is in the code but not in the list. Not changed, so round 11 is not archived
 - Left uncommitted (user's): fe/src/styles.css footer background line, be/chat.py
 - Next best step: look at sec-003, then settle the hdr-* states
+
+### Session 020: sec-003 spec fixed (2026-11-06)
+
+- Cause: the spec clicked getByRole('link', { name: 'My goods' }), which also matches the site footer link, so Playwright stopped on a strict mode violation. Refresh code was never reached and is not at fault
+- Fix: scoped the click to 'header nav' in e2e/sec-003-refresh-token.spec.ts. No assertion changed
+- Verification: `npx playwright test e2e/sec-003-refresh-token.spec.ts` 1 passed. Full suite not run
+- Prisma P1017 / P1001 errors in the stopped baseline came from the database going away when that run was stopped, not from refresh code; sec-005 failed at that time, so it probably failed for the same reason (not rerun)
+- Still failing or unknown from that baseline: adm-001, adm-003, adm-005, crd-003, cust-002, cust-006, gds-001, sec-005. Their error details were overwritten by the sec-003 run. cust-002, gds-001 and sys-004 still have the same unscoped link pattern
+- Next best step: run those eight specs alone and fix what remains

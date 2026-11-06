@@ -29,7 +29,7 @@ test('sec-003: the session renews itself after the access cookie expires; logout
 
   // The access cookie expires; the next protected page renews it in the background instead of signing out.
   await expireAccessCookie(context);
-  await page.getByRole('link', { name: 'My goods' }).click();
+  await page.locator('header nav').getByRole('link', { name: 'My goods' }).click();
   await expect(page).toHaveURL(/\/goods$/);
   await expect(page.getByRole('heading', { name: 'My goods' })).toBeVisible();
   await expect(page.getByTestId('current-user')).toContainText(user);
