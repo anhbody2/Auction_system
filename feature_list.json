@@ -104,6 +104,30 @@
       "notes": "CSS only: .topbar padding-inline = max(1rem, (100% - 1240px)/2 + 1rem), mirroring .container.",
       "evidence": [],
       "status": "in_progress"
+    },
+    {
+      "id": "chat-1.1",
+      "priority": 4,
+      "role": "all",
+      "area": "ui",
+      "srs_ref": "User request 2026-11-06: custom component for the Facebook chat box; backend be/chat.py already set up",
+      "title": "Floating Messenger chat box",
+      "user_visible_behavior": "Every page shows a Messenger button in the bottom-right corner. It opens a small chat box whose link starts a conversation with the Facebook page in Messenger, where the be/chat.py bot replies.",
+      "acceptance": [
+        "With VITE_FACEBOOK_PAGE set, guests and signed-in users see the button on every page using the main layout.",
+        "The button opens and closes the box; Escape and a click outside close it.",
+        "The box links to https://m.me/<page> in a new tab.",
+        "Without VITE_FACEBOOK_PAGE nothing renders.",
+        "Toasts do not sit under the button."
+      ],
+      "verification": [
+        "fe vitest and fe build pass (user 2026-11-06: no e2e for this feature, 'redundant test')",
+        "One-off browser check and screenshots at 1440px and 375px",
+        "docs/changes/chat-1.1.md"
+      ],
+      "notes": "Facebook retired the embeddable Customer Chat plugin in 2024 and be/chat.py only speaks to Messenger, so the box hands off to m.me; messages are not typed on the site. Typing on the site would need a new web endpoint.",
+      "evidence": ["2026-11-06: fe vitest 26 files / 162 tests pass, fe build ok; one-off browser check at 1440px and 375px: open, m.me link in a new tab, Escape and outside click close, no sideways scroll; without VITE_FACEBOOK_PAGE no button; screenshots reviewed. Toast position not checked in a browser. Playwright suite not run, at the user's request."],
+      "status": "passing"
     }
   ]
 }
